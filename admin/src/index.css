@@ -1,0 +1,84 @@
+/* ═══════════════════════════════════════════════
+   Vidhan.ai Admin — Global Design System
+   ═══════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #030712;
+  --bg-2:        #080f1e;
+  --bg-card:     #0b1120;
+  --bg-card-2:   #0f1729;
+  --surface:     rgba(255,255,255,0.04);
+  --surface-2:   rgba(255,255,255,0.07);
+  --border:      rgba(255,255,255,0.08);
+  --border-2:    rgba(255,255,255,0.13);
+  --indigo:      #6366f1;
+  --indigo-dim:  rgba(99,102,241,0.15);
+  --cyan:        #06b6d4;
+  --cyan-dim:    rgba(6,182,212,0.12);
+  --green:       #22c55e;
+  --amber:       #f59e0b;
+  --red:         #ef4444;
+  --purple:      #a78bfa;
+  --text:        #f1f5f9;
+  --text-muted:  #94a3b8;
+  --text-faint:  #475569;
+  --grad:        linear-gradient(135deg, #6366f1, #06b6d4);
+  --grad-green:  linear-gradient(135deg, #22c55e, #06b6d4);
+  --grad-amber:  linear-gradient(135deg, #f59e0b, #ef4444);
+  --shadow-card: 0 8px 40px rgba(0,0,0,0.5);
+  --sidebar-w:   260px;
+  --font:        'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --radius:      16px;
+  --radius-sm:   10px;
+  --ease:        cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+html { font-size: 16px; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { text-decoration: none; color: inherit; }
+
+input, textarea, select, button {
+  font-family: var(--font);
+  outline: none;
+}
+
+button { cursor: pointer; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.25); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.45); }
+
+/* Animations */
+@keyframes fadeUp   { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+@keyframes spin     { to { transform:rotate(360deg); } }
+@keyframes shimmer  { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+@keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.4} }
+@keyframes glow-pulse {
+  0%,100% { box-shadow: 0 0 12px rgba(99,102,241,0.3); }
+  50%     { box-shadow: 0 0 28px rgba(99,102,241,0.65); }
+}
+
+/* Utilities */
+.fade-up   { animation: fadeUp  0.45s var(--ease) both; }
+.fade-in   { animation: fadeIn  0.35s ease both; }
+.spin      { animation: spin    0.75s linear infinite; }
+.gradient-text {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

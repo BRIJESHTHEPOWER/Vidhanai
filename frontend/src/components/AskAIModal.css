@@ -1,0 +1,110 @@
+/* ── Ask AI Modal ── */
+.am-overlay {
+  position: fixed; inset: 0; background: rgba(3,7,18,0.7);
+  backdrop-filter: blur(12px); z-index: 2200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px; animation: fadeIn 180ms ease;
+}
+.am-panel {
+  background: rgba(5,11,24,0.98); border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 20px; width: 100%; max-width: 560px; height: 580px;
+  display: flex; flex-direction: column;
+  box-shadow: 0 32px 100px rgba(0,0,0,0.7), 0 0 40px rgba(99,102,241,0.1);
+  animation: fadeInUp 230ms cubic-bezier(0.16,1,0.3,1) both; overflow: hidden;
+}
+
+.am-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; }
+.am-header-info { display: flex; align-items: center; gap: 10px; }
+.am-ai-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 8px #22c55e; animation: pulse-glow 2s ease-in-out infinite; flex-shrink: 0; }
+.am-header-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem; font-weight: 700; color: #f1f5f9; display: block; }
+.am-header-sub { font-size: 0.68rem; color: #475569; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.am-header-actions { display: flex; align-items: center; gap: 6px; }
+.am-lang { position: relative; }
+.am-lang-btn { display: flex; align-items: center; gap: 5px; padding: 5px 9px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; font-size: 0.75rem; color: #94a3b8; cursor: pointer; transition: all 0.2s; }
+.am-lang-btn:hover { background: rgba(99,102,241,0.1); color: #a5b4fc; }
+.am-lang-dropdown { position: absolute; top: calc(100% + 6px); right: 0; z-index: 400; background: rgba(8,12,24,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 5px; min-width: 160px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); animation: fadeInUp 0.15s ease both; }
+.am-lang-option { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border-radius: 8px; font-size: 0.8rem; color: #94a3b8; background: none; border: none; cursor: pointer; transition: all 0.15s; }
+.am-lang-option:hover { background: rgba(255,255,255,0.05); color: #f1f5f9; }
+.am-lang-option--active { background: rgba(99,102,241,0.1); color: #a5b4fc; }
+.am-close { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 0.8rem; cursor: pointer; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); transition: all 200ms; }
+.am-close:hover { color: #f87171; }
+
+.am-messages { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; scrollbar-width: thin; scrollbar-color: rgba(99,102,241,0.3) transparent; }
+.am-msg { display: flex; gap: 8px; align-items: flex-start; animation: fadeInUp 200ms ease both; }
+.am-msg--user { flex-direction: row-reverse; }
+.am-avatar { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+.am-bubble-group { display: flex; flex-direction: column; gap: 4px; max-width: 80%; }
+.am-bubble { padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; line-height: 1.65; white-space: pre-wrap; }
+.am-msg--assistant .am-bubble { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: #cbd5e1; border-bottom-left-radius: 4px; }
+.am-msg--user .am-bubble { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.25); color: #e2e8f0; border-bottom-right-radius: 4px; }
+.am-ipc-badge { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 0.75em; font-weight: 600; padding: 1px 7px; border-radius: 4px; background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); color: #c4b5fd; margin: 0 2px; }
+.am-tts { width: 22px; height: 22px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; background: none; border: none; cursor: pointer; color: #334155; transition: all 0.15s; }
+.am-tts:hover { background: rgba(255,255,255,0.05); color: #94a3b8; }
+.am-tts--active { color: #22d3ee; }
+
+.am-bubble--thinking { display: flex; align-items: center; gap: 5px; padding: 14px 18px; }
+.am-bubble--thinking span { width: 7px; height: 7px; border-radius: 50%; background: #6366f1; animation: thinking-dot 1.2s ease-in-out infinite; }
+.am-bubble--thinking span:nth-child(2) { animation-delay: 0.2s; }
+.am-bubble--thinking span:nth-child(3) { animation-delay: 0.4s; }
+
+.am-suggestions { padding: 0 20px 12px; display: flex; flex-direction: column; gap: 6px; }
+.am-suggestion-btn { text-align: left; padding: 8px 12px; border-radius: 9px; font-size: 0.78rem; color: #64748b; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); cursor: pointer; transition: all 200ms ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.am-suggestion-btn:hover { color: #a5b4fc; background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.25); }
+
+.am-input-row { display: flex; align-items: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.07); flex-shrink: 0; }
+.am-input { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 11px; padding: 10px 14px; color: #f1f5f9; font-size: 0.88rem; resize: none; outline: none; line-height: 1.5; transition: border-color 200ms ease; font-family: var(--font-body, sans-serif); max-height: 80px; overflow-y: auto; }
+.am-input::placeholder { color: #334155; }
+.am-input:focus { border-color: rgba(99,102,241,0.4); box-shadow: 0 0 14px rgba(99,102,241,0.12); }
+.am-mic { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #64748b; cursor: pointer; transition: all 0.2s; position: relative; overflow: visible; flex-shrink: 0; }
+.am-mic:hover { background: rgba(34,211,238,0.1); border-color: rgba(34,211,238,0.3); color: #22d3ee; }
+.am-mic--active { background: rgba(34,211,238,0.15); border-color: rgba(34,211,238,0.5); color: #22d3ee; }
+.am-mic-ring { position: absolute; inset: -5px; border-radius: 50%; border: 2px solid rgba(34,211,238,0.4); animation: voice-ring 1.2s ease-out infinite; }
+.am-send-btn { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: #334155; cursor: not-allowed; transition: all 200ms ease; flex-shrink: 0; }
+.am-send-btn--active { background: linear-gradient(135deg, #6366f1, #8b5cf6); border-color: transparent; color: #fff; cursor: pointer; box-shadow: 0 0 16px rgba(99,102,241,0.4); }
+.am-send-btn--active:hover { transform: scale(1.05); }
+.am-hint { font-size: 0.66rem; color: #1e293b; text-align: center; padding: 0 0 10px; flex-shrink: 0; }
+
+@media (max-width: 580px) {
+  .am-panel { height: 85vh; max-width: 100%; border-radius: 16px; }
+  .am-header-sub { max-width: 160px; }
+}
+
+/* ── A1: Inline voice error toast ── */
+.am-voice-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 0;
+  font-size: 0.78rem;
+  color: #fcd34d;
+  flex-shrink: 0;
+  animation: fadeIn 0.2s ease;
+}
+.am-voice-error button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #fcd34d;
+  font-size: 0.8rem;
+  opacity: 0.6;
+  flex-shrink: 0;
+  padding: 0 4px;
+  transition: opacity 0.15s;
+}
+.am-voice-error button:hover { opacity: 1; }
+
+/* ── A1: Mic disabled state ── */
+.am-mic--disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.am-mic--disabled:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.1);
+  color: #64748b;
+}
+

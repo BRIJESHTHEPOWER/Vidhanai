@@ -1,0 +1,26 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+pymongo==4.6.0
+pydantic==2.5.0
+python-dotenv==1.0.0
+python-multipart==0.0.6
+aiofiles==23.2.1
+openai==1.3.5
+pillow==10.1.0
+faiss-cpu==1.7.4
+numpy==1.24.3
+langchain==0.1.3
+langchain-community==0.0.8
+requests==2.31.0
+beautifulsoup4==4.12.2
+httpx==0.25.1
+groq
+google-generativeai
+sentence-transformers
+slowapi
+pyjwt
+bcrypt
+
+# Local TTS (JD voice lessons) — fully offline, no API key
+kokoro>=0.9.4
+soundfile

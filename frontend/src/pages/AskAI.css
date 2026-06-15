@@ -1,0 +1,1483 @@
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   AskAI â€” Premium Youth-Focused Legal Chat UI
+   Dark glassmorphism Â· Neon accents Â· Smooth micro-animations
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+/* â”€â”€ Root Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.askai-root {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: #040710;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(99,102,241,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(6,182,212,0.08) 0%, transparent 60%);
+  font-family: 'Inter', sans-serif;
+}
+
+/* â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.askai-sidebar {
+  width: 256px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(8,10,24,0.96);
+  border-right: 1px solid rgba(255,255,255,0.06);
+  padding: 20px 14px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.askai-sidebar::-webkit-scrollbar { display: none; }
+
+/* Logo */
+.askai-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  margin-bottom: 24px;
+  padding: 11px 14px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08));
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 14px;
+  transition: all 0.2s;
+}
+.askai-logo:hover {
+  background: linear-gradient(135deg, rgba(99,102,241,0.22), rgba(139,92,246,0.14));
+  border-color: rgba(99,102,241,0.5);
+  box-shadow: 0 0 20px rgba(99,102,241,0.15);
+}
+
+/* Nav links */
+.askai-sidenav { display: flex; flex-direction: column; gap: 2px; margin-bottom: 24px; }
+.askai-sidenav-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.45);
+  text-decoration: none;
+  transition: all 0.18s ease;
+}
+.askai-sidenav-link:hover {
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.85);
+  transform: translateX(3px);
+}
+
+/* Divider */
+.askai-sidebar-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  margin: 12px 0;
+}
+
+/* Quick asks */
+.askai-sidebar-bottom { margin-top: auto; padding-top: 16px; }
+.askai-quick-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.2);
+  margin-bottom: 10px;
+  padding: 0 2px;
+}
+.askai-quick-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 11px;
+  margin-bottom: 5px;
+  border-radius: 10px;
+  font-size: 0.77rem;
+  font-weight: 400;
+  color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.05);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  line-height: 1.45;
+}
+.askai-quick-btn::before {
+  content: '›';
+  color: rgba(99,102,241,0.5);
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.askai-quick-btn:hover {
+  background: rgba(99,102,241,0.1);
+  border-color: rgba(99,102,241,0.25);
+  color: rgba(255,255,255,0.75);
+  transform: translateX(2px);
+}
+
+/* â”€â”€ Main Chat Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.askai-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* â”€â”€ Top Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.askai-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: rgba(4,7,16,0.7);
+  backdrop-filter: blur(24px);
+  flex-shrink: 0;
+  z-index: 100;
+}
+.askai-topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.askai-ai-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 10px #22c55e88;
+  animation: ai-dot-pulse 2.2s ease-in-out infinite;
+}
+@keyframes ai-dot-pulse {
+  0%, 100% { box-shadow: 0 0 6px #22c55e88; }
+  50%       { box-shadow: 0 0 16px #22c55ecc; }
+}
+.askai-topbar-title span {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fff;
+}
+.askai-topbar-sub {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.3);
+  font-weight: 400;
+  background: rgba(255,255,255,0.06);
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* â”€â”€ Language Selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.askai-lang { position: relative; }
+.askai-lang-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  font-size: 0.81rem;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.askai-lang-btn:hover {
+  background: rgba(255,255,255,0.09);
+  color: #fff;
+  border-color: rgba(255,255,255,0.2);
+}
+.askai-lang-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 300;
+  background: rgba(8,12,28,0.98);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 6px;
+  min-width: 215px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(99,102,241,0.1);
+  animation: langDrop 0.15s ease both;
+}
+@keyframes langDrop {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.askai-lang-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  color: rgba(255,255,255,0.55);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.askai-lang-option:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.askai-lang-option--active {
+  background: rgba(99,102,241,0.14);
+  color: #a5b4fc;
+}
+.askai-lang-en { margin-left: auto; font-size: 0.7rem; color: rgba(255,255,255,0.25); }
+
+/* â”€â”€ Messages Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.askai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 28px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99,102,241,0.25) transparent;
+}
+.askai-messages::-webkit-scrollbar { width: 4px; }
+.askai-messages::-webkit-scrollbar-thumb {
+  background: rgba(99,102,241,0.3);
+  border-radius: 4px;
+}
+
+/* â”€â”€ Message Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.askai-msg {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  animation: msgSlideIn 0.35s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes msgSlideIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.askai-msg--user { flex-direction: row-reverse; }
+
+/* Avatar */
+.askai-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 1rem;
+  background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.18));
+  border: 1.5px solid rgba(99,102,241,0.35);
+  box-shadow: 0 0 12px rgba(99,102,241,0.2);
+}
+.askai-avatar--user {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-color: transparent;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #fff;
+  box-shadow: 0 0 16px rgba(99,102,241,0.4);
+}
+
+.askai-bubble-wrap {
+  max-width: 88%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.askai-msg--assistant .askai-bubble-wrap { max-width: 90%; }
+.askai-msg--user .askai-bubble-wrap { align-items: flex-end; max-width: 70%; }
+
+/* â”€â”€ Chat Bubbles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.askai-bubble {
+  padding: 14px 18px;
+  border-radius: 18px;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  animation: bubbleIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes bubbleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* AI bubble â€” glassmorphism card */
+.askai-msg--assistant .askai-bubble {
+  background: linear-gradient(145deg, rgba(255,255,255,0.045) 0%, rgba(99,102,241,0.04) 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-bottom-left-radius: 4px;
+  color: rgba(255,255,255,0.88);
+  box-shadow:
+    0 4px 24px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px);
+}
+
+/* User bubble â€” vibrant gradient */
+.askai-msg--user .askai-bubble {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+  border: none;
+  box-shadow:
+    0 4px 24px rgba(99,102,241,0.35),
+    0 1px 0 rgba(255,255,255,0.1) inset;
+}
+
+/* Simplified view â€” distinct teal/green accent */
+.askai-bubble--simplified {
+  background: linear-gradient(145deg, rgba(6,182,212,0.07), rgba(16,185,129,0.05)) !important;
+  border-color: rgba(6,182,212,0.2) !important;
+  box-shadow: 0 4px 24px rgba(6,182,212,0.1), inset 0 1px 0 rgba(6,182,212,0.08) !important;
+  position: relative;
+}
+.askai-bubble--simplified::before {
+  content: '✨ Simplified';
+  position: absolute;
+  top: -10px;
+  left: 16px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #22d3ee;
+  background: rgba(6,182,212,0.15);
+  border: 1px solid rgba(6,182,212,0.3);
+  padding: 1px 8px;
+  border-radius: 20px;
+}
+
+/* Thinking dots */
+.askai-bubble--thinking {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 16px 22px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.035), rgba(99,102,241,0.03)) !important;
+}
+.askai-bubble--thinking span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #22d3ee);
+  animation: thinkBounce 1.3s ease-in-out infinite;
+}
+.askai-bubble--thinking span:nth-child(2) { animation-delay: 0.18s; }
+.askai-bubble--thinking span:nth-child(3) { animation-delay: 0.36s; }
+@keyframes thinkBounce {
+  0%, 80%, 100% { transform: scale(0.55) translateY(0); opacity: 0.4; }
+  40%            { transform: scale(1.1) translateY(-6px); opacity: 1; }
+}
+
+/* Enhanced loading indicator with status + timer */
+.askai-loading-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 22px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.035), rgba(99,102,241,0.03)) !important;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-bottom-left-radius: 4px;
+  border-radius: 18px;
+  animation: bubbleIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
+}
+.askai-loading-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.askai-loading-dots {
+  display: flex;
+  gap: 5px;
+}
+.askai-loading-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #22d3ee);
+  animation: thinkBounce 1.3s ease-in-out infinite;
+}
+.askai-loading-dots span:nth-child(2) { animation-delay: 0.18s; }
+.askai-loading-dots span:nth-child(3) { animation-delay: 0.36s; }
+.askai-loading-text {
+  font-size: 0.76rem;
+  color: rgba(255,255,255,0.35);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.askai-loading-timer {
+  font-size: 0.65rem;
+  color: rgba(99,102,241,0.5);
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-weight: 600;
+  margin-left: auto;
+  min-width: 28px;
+  text-align: right;
+}
+
+/* Streaming cursor â€” blinks at end of partial AI answer */
+.askai-streaming-cursor::after {
+  content: '▌';
+  display: inline-block;
+  color: #6366f1;
+  animation: streamBlink 0.65s steps(1) infinite;
+  margin-left: 1px;
+  font-size: 0.85em;
+  vertical-align: baseline;
+}
+@keyframes streamBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* IPC Section badges â€” historical reference (purple) */
+.askai-ipc {
+  display: inline-block;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.75em;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: rgba(139,92,246,0.18);
+  border: 1px solid rgba(139,92,246,0.35);
+  color: #c4b5fd;
+  cursor: default;
+  margin: 0 2px;
+  transition: all 0.15s;
+}
+.askai-ipc:hover {
+  background: rgba(139,92,246,0.28);
+  box-shadow: 0 0 8px rgba(139,92,246,0.25);
+}
+
+/* BNS Section badges â€” current law (teal/green) */
+.askai-bns {
+  display: inline-block;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.75em;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: rgba(6,182,212,0.15);
+  border: 1px solid rgba(6,182,212,0.35);
+  color: #22d3ee;
+  cursor: default;
+  margin: 0 2px;
+  transition: all 0.15s;
+}
+.askai-bns:hover {
+  background: rgba(6,182,212,0.25);
+  box-shadow: 0 0 8px rgba(6,182,212,0.3);
+}
+
+
+/* â”€â”€ Action Buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.askai-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 2px 0;
+}
+.askai-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 13px;
+  border-radius: 8px;
+  font-size: 0.71rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: 'Inter', inherit;
+  letter-spacing: 0.01em;
+}
+.askai-action-btn:hover {
+  color: rgba(255,255,255,0.85);
+  background: rgba(99,102,241,0.12);
+  border-color: rgba(99,102,241,0.3);
+  transform: translateY(-1px);
+}
+.askai-action-btn:active { transform: translateY(0); }
+
+/* Explain Simply â€” cyan accent */
+.askai-action-btn--explain {
+  color: #22d3ee;
+  background: rgba(6,182,212,0.07);
+  border-color: rgba(6,182,212,0.2);
+}
+.askai-action-btn--explain:hover {
+  color: #67e8f9;
+  background: rgba(6,182,212,0.14);
+  border-color: rgba(6,182,212,0.4);
+  box-shadow: 0 0 14px rgba(6,182,212,0.2);
+}
+.askai-action-btn--explain--loading {
+  opacity: 0.6;
+  cursor: not-allowed;
+  animation: explainPulse 1s ease-in-out infinite;
+}
+@keyframes explainPulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 0.9; }
+}
+
+/* Visualize Case â€” amber accent */
+.askai-action-btn--visualize {
+  color: #f59e0b;
+  background: rgba(245,158,11,0.07);
+  border-color: rgba(245,158,11,0.22);
+}
+.askai-action-btn--visualize:hover {
+  color: #fbbf24;
+  background: rgba(245,158,11,0.14);
+  border-color: rgba(245,158,11,0.4);
+  box-shadow: 0 0 14px rgba(245,158,11,0.2);
+}
+.askai-action-btn--visualize-active {
+  color: #fbbf24;
+  background: rgba(245,158,11,0.16);
+  border-color: rgba(245,158,11,0.45);
+  box-shadow: 0 0 10px rgba(245,158,11,0.18);
+}
+
+/* Comic button â€” pink/purple accent */
+.askai-action-btn--comic {
+  color: #ec4899;
+  background: rgba(236,72,153,0.08);
+  border-color: rgba(236,72,153,0.25);
+  font-weight: 600;
+}
+.askai-action-btn--comic:hover {
+  color: #f472b6;
+  background: rgba(236,72,153,0.15);
+  border-color: rgba(236,72,153,0.45);
+  box-shadow: 0 0 14px rgba(236,72,153,0.25);
+}
+
+/* Copy â€” icon only */
+.askai-action-btn--copy { padding: 5px 10px; }
+
+/* TTS button */
+.askai-msg-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.67rem;
+  color: rgba(255,255,255,0.2);
+  padding: 0 2px;
+}
+.askai-tts-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255,255,255,0.25);
+  transition: all 0.15s;
+}
+.askai-tts-btn:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); }
+.askai-tts-btn--active { color: #22d3ee; }
+
+/* â”€â”€ Story breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.askai-story {
+  margin-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding-top: 14px;
+}
+.askai-story-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.25);
+  margin-bottom: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.askai-story-step {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 7px;
+  transition: background 0.15s;
+}
+.askai-story-step:hover { background: rgba(99,102,241,0.06); }
+.askai-story-icon { font-size: 1rem; flex-shrink: 0; }
+.askai-story-phase {
+  font-size: 0.67rem;
+  font-weight: 700;
+  color: #6366f1;
+  margin-bottom: 3px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.askai-story-text { font-size: 0.81rem; color: rgba(255,255,255,0.5); line-height: 1.55; }
+
+/* â”€â”€ Input Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.askai-input-wrap {
+  padding: 16px 24px 20px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  background: rgba(4,7,16,0.6);
+  backdrop-filter: blur(24px);
+  flex-shrink: 0;
+}
+
+.askai-input-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(99,102,241,0.3);
+  border-radius: 18px;
+  padding: 12px 14px 12px 18px;
+  box-shadow: 0 0 0 1px rgba(99,102,241,0.06), 0 4px 24px rgba(99,102,241,0.1);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.askai-input-box:focus-within {
+  border-color: rgba(99,102,241,0.6);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.12), 0 0 34px rgba(99,102,241,0.18);
+}
+.askai-input-box--listening {
+  border-color: rgba(34,211,238,0.5);
+  box-shadow: 0 0 0 3px rgba(34,211,238,0.07), 0 0 30px rgba(34,211,238,0.1);
+}
+
+.askai-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.9);
+  line-height: 1.55;
+  resize: none;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.askai-input::placeholder { color: rgba(255,255,255,0.22); }
+
+.askai-input-actions { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+
+/* Mic button */
+.askai-mic-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99,102,241,0.08);
+  border: 1.5px solid rgba(99,102,241,0.22);
+  color: rgba(255,255,255,0.65);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: visible;
+}
+.askai-mic-btn:hover {
+  background: rgba(34,211,238,0.1);
+  border-color: rgba(34,211,238,0.35);
+  color: #22d3ee;
+  transform: scale(1.05);
+}
+.askai-mic-btn--active {
+  background: rgba(34,211,238,0.15);
+  border-color: rgba(34,211,238,0.55);
+  color: #22d3ee;
+  animation: micGlow 1.4s ease-in-out infinite;
+}
+@keyframes micGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(34,211,238,0.3); }
+  50%       { box-shadow: 0 0 20px rgba(34,211,238,0.6); }
+}
+.askai-mic-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid rgba(34,211,238,0.4);
+  animation: micRing 1.2s ease-out infinite;
+}
+@keyframes micRing {
+  from { opacity: 0.8; transform: scale(1); }
+  to   { opacity: 0; transform: scale(1.5); }
+}
+
+/* Send button */
+.askai-send-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99,102,241,0.08);
+  border: 1.5px solid rgba(99,102,241,0.22);
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.askai-send-btn--active {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.45);
+}
+.askai-send-btn--active:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 28px rgba(99,102,241,0.6);
+}
+
+.askai-input-hint {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.18);
+  margin-top: 9px;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .askai-sidebar { display: none; }
+  .askai-messages { padding: 16px; }
+  .askai-input-wrap { padding: 12px 14px 16px; }
+  .askai-bubble-wrap { max-width: 92%; }
+  .askai-msg--user .askai-bubble-wrap { max-width: 80%; }
+}
+
+/* ── Right Sidebar ──────────────────────────────────────────────────────── */
+.askai-right-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(8,10,24,0.96);
+  border-left: 1px solid rgba(255,255,255,0.06);
+  padding: 20px 16px;
+  overflow-y: auto;
+  gap: 20px;
+  scrollbar-width: none;
+}
+.askai-right-sidebar::-webkit-scrollbar { display: none; }
+
+.askai-rs-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 16px;
+}
+.askai-rs-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #a5b4fc;
+  margin-bottom: 12px;
+}
+.askai-rs-cap-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.askai-rs-cap-item:last-child { margin-bottom: 0; }
+.askai-rs-cap-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(99,102,241,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: #8b5cf6;
+  flex-shrink: 0;
+}
+.askai-rs-cap-text h4 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  margin: 0 0 2px 0;
+}
+.askai-rs-cap-text p {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.4);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.askai-rs-query {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.askai-rs-query:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+.askai-rs-query h4 {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.85);
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.askai-rs-query p {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.4);
+  margin: 0;
+}
+.askai-rs-btn {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  text-align: center;
+  background: rgba(99,102,241,0.1);
+  color: #a5b4fc;
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 12px;
+}
+.askai-rs-btn:hover {
+  background: rgba(99,102,241,0.2);
+}
+.askai-rs-disclaimer p {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.5;
+  margin: 0 0 12px 0;
+}
+
+/* ── Topbar extra icons ──────────────────────────────────────────────────────── */
+.askai-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.askai-top-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+.askai-top-icon-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.askai-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #8b5cf6;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 10px;
+  line-height: 1;
+}
+.askai-avatar-top {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+/* ── Main Chat Greeting & Chips ──────────────────────────────────────────────────────── */
+.askai-greeting {
+  padding: 0 28px;
+  margin-bottom: 24px;
+}
+.askai-greeting h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+.askai-greeting p {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.5);
+  margin: 0 0 16px 0;
+}
+
+/* ── Markdown / Highlighted text ──────────────────────────────────────────────────────── */
+.askai-highlight {
+  color: #c4b5fd;
+  font-weight: 600;
+}
+
+/* ── Inline Case Visualization (Visualize Case) ──────────────────────────────── */
+.askai-case {
+  margin-top: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(129, 140, 248, 0.28);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.askai-case-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.askai-case-icon { font-size: 1.5rem; line-height: 1; }
+.askai-case-title { font-size: 0.98rem; font-weight: 700; color: #f1f5f9; }
+.askai-case-sub { font-size: 0.78rem; color: #a5b4fc; margin-top: 2px; }
+
+.askai-case-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.askai-case-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: #94a3b8;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.askai-case-tab:hover { background: rgba(255, 255, 255, 0.08); }
+.askai-case-tab--active {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: rgba(129, 140, 248, 0.5);
+  color: #e0e7ff;
+}
+.askai-case-tab--done { color: #6ee7b7; }
+.askai-case-tab-num { font-size: 0.95rem; line-height: 1; }
+
+.askai-case-panel {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.askai-case-panel-phase {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #818cf8;
+}
+.askai-case-panel-title { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; margin: 3px 0 6px; }
+.askai-case-panel-story { font-size: 0.9rem; line-height: 1.6; color: #cbd5e1; margin: 0; }
+.askai-case-panel-ref {
+  margin-top: 8px;
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.14);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+.askai-case-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+.askai-case-nav-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 7px 14px;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.askai-case-nav-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); }
+.askai-case-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.askai-case-nav-btn--primary {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  color: #fff;
+}
+.askai-case-nav-count { font-size: 0.78rem; color: #94a3b8; }
+
+.askai-case-error {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+/* ── History sidebar ─────────────────────────────────────────────────────────── */
+.askai-rs-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.askai-rs-newchat {
+  background: rgba(99, 102, 241, 0.16);
+  border: 1px solid rgba(129, 140, 248, 0.4);
+  color: #a5b4fc;
+  border-radius: 7px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.askai-rs-newchat:hover { background: rgba(99, 102, 241, 0.28); }
+.askai-rs-empty {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 8px 0 0;
+}
+button.askai-rs-query {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+button.askai-rs-query:hover { background: rgba(255, 255, 255, 0.05); }
+
+/* ── Chat History list (ChatGPT/Claude-style threads) ───────────────────────── */
+.askai-history-card { display: flex; flex-direction: column; }
+.askai-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.askai-history-list::-webkit-scrollbar { display: none; }
+.askai-history-item {
+  position: relative;
+  padding-right: 28px;
+}
+.askai-history-item--active {
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(129, 140, 248, 0.35);
+}
+.askai-history-item--active h4 { color: #c7d2fe; }
+.askai-history-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  color: rgba(255,255,255,0.25);
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+.askai-history-item:hover .askai-history-delete { opacity: 1; }
+.askai-history-delete:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+/* =========================================================
+   LIGHT MODE THEME
+   ========================================================= */
+.askai-root--light {
+  background: #f4f6fb;
+  color: rgba(15, 23, 42, 0.85);
+}
+.askai-root--light::before,
+.askai-root--light::after {
+  opacity: 0.5;
+}
+
+/* Sidebar */
+.askai-root--light .askai-sidebar {
+  background: rgba(255, 255, 255, 0.85);
+  border-right-color: rgba(15, 23, 42, 0.08);
+}
+.askai-root--light .askai-logo {
+  color: #1e293b;
+  background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.06));
+  border-color: rgba(99,102,241,0.22);
+}
+.askai-root--light .askai-sidebar-divider {
+  background: rgba(15, 23, 42, 0.08);
+}
+.askai-root--light .askai-sidenav-link {
+  color: rgba(15, 23, 42, 0.55);
+}
+.askai-root--light .askai-sidenav-link:hover {
+  background: rgba(15, 23, 42, 0.05);
+  color: rgba(15, 23, 42, 0.9);
+}
+.askai-root--light .askai-quick-label {
+  color: rgba(15, 23, 42, 0.35);
+}
+.askai-root--light .askai-quick-btn {
+  color: rgba(15, 23, 42, 0.55);
+  background: rgba(15, 23, 42, 0.025);
+  border-color: rgba(15, 23, 42, 0.06);
+}
+.askai-root--light .askai-quick-btn:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.25);
+  color: rgba(15, 23, 42, 0.85);
+}
+
+/* Topbar */
+.askai-root--light .askai-topbar {
+  background: rgba(255, 255, 255, 0.75);
+  border-bottom-color: rgba(15, 23, 42, 0.06);
+}
+.askai-root--light .askai-topbar-title span {
+  color: #0f172a;
+}
+.askai-root--light .askai-topbar-sub {
+  color: rgba(15, 23, 42, 0.45);
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+.askai-root--light .askai-top-icon-btn {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: rgba(15, 23, 42, 0.55);
+}
+.askai-root--light .askai-top-icon-btn:hover {
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+
+/* Language selector */
+.askai-root--light .askai-lang-btn {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: rgba(15, 23, 42, 0.6);
+}
+.askai-root--light .askai-lang-btn:hover {
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.18);
+}
+.askai-root--light .askai-lang-dropdown {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(99, 102, 241, 0.06);
+}
+.askai-root--light .askai-lang-option {
+  color: rgba(15, 23, 42, 0.6);
+}
+.askai-root--light .askai-lang-option:hover {
+  background: rgba(15, 23, 42, 0.05);
+  color: #0f172a;
+}
+.askai-root--light .askai-lang-option--active {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4338ca;
+}
+.askai-root--light .askai-lang-en {
+  color: rgba(15, 23, 42, 0.32);
+}
+
+/* Greeting */
+.askai-root--light .askai-greeting h1 {
+  color: #0f172a;
+}
+.askai-root--light .askai-greeting p {
+  color: rgba(15, 23, 42, 0.5);
+}
+.askai-root--light .askai-highlight {
+  color: #7c3aed;
+}
+
+/* Messages scrollbar */
+.askai-root--light .askai-messages::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.22);
+}
+
+/* Bubbles */
+.askai-root--light .askai-msg--assistant .askai-bubble {
+  background: linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(99,102,241,0.04) 100%);
+  border-color: rgba(15, 23, 42, 0.07);
+  color: rgba(15, 23, 42, 0.85);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255,255,255,0.6);
+}
+.askai-root--light .askai-bubble--simplified {
+  background: linear-gradient(145deg, rgba(6,182,212,0.06), rgba(16,185,129,0.04)) !important;
+  border-color: rgba(6, 182, 212, 0.22) !important;
+  box-shadow: 0 4px 20px rgba(6,182,212,0.08), inset 0 1px 0 rgba(6,182,212,0.06) !important;
+}
+.askai-root--light .askai-bubble--simplified::before {
+  color: #0e7490;
+}
+.askai-root--light .askai-bubble--thinking,
+.askai-root--light .askai-loading-status {
+  background: linear-gradient(145deg, rgba(15,23,42,0.03), rgba(99,102,241,0.04)) !important;
+  border-color: rgba(15, 23, 42, 0.06);
+}
+.askai-root--light .askai-loading-text {
+  color: rgba(15, 23, 42, 0.45);
+}
+
+/* IPC / BNS badges */
+.askai-root--light .askai-ipc {
+  color: #6d28d9;
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
+}
+.askai-root--light .askai-bns {
+  color: #0e7490;
+  background: rgba(6, 182, 212, 0.1);
+  border-color: rgba(6, 182, 212, 0.3);
+}
+
+/* Action buttons */
+.askai-root--light .askai-action-btn {
+  color: rgba(15, 23, 42, 0.45);
+  background: rgba(15, 23, 42, 0.035);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+.askai-root--light .askai-action-btn:hover {
+  color: rgba(15, 23, 42, 0.85);
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.28);
+}
+.askai-root--light .askai-action-btn--explain {
+  color: #0e7490;
+}
+.askai-root--light .askai-action-btn--explain:hover {
+  color: #0e7490;
+  border-color: rgba(34, 211, 238, 0.4);
+}
+.askai-root--light .askai-tts-btn--active {
+  color: #0e7490;
+}
+.askai-root--light .askai-action-btn--visualize:hover {
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.askai-root--light .askai-action-btn--comic:hover {
+  color: #be185d;
+  border-color: rgba(236, 72, 153, 0.4);
+}
+
+/* Meta / TTS */
+.askai-root--light .askai-msg-meta {
+  color: rgba(15, 23, 42, 0.32);
+}
+.askai-root--light .askai-tts-btn {
+  color: rgba(15, 23, 42, 0.35);
+}
+.askai-root--light .askai-tts-btn:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: rgba(15, 23, 42, 0.8);
+}
+
+/* Story (legal proceeding) */
+.askai-root--light .askai-story {
+  border-top-color: rgba(15, 23, 42, 0.08);
+}
+.askai-root--light .askai-story-label {
+  color: rgba(15, 23, 42, 0.35);
+}
+.askai-root--light .askai-story-step {
+  background: rgba(15, 23, 42, 0.025);
+  border-color: rgba(15, 23, 42, 0.06);
+}
+.askai-root--light .askai-story-step:hover {
+  background: rgba(99, 102, 241, 0.06);
+}
+.askai-root--light .askai-story-text {
+  color: rgba(15, 23, 42, 0.55);
+}
+
+/* Input area */
+.askai-root--light .askai-input-wrap {
+  background: rgba(255, 255, 255, 0.7);
+  border-top-color: rgba(15, 23, 42, 0.06);
+}
+.askai-root--light .askai-input-box {
+  background: #ffffff;
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 0 1px rgba(99,102,241,0.05), 0 4px 20px rgba(99,102,241,0.08);
+}
+.askai-root--light .askai-input-box:focus-within {
+  border-color: rgba(99,102,241,0.55);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1), 0 0 28px rgba(99,102,241,0.15);
+}
+.askai-root--light .askai-input {
+  color: rgba(15, 23, 42, 0.9);
+}
+.askai-root--light .askai-input::placeholder {
+  color: rgba(15, 23, 42, 0.3);
+}
+.askai-root--light .askai-mic-btn {
+  background: rgba(99, 102, 241, 0.07);
+  border-color: rgba(99, 102, 241, 0.25);
+  color: #4f46e5;
+}
+.askai-root--light .askai-send-btn {
+  background: rgba(99, 102, 241, 0.07);
+  border-color: rgba(99, 102, 241, 0.25);
+  color: #4f46e5;
+}
+.askai-root--light .askai-input-hint {
+  color: rgba(15, 23, 42, 0.32);
+}
+
+/* Right sidebar */
+.askai-root--light .askai-right-sidebar {
+  background: rgba(255, 255, 255, 0.85);
+  border-left-color: rgba(15, 23, 42, 0.06);
+}
+.askai-root--light .askai-rs-card {
+  background: rgba(15, 23, 42, 0.02);
+  border-color: rgba(15, 23, 42, 0.06);
+}
+.askai-root--light .askai-rs-title {
+  color: #4f46e5;
+}
+.askai-root--light .askai-rs-title-row .askai-rs-newchat {
+  color: #4338ca;
+}
+.askai-root--light .askai-rs-cap-text h4,
+.askai-root--light .askai-rs-query h4 {
+  color: rgba(15, 23, 42, 0.85);
+}
+.askai-root--light .askai-rs-cap-text p,
+.askai-root--light .askai-rs-query p,
+.askai-root--light .askai-rs-disclaimer p {
+  color: rgba(15, 23, 42, 0.45);
+}
+.askai-root--light .askai-rs-query {
+  border-bottom-color: rgba(15, 23, 42, 0.06);
+}
+.askai-root--light .askai-rs-empty {
+  color: #94a3b8;
+}
+.askai-root--light button.askai-rs-query:hover {
+  background: rgba(99, 102, 241, 0.06);
+}
+.askai-root--light .askai-rs-btn {
+  color: #4338ca;
+}
+
+/* History */
+.askai-root--light .askai-history-item--active h4 {
+  color: #4338ca;
+}
+.askai-root--light .askai-history-delete {
+  color: rgba(15, 23, 42, 0.3);
+}
+.askai-root--light .askai-history-delete:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+/* Case visualization */
+.askai-root--light .askai-case {
+  background: rgba(99, 102, 241, 0.04);
+  border-color: rgba(99, 102, 241, 0.18);
+}
+.askai-root--light .askai-case-title {
+  color: #0f172a;
+}
+.askai-root--light .askai-case-sub {
+  color: #6366f1;
+}
+.askai-root--light .askai-case-tab {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: rgba(15, 23, 42, 0.5);
+}
+.askai-root--light .askai-case-tab:hover {
+  background: rgba(15, 23, 42, 0.08);
+}
+.askai-root--light .askai-case-tab--active {
+  background: rgba(99, 102, 241, 0.14);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #4338ca;
+}
+.askai-root--light .askai-case-tab--done {
+  color: #059669;
+}
+.askai-root--light .askai-case-panel {
+  background: rgba(15, 23, 42, 0.03);
+}
+.askai-root--light .askai-case-panel-phase {
+  color: #6366f1;
+}
+.askai-root--light .askai-case-panel-title {
+  color: #0f172a;
+}
+.askai-root--light .askai-case-panel-story {
+  color: #334155;
+}
+.askai-root--light .askai-case-panel-ref {
+  color: #7c3aed;
+  background: rgba(139, 92, 246, 0.1);
+}
+.askai-root--light .askai-case-nav-btn {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #1e293b;
+}
+.askai-root--light .askai-case-nav-btn:hover {
+  background: rgba(15, 23, 42, 0.1);
+}
+.askai-root--light .askai-case-nav-count {
+  color: #64748b;
+}
+.askai-root--light .askai-case-error {
+  color: #b91c1c;
+}

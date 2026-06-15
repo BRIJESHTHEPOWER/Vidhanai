@@ -1,0 +1,67 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environments
+venv/
+.venv/
+backend/venv/
+
+# =========================
+# Environment Files
+# =========================
+.env
+*.env
+
+# =========================
+# Node.js
+# =========================
+node_modules/
+frontend/node_modules/
+admin/node_modules/
+
+# =========================
+# Build Files
+# =========================
+build/
+dist/
+frontend/build/
+frontend/dist/
+admin/build/
+admin/dist/
+
+# =========================
+# MongoDB Data
+# =========================
+backend/mongodb_data/
+
+# =========================
+# Vector Indexes (optional)
+# =========================
+backend/vector/*.faiss
+backend/vector/*.pkl
+
+# =========================
+# Generated Comics (optional)
+# =========================
+backend/static/comics/
+
+# =========================
+# VS Code
+# =========================
+.vscode/
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db

@@ -1,0 +1,410 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   VoiceButton.css — JD Legal AI floating assistant
+   Draggable FAB + compact card overlay
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── FAB (Floating Action Button) ────────────────────────────────────────── */
+.jd-fab {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  border: none;
+  box-shadow:
+    0 4px 24px rgba(99,102,241,0.55),
+    0 2px 8px rgba(0,0,0,0.4),
+    0 0 0 1px rgba(255,255,255,0.08) inset;
+  transition: box-shadow 0.25s ease, background 0.25s ease;
+  overflow: visible;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.jd-fab:hover {
+  box-shadow: 0 8px 36px rgba(99,102,241,0.7), 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.jd-fab--active {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  box-shadow: 0 0 30px rgba(6,182,212,0.6), 0 0 60px rgba(6,182,212,0.25), 0 4px 16px rgba(0,0,0,0.4);
+}
+
+.jd-fab--processing {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.jd-fab--speaking {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 0 30px rgba(34,197,94,0.5);
+}
+
+.jd-fab--error {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 0 30px rgba(239,68,68,0.5);
+}
+
+/* ─── Pulse rings (visible when JD is open) ────────────────────────────────── */
+.jd-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid;
+  pointer-events: none;
+  animation: jd-ring-expand 1.6s ease-out infinite;
+}
+.jd-ring--1 { inset: -10px; border-color: rgba(34,211,238,0.55); animation-delay: 0s; }
+.jd-ring--2 { inset: -22px; border-color: rgba(34,211,238,0.35); animation-delay: 0.5s; }
+.jd-ring--3 { inset: -34px; border-color: rgba(34,211,238,0.18); animation-delay: 1s; }
+
+@keyframes jd-ring-expand {
+  0%   { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0;   transform: scale(1.35); }
+}
+
+.jd-fab-icon {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+}
+
+/* ─── Status pill ──────────────────────────────────────────────────────────── */
+.jd-status-pill {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(3,7,18,0.94);
+  border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(12px);
+  color: #94a3b8;
+  transition: all 0.25s ease;
+}
+
+/* ─── Unsupported banner ───────────────────────────────────────────────────── */
+.jd-unsupported {
+  position: fixed;
+  bottom: 100px; right: 28px;
+  max-width: 280px;
+  padding: 12px 14px;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 14px;
+  font-size: 13px;
+  color: #fbbf24;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.5;
+  z-index: 500;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   JD Card Overlay
+   ════════════════════════════════════════════════════════════════════════════ */
+.jd-card {
+  background: rgba(6, 9, 20, 0.97);
+  border: 1px solid rgba(99,102,241,0.25);
+  border-radius: 20px;
+  box-shadow:
+    0 24px 64px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 0 40px rgba(99,102,241,0.12);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ─── Card header ─────────────────────────────────────────────────────────── */
+.jd-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  flex-shrink: 0;
+}
+
+.jd-card-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jd-logo-dot {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6366f1, #06b6d4);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(99,102,241,0.45);
+}
+
+.jd-card-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+}
+
+.jd-card-sub {
+  font-size: 10px;
+  color: #475569;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.jd-card-close {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.jd-card-close:hover { background: rgba(239,68,68,0.12); color: #f87171; border-color: rgba(239,68,68,0.3); }
+
+/* ─── Message log ─────────────────────────────────────────────────────────── */
+.jd-messages {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99,102,241,0.2) transparent;
+  flex-shrink: 0;
+}
+.jd-messages::-webkit-scrollbar { width: 3px; }
+.jd-messages::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.25); border-radius: 2px; }
+
+.jd-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  animation: jd-msg-in 0.2s ease-out;
+  max-width: 92%;
+}
+@keyframes jd-msg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.jd-msg--user { align-self: flex-end; }
+.jd-msg--jd   { align-self: flex-start; }
+
+.jd-msg-role {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  font-family: 'Inter', sans-serif;
+}
+.jd-msg--user .jd-msg-role { color: #818cf8; text-align: right; }
+.jd-msg--jd   .jd-msg-role { color: #22d3ee; }
+
+.jd-msg-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
+  line-height: 1.55;
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+.jd-msg--user .jd-msg-text {
+  background: rgba(99,102,241,0.15);
+  border: 1px solid rgba(99,102,241,0.25);
+  color: #c7d2fe;
+  border-bottom-right-radius: 3px;
+  text-align: right;
+}
+.jd-msg--jd .jd-msg-text {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  color: #e2e8f0;
+  border-bottom-left-radius: 3px;
+}
+
+/* ─── Status bar ──────────────────────────────────────────────────────────── */
+.jd-card-status {
+  padding: 8px 14px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-height: 46px;
+  flex-shrink: 0;
+}
+
+.jd-wave-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+}
+
+.jd-wave-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #22d3ee, #6366f1);
+  min-height: 4px;
+  transition: height 0.08s ease;
+}
+
+.jd-thinking-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.jd-thinking-lbl {
+  font-size: 11px;
+  color: #f59e0b;
+  font-family: 'Inter', sans-serif;
+}
+
+.jd-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #6366f1;
+  animation: jd-dot-bounce 1.2s ease-in-out infinite;
+}
+.jd-dot:nth-child(2) { background: #a78bfa; animation-delay: 0.2s; }
+.jd-dot:nth-child(3) { background: #22d3ee; animation-delay: 0.4s; }
+@keyframes jd-dot-bounce {
+  0%,80%,100% { transform: scale(0.6); opacity: 0.4; }
+  40%         { transform: scale(1.1); opacity: 1; }
+}
+
+.jd-live-transcript {
+  font-size: 11px;
+  color: #94a3b8;
+  font-style: italic;
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jd-state-lbl {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.jd-state-lbl--idle       { color: #475569; }
+.jd-state-lbl--listening  { color: #22d3ee; }
+.jd-state-lbl--processing { color: #f59e0b; }
+.jd-state-lbl--speaking   { color: #34d399; }
+.jd-state-lbl--error      { color: #f87171; }
+
+/* ─── Quick command chips ─────────────────────────────────────────────────── */
+.jd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 14px 8px;
+  flex-shrink: 0;
+}
+
+.jd-chip {
+  font-size: 11px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  color: #94a3b8;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 9999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.jd-chip:hover {
+  background: rgba(99,102,241,0.15);
+  border-color: rgba(99,102,241,0.35);
+  color: #c7d2fe;
+}
+
+/* ─── Mic control row ─────────────────────────────────────────────────────── */
+.jd-card-mic-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 12px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  flex-shrink: 0;
+}
+
+.jd-mic-btn {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  border: none; cursor: pointer;
+  box-shadow: 0 3px 16px rgba(99,102,241,0.45);
+  transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+  color: #fff;
+  flex-shrink: 0;
+}
+.jd-mic-btn:hover  { transform: scale(1.08); box-shadow: 0 6px 24px rgba(99,102,241,0.65); }
+.jd-mic-btn:active { transform: scale(0.94); }
+.jd-mic-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+.jd-mic-btn--listening {
+  background: linear-gradient(135deg, #22d3ee, #06b6d4);
+  box-shadow: 0 3px 24px rgba(34,211,238,0.55);
+  animation: jd-mic-pulse 1.4s ease-in-out infinite;
+}
+.jd-mic-btn--processing {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+.jd-mic-btn--speaking {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 3px 20px rgba(34,197,94,0.5);
+}
+
+@keyframes jd-mic-pulse {
+  0%,100% { box-shadow: 0 3px 16px rgba(34,211,238,0.45); }
+  50%     { box-shadow: 0 3px 36px rgba(34,211,238,0.8); }
+}
+
+.jd-mic-hint {
+  font-size: 11px;
+  color: #64748b;
+  font-family: 'Inter', sans-serif;
+  flex: 1;
+}
+
+/* ─── Drag hint ───────────────────────────────────────────────────────────── */
+.jd-drag-hint {
+  text-align: center;
+  font-size: 10px;
+  color: #334155;
+  font-family: 'Inter', sans-serif;
+  padding: 4px 0 8px;
+  letter-spacing: 0.03em;
+}
+
+/* ─── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .jd-card { max-width: calc(100vw - 16px) !important; }
+  .jd-messages { max-height: 160px; }
+  .jd-chips { display: none; } /* hide chips on very small screens */
+}

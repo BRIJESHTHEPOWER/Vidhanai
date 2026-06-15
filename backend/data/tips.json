@@ -1,0 +1,43 @@
+{
+  "women_safety": [
+    "📞 Women Helpline: 181",
+    "📞 Police Emergency: 112",
+    "📞 Domestic Violence Helpline: 181",
+    "Always file an FIR at the nearest police station — it is your right",
+    "Medical examination within 72 hours is critical for assault cases",
+    "You have the right to file an FIR at any police station in India",
+    "The police CANNOT refuse to register your FIR — escalate to DSP if refused"
+  ],
+  "cyber_crime": [
+    "📞 Cyber Crime Helpline: 1930",
+    "🌐 Report online at: cybercrime.gov.in",
+    "Never share OTP with anyone — banks will NEVER ask for OTP",
+    "Screenshot all evidence before blocking or reporting the person",
+    "Change all passwords immediately if you suspect a hack",
+    "File complaint within 24 hours for financial fraud for best recovery chance"
+  ],
+  "arrest_rights": [
+    "You MUST be informed of the reason for your arrest",
+    "You have the right to call a lawyer and inform a family member",
+    "Police CANNOT detain you beyond 24 hours without producing you before a magistrate",
+    "You have the absolute right to REMAIN SILENT",
+    "No confession made under torture or coercion is valid in court",
+    "📞 Free Legal Aid: 15100 (National Legal Services Authority — NALSA)",
+    "A woman can only be arrested by a female police officer between 6 AM and 6 PM"
+  ],
+  "property_crimes": [
+    "File an FIR immediately for any theft, burglary, or fraud",
+    "📞 For online financial fraud: call 1930 or visit cybercrime.gov.in",
+    "Document all evidence: screenshots, messages, receipts, invoices",
+    "For bank fraud: call your bank immediately to freeze/block the account",
+    "You can claim compensation under CrPC Section 357 if convicted person caused loss"
+  ],
+  "crimes_against_children": [
+    "📞 Childline 24×7 Helpline: 1098",
+    "🌐 Report child sexual abuse material (CSAM) at: cybercrime.gov.in",
+    "Any sexual act with a person under 18 years of age is illegal under POCSO",
+    "POCSO cases are heard in designated fast-track courts",
+    "The child victim's identity is protected by law — cannot be published anywhere",
+    "Even if the abuser is a family member, you CAN and SHOULD report"
+  ]
+}

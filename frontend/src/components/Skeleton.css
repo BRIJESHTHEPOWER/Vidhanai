@@ -1,0 +1,129 @@
+/* ══════════════════════════════
+   M6: Skeleton Loader Styles
+   Premium shimmer animation
+══════════════════════════════ */
+
+/* ── Shimmer keyframe ── */
+@keyframes sk-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+
+/* ── Base shimmer bar ── */
+.sk-bar {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 0%,
+    rgba(255,255,255,0.10) 40%,
+    rgba(255,255,255,0.04) 80%
+  );
+  background-size: 600px 100%;
+  animation: sk-shimmer 1.5s ease-in-out infinite;
+}
+
+/* ── Card skeleton ── */
+.sk-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sk-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.sk-card-footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* ── Card grid ── */
+.sk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 4px 0;
+}
+
+/* ── Learn step skeleton ── */
+.sk-learn {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sk-pills {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sk-step-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sk-step-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+/* ── Quiz skeleton ── */
+.sk-quiz {
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sk-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+/* ── Explore skeleton ── */
+.sk-explore {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sk-explore-hero {
+  padding: 20px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+}
+
+.sk-explore-section {
+  padding: 16px 20px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+}
+
+/* ── Reduce motion support ── */
+@media (prefers-reduced-motion: reduce) {
+  .sk-bar { animation: none; background: rgba(255,255,255,0.06); }
+}

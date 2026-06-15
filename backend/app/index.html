@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Legal Comic System</title>
+</head>
+
+<body style="background:#d9e6eb; font-family:sans-serif; text-align:center;">
+
+    <h1>⚖ AI Legal Comic System</h1>
+
+    <!-- 📜 LAW OF THE DAY -->
+    <div id="lawOfDay" style="background:white; padding:15px; margin:20px; border-radius:10px;">
+        <h3>📜 Law of the Day</h3>
+        <p id="lawText">Loading...</p>
+    </div>
+
+    <!-- 🔍 INPUT -->
+    <input type="text" id="question" placeholder="Ask your legal question"
+           onkeyup="getSuggestions()" style="padding:10px; width:300px;">
+
+    <button onclick="askQuestion()" style="padding:10px;">Generate</button>
+
+    <!-- 🔍 SUGGESTIONS -->
+    <div id="suggestions" style="background:white; width:300px; margin:auto;"></div>
+
+    <!-- ⏳ LOADING -->
+    <div id="loading" style="display:none;">⏳ Generating...</div>
+
+    <!-- 📊 OUTPUT -->
+    <div id="result"></div>
+
+    <script>
+
+        // =========================
+        // 📜 LAW OF DAY
+        // =========================
+        async function loadLawOfDay() {
+            const res = await fetch("http://127.0.0.1:8000/law-of-day");
+            const data = await res.json();
+
+            document.getElementById("lawText").innerHTML =
+                `<b>IPC ${data.section}</b>: ${data.title}<br>${data.description}`;
+        }
+
+        loadLawOfDay();
+
+
+        // =========================
+        // 🔍 SUGGESTIONS
+        // =========================
+        async function getSuggestions() {
+            const query = document.getElementById("question").value;
+
+            if (query.length < 2) {
+                document.getElementById("suggestions").innerHTML = "";
+                return;
+            }
+
+            const res = await fetch(`http://127.0.0.1:8000/suggest?query=${query}`);
+            const data = await res.json();
+
+            let html = "";
+            data.forEach(item => {
+                html += `<div onclick="selectSuggestion('${item}')" style="padding:5px; cursor:pointer;">
+                           ${item}
+                         </div>`;
+            });
+
+            document.getElementById("suggestions").innerHTML = html;
+        }
+
+        function selectSuggestion(text) {
+            document.getElementById("question").value = text;
+            document.getElementById("suggestions").innerHTML = "";
+        }
+
+
+        // =========================
+        // 🧠 ASK QUESTION
+        // =========================
+        async function askQuestion() {
+
+            const question = document.getElementById("question").value;
+
+            document.getElementById("loading").style.display = "block";
+
+            const res = await fetch("http://127.0.0.1:8000/ask", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question })
+            });
+
+            const data = await res.json();
+
+            document.getElementById("loading").style.display = "none";
+
+            let html = `<h2>Answer</h2><p>${data.answer}</p>`;
+
+            data.story.forEach(scene => {
+                html += `
+                <div style="background:white; margin:10px; padding:10px; border-radius:10px;">
+                    <h3>${scene.scene}</h3>
+                    <p>${scene.text}</p>
+                    <b>${scene.dialogue}</b>
+                </div>`;
+            });
+
+            document.getElementById("result").innerHTML = html;
+        }
+
+    </script>
+
+</body>
+</html>

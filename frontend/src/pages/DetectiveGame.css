@@ -1,0 +1,230 @@
+/* ═══════════════════════════════════════════════════════════
+   Vidhan AI Detective Game - Adventure Mode Styles
+   ═══════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Space+Grotesk:wght@400;600;700&display=swap');
+
+:root {
+  --det-bg: #0a0e17;
+  --det-panel-bg: rgba(13, 20, 36, 0.85);
+  --det-border: #1e3a8a;
+  --det-border-glow: #3b82f6;
+  --det-text: #e2e8f0;
+  --det-primary: #3b82f6;
+  --det-accent: #60a5fa;
+  --det-gold: #fbbf24;
+  --det-green: #10b981;
+  --det-red: #ef4444;
+  --det-font-ui: 'Space Grotesk', sans-serif;
+  --det-font-mono: 'Share Tech Mono', monospace;
+}
+
+.detective-root {
+  min-height: 100vh;
+  background-color: var(--det-bg);
+  color: var(--det-text);
+  font-family: var(--det-font-ui);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Backgrounds */
+.cyber-grid-bg {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background-image: 
+    linear-gradient(rgba(30, 58, 138, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 58, 138, 0.1) 1px, transparent 1px);
+  background-size: 30px 30px; z-index: 0; pointer-events: none;
+}
+.cyber-scanline {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(59,130,246,0.05) 50%, rgba(255,255,255,0));
+  background-size: 100% 4px; z-index: 1; pointer-events: none; opacity: 0.6;
+}
+
+.detective-main {
+  position: relative; z-index: 10;
+  max-width: 1000px; margin: 0 auto;
+  padding: 80px 20px 40px;
+}
+
+/* Typography Utils */
+.text-blue { color: var(--det-primary); }
+.text-gold { color: var(--det-gold); text-shadow: 0 0 10px rgba(251,191,36,0.4); }
+.text-red { color: var(--det-red); text-shadow: 0 0 10px rgba(239,68,68,0.4); }
+
+/* HUD */
+.det-hud {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 15px 25px; margin-bottom: 30px;
+  background: linear-gradient(90deg, rgba(15,23,42,0.9), rgba(30,58,138,0.2));
+  border: 1px solid var(--det-border); border-radius: 8px;
+  box-shadow: 0 0 15px rgba(59,130,246,0.15); backdrop-filter: blur(10px);
+}
+.det-logo { font-family: var(--det-font-mono); font-size: 1.5rem; margin: 0 0 5px; letter-spacing: 2px; }
+.det-logo-accent { color: var(--det-accent); text-shadow: 0 0 8px var(--det-primary); }
+.det-rank-badge {
+  display: inline-block; font-size: 0.75rem; font-weight: 700;
+  background: rgba(251,191,36,0.15); color: var(--det-gold);
+  padding: 3px 10px; border: 1px solid var(--det-gold); border-radius: 4px;
+}
+.det-hud-right { display: flex; gap: 20px; }
+.det-stat { display: flex; flex-direction: column; align-items: flex-end; }
+.det-stat-label { font-size: 0.65rem; color: #94a3b8; letter-spacing: 1px; }
+.det-stat-value { font-family: var(--det-font-mono); font-size: 1.4rem; font-weight: bold; }
+
+/* Buttons */
+.det-btn-primary {
+  background: rgba(30,58,138,0.4); color: white;
+  font-family: var(--det-font-mono); font-size: 1.1rem;
+  padding: 15px 30px; border: 1px solid var(--det-primary); border-radius: 4px;
+  cursor: pointer; transition: all 0.2s ease;
+  letter-spacing: 1px; box-shadow: inset 0 0 15px rgba(59,130,246,0.2);
+}
+.det-btn-primary:hover {
+  background: rgba(37,99,235,0.6);
+  box-shadow: inset 0 0 20px rgba(59,130,246,0.5), 0 0 20px rgba(59,130,246,0.5);
+  transform: translateY(-2px);
+}
+.det-btn-secondary {
+  background: transparent; color: var(--det-text); font-family: var(--det-font-mono);
+  padding: 12px 25px; border: 1px solid #475569; border-radius: 4px; cursor: pointer; transition: all 0.2s;
+}
+.det-btn-secondary:hover { background: rgba(71,85,105,0.3); border-color: #94a3b8; }
+.det-btn-accuse {
+  width: 100%; margin-top: 15px; padding: 12px;
+  background: rgba(239,68,68,0.15); border: 1px solid var(--det-red); color: white;
+  font-family: var(--det-font-mono); font-size: 1rem; font-weight: bold;
+  border-radius: 4px; cursor: pointer; transition: all 0.2s; letter-spacing: 1px;
+}
+.det-btn-accuse:hover { background: var(--det-red); box-shadow: 0 0 15px var(--det-red); }
+.det-back-btn { margin-top: 20px; }
+
+/* Menu & Leaderboard */
+.det-menu { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-top: 50px; }
+.det-menu-center {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  background: var(--det-panel-bg); border: 1px solid var(--det-border); border-radius: 12px; padding: 60px 40px;
+}
+.det-title-glitch { font-family: var(--det-font-mono); font-size: 2.5rem; color: white; letter-spacing: 4px; margin-bottom: 10px; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+.det-subtitle { color: #94a3b8; font-size: 1.1rem; margin-bottom: 40px; }
+.det-leaderboard-panel { background: var(--det-panel-bg); border: 1px solid var(--det-border); border-radius: 8px; padding: 20px; }
+.det-panel-title { font-family: var(--det-font-mono); font-size: 1rem; color: var(--det-accent); border-bottom: 1px solid var(--det-border); padding-bottom: 10px; margin: 0 0 15px; }
+.det-leaderboard-list { display: flex; flex-direction: column; gap: 10px; }
+.det-lb-item { display: flex; align-items: center; background: rgba(15,23,42,0.6); padding: 10px 15px; border-radius: 4px; border-left: 3px solid transparent; }
+.det-lb-item:hover { border-left-color: var(--det-primary); }
+.det-lb-rank { font-family: var(--det-font-mono); color: #64748b; width: 30px; }
+.det-lb-name { flex: 1; font-weight: 600; }
+.det-lb-xp { font-family: var(--det-font-mono); color: var(--det-gold); font-size: 0.9rem; }
+
+/* Loading */
+.det-loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50vh; }
+.det-radar { width: 100px; height: 100px; border-radius: 50%; border: 2px solid var(--det-primary); position: relative; margin-bottom: 25px; overflow: hidden; background: rgba(30,58,138,0.1); }
+.det-radar-sweep { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; background: linear-gradient(45deg, transparent, rgba(59,130,246,0.8)); transform-origin: 0 0; animation: radar 2s linear infinite; }
+@keyframes radar { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.det-loading-text { font-family: var(--det-font-mono); color: var(--det-accent); letter-spacing: 2px; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; text-shadow: 0 0 10px var(--det-accent); } 100% { opacity: 0.6; } }
+
+/* Shared Phase Container */
+.det-phase-container { background: var(--det-panel-bg); border: 1px solid var(--det-border); border-radius: 12px; padding: 30px; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+.det-phase-header { border-bottom: 1px solid var(--det-border); padding-bottom: 15px; margin-bottom: 25px; }
+.det-phase-header h2 { font-family: var(--det-font-mono); font-size: 1.8rem; margin: 0 0 5px; color: white; letter-spacing: 2px; }
+.det-phase-header p { color: #94a3b8; margin: 0; font-size: 1.1rem; }
+
+.det-box-label { display: inline-block; font-size: 0.75rem; font-family: var(--det-font-mono); color: var(--det-accent); letter-spacing: 1px; margin-bottom: 8px; border: 1px solid; padding: 2px 8px; border-radius: 4px; }
+.det-incident-box, .det-confession-box { background: rgba(15,23,42,0.8); border: 1px solid #334155; border-radius: 6px; padding: 20px; margin-bottom: 25px; border-left: 4px solid var(--det-accent); }
+.det-incident-box p, .det-confession-box p { font-family: var(--det-font-mono); font-size: 1.05rem; line-height: 1.6; margin: 0; color: #cbd5e1; }
+
+/* Phase 1: Crime Scene Locations */
+.det-scene-area { background: #0f172a; padding: 25px; border-radius: 8px; border: 1px dashed var(--det-border); position: relative; }
+.det-scene-title { margin: 0 0 20px; font-family: var(--det-font-mono); color: var(--det-primary); font-size: 1.2rem; }
+.det-locations-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+
+.det-location-node {
+  background: rgba(30,58,138,0.1); border: 1px solid #334155; border-radius: 8px;
+  cursor: pointer; transition: all 0.3s; min-height: 120px; display: flex; align-items: center; justify-content: center;
+}
+.det-location-node:hover:not(.found) { background: rgba(59,130,246,0.15); border-color: var(--det-accent); transform: translateY(-3px); box-shadow: 0 5px 15px rgba(59,130,246,0.2); }
+.det-location-node.found { background: rgba(16,185,129,0.1); border-color: var(--det-green); cursor: default; }
+
+.det-location-unexplored { text-align: center; }
+.det-search-icon { font-size: 2rem; display: block; margin-bottom: 10px; filter: grayscale(1); opacity: 0.5; }
+.det-location-unexplored h4 { margin: 0 0 5px; color: #94a3b8; font-family: var(--det-font-mono); }
+.det-loc-name { margin: 0; font-size: 1.1rem; color: white; font-weight: bold; }
+
+.det-clue-revealed { padding: 15px; text-align: left; width: 100%; }
+.det-clue-icon { font-size: 1.5rem; float: right; }
+.det-clue-revealed h4 { margin: 0 0 8px; color: var(--det-green); font-family: var(--det-font-mono); font-size: 1.1rem; }
+.det-clue-revealed p { margin: 0; font-size: 0.9rem; color: #cbd5e1; line-height: 1.4; }
+
+.det-phase-action { margin-top: 30px; text-align: center; background: rgba(16,185,129,0.1); padding: 20px; border-radius: 8px; border: 1px solid var(--det-green); }
+.det-success-text { color: var(--det-green); font-family: var(--det-font-mono); font-size: 1.2rem; margin: 0 0 15px; }
+
+/* Phase 2: Interrogation */
+.det-evidence-recap { background: #0f172a; padding: 15px 20px; border-radius: 6px; border: 1px solid #334155; margin-bottom: 25px; }
+.det-evidence-recap h4 { font-family: var(--det-font-mono); color: var(--det-gold); margin: 0 0 10px; font-size: 1rem; }
+.det-evidence-recap ul { margin: 0; padding-left: 20px; color: #cbd5e1; font-size: 0.9rem; line-height: 1.5; }
+
+.det-suspects-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.det-suspect-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.2s; }
+.det-suspect-box:hover { border-color: #94a3b8; }
+.det-suspect-box.active { border-color: var(--det-red); box-shadow: 0 0 15px rgba(239,68,68,0.2); }
+
+.det-suspect-header { padding: 15px; display: flex; align-items: center; gap: 15px; background: rgba(15,23,42,0.8); }
+.det-suspect-avatar { font-size: 2.5rem; filter: grayscale(1); }
+.det-suspect-box.active .det-suspect-avatar { filter: none; }
+.det-suspect-name { font-weight: bold; color: white; font-size: 1.1rem; }
+.det-suspect-role { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+
+.det-suspect-details { padding: 0 15px 15px; overflow: hidden; }
+.det-statement { background: rgba(0,0,0,0.4); padding: 12px; border-left: 2px solid var(--det-red); margin-top: 10px; }
+.det-statement p { font-style: italic; color: #e2e8f0; font-size: 0.9rem; margin: 0; line-height: 1.5; }
+
+/* Phase 3: Charge Terminal */
+.det-confession-box { border-left-color: var(--det-red); }
+.det-confession-box .det-box-label { border-color: var(--det-red); }
+
+.det-terminal-panel { background: #0f172a; border: 2px solid var(--det-primary); border-radius: 8px; padding: 25px; position: relative; box-shadow: 0 0 20px rgba(59,130,246,0.15); }
+.det-terminal-panel::before { content: 'SYS.VERIFY_CHARGE'; position: absolute; top: -10px; left: 20px; background: #0f172a; padding: 0 10px; font-family: var(--det-font-mono); font-size: 0.75rem; color: var(--det-accent); }
+.det-terminal-title { font-family: var(--det-font-mono); color: white; margin: 0 0 20px; font-size: 1.2rem; }
+.det-options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.det-option-btn { background: rgba(30,58,138,0.3); border: 1px solid #334155; padding: 15px 20px; text-align: left; color: var(--det-text); font-family: var(--det-font-mono); font-size: 1rem; cursor: pointer; transition: all 0.2s; border-radius: 4px; }
+.det-option-btn:hover { background: rgba(59,130,246,0.2); border-color: var(--det-primary); transform: translateX(5px); }
+.det-opt-prefix { color: var(--det-accent); font-weight: bold; margin-right: 8px; }
+
+/* Solved Result */
+.det-result-screen { background: var(--det-panel-bg); border: 1px solid var(--det-border); border-radius: 12px; overflow: hidden; }
+.det-result-banner { padding: 30px; text-align: center; }
+.det-result-banner.success { background: rgba(16,185,129,0.15); border-bottom: 2px solid var(--det-green); }
+.det-result-banner.success .det-result-status { color: var(--det-green); text-shadow: 0 0 15px rgba(16,185,129,0.5); }
+.det-result-banner.fail { background: rgba(239,68,68,0.15); border-bottom: 2px solid var(--det-red); }
+.det-result-banner.fail .det-result-status { color: var(--det-red); text-shadow: 0 0 15px rgba(239,68,68,0.5); }
+.det-result-status { font-family: var(--det-font-mono); font-size: 2.2rem; margin: 0 0 10px; letter-spacing: 2px; }
+.det-result-msg { color: #e2e8f0; font-size: 1.1rem; margin: 0; }
+.det-result-details { padding: 30px; }
+.det-reward-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: rgba(15,23,42,0.8); border: 1px dashed var(--det-gold); border-radius: 8px; margin-bottom: 30px; }
+.det-reward-label { font-size: 0.8rem; color: #94a3b8; letter-spacing: 2px; margin-bottom: 5px; }
+.det-reward-val { font-family: var(--det-font-mono); font-size: 2.5rem; font-weight: bold; }
+.det-penalty-text { color: var(--det-red); font-size: 0.85rem; margin-top: 5px; }
+.det-law-breakdown { background: rgba(30,58,138,0.1); padding: 20px; border-left: 3px solid var(--det-primary); border-radius: 0 8px 8px 0; margin-bottom: 30px; }
+.det-law-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+.det-chip { padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; font-family: var(--det-font-mono); text-transform: uppercase; letter-spacing: 1px; }
+.det-chip-bns { background: rgba(99,102,241,0.2); border: 1px solid #6366f1; color: #a5b4fc; }
+.det-chip-ipc { background: rgba(148,163,184,0.2); border: 1px solid #94a3b8; color: #cbd5e1; }
+.det-chip-safe { background: rgba(16,185,129,0.2); border: 1px solid var(--det-green); color: var(--det-green); }
+.det-chip-danger { background: rgba(239,68,68,0.2); border: 1px solid var(--det-red); color: var(--det-red); }
+.det-chip-warning { background: rgba(245,158,11,0.2); border: 1px solid var(--det-gold); color: var(--det-gold); }
+.det-correct-law { font-weight: bold; font-size: 1.1rem; color: white; margin-bottom: 10px; }
+.det-law-exp { color: #cbd5e1; line-height: 1.6; font-size: 0.95rem; margin-bottom: 15px; }
+.det-differences-box { background: rgba(245,158,11,0.1); border-left: 3px solid var(--det-gold); padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+.det-differences-box p { margin: 10px 0 0; font-size: 0.9rem; line-height: 1.5; color: #fde68a; font-family: var(--det-font-ui); }
+.det-punishment-box { background: rgba(0,0,0,0.5); padding: 10px 15px; border-radius: 4px; color: var(--det-gold); font-family: var(--det-font-mono); font-size: 0.9rem; }
+.det-result-actions { display: flex; justify-content: center; gap: 20px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .det-menu { grid-template-columns: 1fr; }
+  .det-suspects-grid { grid-template-columns: 1fr; }
+  .det-options-grid { grid-template-columns: 1fr; }
+  .det-hud { flex-direction: column; align-items: flex-start; gap: 15px; }
+}

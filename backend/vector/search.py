@@ -1,0 +1,142 @@
+"""
+FAISS vector search — uses absolute paths so it works
+no matter which directory uvicorn is launched from.
+
+Supports both BNS and IPC collections via source-tagged id_mapping.
+
+H3 Fix: All init failures are caught gracefully; search() always returns
+a list (empty on any error) so callers need no special-case logic.
+"""
+import os
+import pickle
+from typing import List
+
+import numpy as np
+
+_DIR        = os.path.dirname(__file__)
+INDEX_PATH  = os.path.join(_DIR, "law_index.faiss")
+MAP_PATH    = os.path.join(_DIR, "id_mapping.pkl")
+
+# Lazy-loaded globals
+_model = None
+_index = None
+_ids   = None
+_init_failed = False   # set True after first failed init so we stop retrying
+
+
+def _lazy_init() -> bool:
+    """
+    Load FAISS index and sentence-transformer on first call.
+    Returns True on success, False if unavailable (missing files or import error).
+    Suppresses all exceptions so the caller gets a bool, not a crash.
+    """
+    global _model, _index, _ids, _init_failed
+
+    if _model is not None:
+        return True          # already initialised
+    if _init_failed:
+        return False         # previous init failed — skip retrying
+
+    # ── Guard: missing index files ───────────────────────────────────────────
+    if not os.path.exists(INDEX_PATH):
+        print(
+            f"[WARN] FAISS index not found at: {INDEX_PATH}\n"
+            "    Vector search is DISABLED. Keyword fallback will be used.\n"
+            "    To enable: run  python vector/build_index.py  from backend/"
+        )
+        _init_failed = True
+        return False
+
+    if not os.path.exists(MAP_PATH):
+        print(
+            f"[WARN] FAISS id_mapping not found at: {MAP_PATH}\n"
+            "    Vector search is DISABLED."
+        )
+        _init_failed = True
+        return False
+
+    # ── Guard: optional heavy imports ────────────────────────────────────────
+    try:
+        import faiss
+        from sentence_transformers import SentenceTransformer
+    except ImportError as e:
+        print(
+            f"[WARN] Vector search dependencies missing: {e}\n"
+            "    Install with:  pip install faiss-cpu sentence-transformers\n"
+            "    Falling back to keyword search."
+        )
+        _init_failed = True
+        return False
+
+    # ── Load index ────────────────────────────────────────────────────────────
+    try:
+        print("[INFO] Loading FAISS index and sentence-transformer model...")
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+        _index = faiss.read_index(INDEX_PATH)
+        with open(MAP_PATH, "rb") as f:
+            _ids = pickle.load(f)
+        print(f"[OK] FAISS ready  ({_index.ntotal} vectors)")
+        return True
+    except Exception as e:
+        print(f"[ERROR] FAISS init error: {e}\n   Falling back to keyword search.")
+        _model = _index = _ids = None
+        _init_failed = True
+        return False
+
+
+def _is_new_format(id_entry) -> bool:
+    """Check if id_mapping entry uses the new dict format {"id": ..., "source": ...}."""
+    return isinstance(id_entry, dict) and "id" in id_entry and "source" in id_entry
+
+
+def search(query: str, k: int = 3) -> List[dict]:
+    """
+    Return up to k law documents relevant to the query string.
+    Each result is normalized to the enriched schema (bns_section, ipc_section, etc.)
+    Supports both old id_mapping format (list of ObjectId strings) and
+    new format (list of {"id": str, "source": "bns"|"ipc"} dicts).
+    Returns an empty list if FAISS is unavailable — never raises.
+    """
+    if not _lazy_init():
+        return []
+
+    try:
+        from app.db.connection import (
+            bns_collection, ipc_collection,
+            normalize_law_doc, normalize_ipc_doc,
+        )
+        from bson import ObjectId
+
+        q_vec = np.array(_model.encode([query]), dtype=np.float32)
+        _, I  = _index.search(q_vec, k)
+
+        results = []
+        for i in I[0]:
+            if i < 0 or i >= len(_ids):
+                continue
+
+            entry = _ids[i]
+
+            # Support both old format (plain string) and new format (dict)
+            if _is_new_format(entry):
+                doc_id = entry["id"]
+                source = entry["source"]
+            else:
+                # Legacy format — plain ObjectId string, assume BNS
+                doc_id = entry
+                source = "bns"
+
+            # Look up from the correct collection and apply normalizer
+            if source == "ipc":
+                doc = ipc_collection.find_one({"_id": ObjectId(doc_id)})
+                if doc:
+                    results.append(normalize_ipc_doc(doc))
+            else:
+                doc = bns_collection.find_one({"_id": ObjectId(doc_id)})
+                if doc:
+                    results.append(normalize_law_doc(doc))
+
+        return results
+    except Exception as e:
+        print(f"[WARN] FAISS search error: {e}")
+        return []

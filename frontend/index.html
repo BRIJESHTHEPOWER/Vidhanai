@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚖️</text></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#060b18" />
+
+    <!-- SEO Meta -->
+    <meta
+      name="description"
+      content="Vidhan.ai — AI-powered Indian legal intelligence platform. Understand IPC, BNS, your rights and Indian law in simple language. Free legal AI assistant."
+    />
+    <meta name="keywords" content="Indian law, IPC, BNS, legal AI, legal rights, Vidhan.ai, legal assistant India" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Vidhan.ai — AI Legal Intelligence for India" />
+    <meta property="og:description" content="Understand Indian law in simple language. IPC, BNS, your rights — explained by AI." />
+    <meta property="og:type" content="website" />
+
+    <!-- PERF-M1: Preconnect to external origins before browser discovers them -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="http://localhost:8000" />
+
+    <!-- Font: preload critical font files to eliminate FOUT -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <title>Vidhan.ai — AI-Powered Legal Intelligence for India</title>
+
+    <!-- Prevent flash of unstyled dark background -->
+    <style>
+      html, body, #root { background: #060b18; margin: 0; padding: 0; }
+    </style>
+  </head>
+  <body>
+    <noscript>Vidhan.ai requires JavaScript to run. Please enable JavaScript in your browser.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/index.jsx"></script>
+  </body>
+</html>
