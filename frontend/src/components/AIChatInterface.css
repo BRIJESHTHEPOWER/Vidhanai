@@ -286,19 +286,27 @@
   flex-direction: column;
   gap: 8px;
 }
+/* Magic UI BorderBeam wrapper */
+.chat-input-beam-wrap {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
 .chat-input-bar {
   display: flex;
   align-items: flex-end;
   gap: 10px;
   background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(99,102,241,0.2);
+  border: 1px solid rgba(99,102,241,0.22);
   border-radius: 14px;
   padding: 12px 16px;
-  transition: all 300ms ease;
+  transition: border-color 0.25s ease;
 }
-.chat-input-bar:focus-within {
-  border-color: rgba(99,102,241,0.5);
-  box-shadow: 0 0 20px rgba(99,102,241,0.15), 0 0 40px rgba(6,182,212,0.05);
+
+/* Beam active — clear static border so the beam is the only visible border */
+.chat-input-beam-wrap[data-focused] .chat-input-bar {
+  border-color: transparent;
 }
 .chat-input {
   flex: 1;
@@ -339,6 +347,80 @@
   font-size: 0.7rem;
   color: #334155;
   text-align: center;
+}
+
+/* BNS clickable highlight items */
+.chat-ipc-item--btn {
+  width: calc(100% + 32px);
+  margin-left: -16px;
+  padding: 5px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font-size: inherit;
+  font-family: inherit;
+  transition: background 150ms ease, color 150ms ease;
+}
+.chat-ipc-item--btn:hover {
+  background: rgba(99,102,241,0.08);
+  color: #a5b4fc;
+}
+.chat-ipc-item--btn:hover .chat-ipc-dot {
+  background: #6366f1;
+}
+
+/* Demo Login Gate */
+.chat-demo-gate {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(6,182,212,0.06));
+  border: 1px solid rgba(99,102,241,0.25);
+  border-radius: 14px;
+  flex-wrap: wrap;
+}
+.chat-demo-gate-lock {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+.chat-demo-gate-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 160px;
+}
+.chat-demo-gate-text strong {
+  font-size: 0.88rem;
+  color: #e2e8f0;
+  font-weight: 700;
+}
+.chat-demo-gate-text span {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+.chat-demo-gate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: linear-gradient(135deg, #6366f1, #22d3ee);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 250ms ease;
+  flex-shrink: 0;
+}
+.chat-demo-gate-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(99,102,241,0.4);
 }
 
 @media (max-width: 900px) {

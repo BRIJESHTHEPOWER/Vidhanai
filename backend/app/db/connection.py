@@ -74,11 +74,14 @@ users_collection   = db["users"]
 bns_collection     = db["bns_sections"]   # Raw BNS 2023 sections from bns.json
 ipc_collection     = db["ipc_sections"]   # Raw IPC 1860 sections from ipc.json
 comics_collection  = db["comics"]
-detective_cases_collection = db["detective_cases"]
 leaderboard_collection = db["leaderboard"]
 reviews_collection     = db["reviews"]
 admin_users_collection = db["admin_users"]
 settings_collection    = db["settings"]   # platform config (maintenance mode, etc.)
+announcements_collection          = db["announcements"]            # admin "what's new" updates
+newsletter_subscribers_collection = db["newsletter_subscribers"]   # footer newsletter emails
+subscriptions_collection          = db["subscriptions"]            # Razorpay subscription records
+usage_collection                  = db["usage_quota"]              # per-IP daily quota for anonymous demo asks
 
 
 # ── Schema normalizer ────────────────────────────────────────────────────────

@@ -146,7 +146,7 @@ function ComparisonView() {
         <div className="cv-loading-screen">
           <div className="cv-spinner"></div>
           <h2>Generating AI Comparison...</h2>
-          <p>Groq AI is analyzing IPC {ipc || '—'} vs BNS {bns} using your legal database</p>
+          <p>Analyzing IPC {ipc || '—'} vs BNS {bns} — comparing both sections clause by clause</p>
         </div>
       </div>
     );

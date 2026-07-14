@@ -1,14 +1,14 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List, Optional
 
-from app.db.connection import reviews_collection
+from app.db.connection import reviews_collection, users_collection
+from app.routers import get_current_user_email_optional
 
 router = APIRouter(prefix="/reviews", tags=["Reviews"])
 
 class ReviewCreate(BaseModel):
-    name: str = Field(..., min_length=2, max_length=50)
     rating: int = Field(..., ge=1, le=5)
     text: str = Field(..., min_length=5, max_length=1000)
     role: Optional[str] = Field(None, max_length=80)
@@ -23,11 +23,24 @@ class ReviewResponse(BaseModel):
     featured: bool = False
 
 @router.post("", response_model=ReviewResponse)
-async def create_review(review: ReviewCreate):
+async def create_review(
+    review: ReviewCreate,
+    user_email: Optional[str] = Depends(get_current_user_email_optional),
+):
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Please log in to submit a review.")
+
+    user = users_collection.find_one({"email": user_email})
+    if not user:
+        raise HTTPException(status_code=401, detail="Account not found. Please log in again.")
+
+    name = user.get("name") or user_email.split("@")[0]
+
     try:
         now = datetime.now().isoformat()
         review_doc = {
-            "name": review.name.strip(),
+            "name": name.strip(),
+            "email": user_email,
             "rating": review.rating,
             "text": review.text.strip(),
             "role": review.role.strip() if review.role else None,

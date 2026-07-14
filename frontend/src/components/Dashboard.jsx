@@ -44,7 +44,7 @@ function LawOfDay() {
         </p>
         <div className="law-of-day-tags">
           <span>Public Order</span>
-          <span>Constitutional</span>
+          <span>Criminal Law</span>
         </div>
       </div>
     </div>

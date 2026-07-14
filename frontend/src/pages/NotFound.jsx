@@ -7,9 +7,9 @@ import { Link } from 'react-router-dom';
 
 const SUGGESTIONS = [
   { label: 'Search Indian Law',  path: '/',          icon: '🔍' },
-  { label: 'Learn with Stories', path: '/learn',     icon: '📖' },
+  { label: 'Ask AI',             path: '/ask-ai',    icon: '🤖' },
   { label: 'Take a Quiz',        path: '/quiz',      icon: '📝' },
-  { label: 'Explore Laws',       path: '/explore',   icon: '⚖️'  },
+  { label: 'Compare Laws',       path: '/compare',   icon: '⚖️'  },
   { label: 'Legal Awareness',    path: '/awareness', icon: '🛡️' },
 ];
 
@@ -45,8 +45,8 @@ export default function NotFound() {
             </svg>
             Return Home
           </Link>
-          <Link to="/explore" className="btn btn-outline" id="nf-explore-btn">
-            Explore Laws
+          <Link to="/ask-ai" className="btn btn-outline" id="nf-explore-btn">
+            Ask AI
           </Link>
         </div>
 

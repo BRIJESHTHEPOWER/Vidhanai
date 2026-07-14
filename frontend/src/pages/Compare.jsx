@@ -47,16 +47,21 @@ const ICON_COLOR = {
 
 export default function Compare() {
   const [searchParams] = useSearchParams();
-  const initialTopic = searchParams.get('topic') || 'murder';
+  const initialTopic = searchParams.get('topic') || '';
   const [query,      setQuery]      = useState('');
-  const [activeChip, setActiveChip] = useState(initialTopic);
+  const [activeChip, setActiveChip] = useState('');
   const [result,     setResult]     = useState(null);
   const [loading,    setLoading]    = useState(false);
   const [searched,   setSearched]   = useState(false);
   const navigate = useNavigate();
 
+  // Only auto-search when topic is explicitly passed in the URL (e.g. from deep-link)
   useEffect(() => {
-    doSearch(initialTopic);
+    if (initialTopic) {
+      setActiveChip(initialTopic);
+      setQuery(initialTopic);
+      doSearch(initialTopic);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -80,8 +85,8 @@ export default function Compare() {
     if (!chip.q) {
       setActiveChip('');
       setQuery('');
-      doSearch('murder');
-      setActiveChip('murder');
+      setResult(null);
+      setSearched(false);
       return;
     }
     setQuery(chip.label);
@@ -308,36 +313,6 @@ function ComparisonResult({ result, navigate }) {
         ))}
       </div>
 
-      {/* ── Example Comparison ── */}
-      <div className="vcmp-example">
-        <div className="vcmp-example-left">
-          <span className="vcmp-example-icon">⚖️</span>
-          <div>
-            <div className="vcmp-example-tag">Example Comparison</div>
-          </div>
-        </div>
-
-        <div className="vcmp-example-ipc">
-          <div className="vcmp-example-law" style={{ color: '#ef4444' }}>IPC 1860</div>
-          <div className="vcmp-example-sec">Section 378 – Theft</div>
-          <div className="vcmp-example-desc">Whoever, intending to take dishonestly any movable property...</div>
-        </div>
-
-        <div className="vcmp-example-arrows">›‹›</div>
-
-        <div className="vcmp-example-bns">
-          <div className="vcmp-example-law" style={{ color: '#22c55e' }}>BNS 2023</div>
-          <div className="vcmp-example-sec">Section 303 – Theft</div>
-          <div className="vcmp-example-desc">Whoever dishonestly moves any movable property...</div>
-        </div>
-
-        <button
-          className="vcmp-example-btn"
-          onClick={() => navigate('/compare-detail/303?ipc=378')}
-        >
-          View Full Comparison →
-        </button>
-      </div>
 
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleLogin } from "@react-oauth/google";
 import { validateName, validateEmail, validatePassword, getPasswordStrength } from '../utils/authValidation';
@@ -31,6 +31,8 @@ export default function Login() {
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
 
   const nameError    = !isLogin ? validateName(name) : '';
   const emailError   = !isLogin ? validateEmail(email) : '';
@@ -50,7 +52,7 @@ export default function Login() {
       localStorage.setItem('vidhan_user', data.name);
       localStorage.setItem('vidhan_email', data.email);
       localStorage.setItem('vidhan_avatar', data.picture || '');
-      navigate('/');
+      navigate(redirectTo);
     } catch {
       setError('Google sign-in failed. Please try again.');
     }
@@ -66,11 +68,19 @@ export default function Login() {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Authentication failed');
+      if (!res.ok) {
+        // Unverified email/password account — send them to finish verifying
+        // instead of just showing an error with no way forward.
+        if (res.status === 403 && data.detail?.toLowerCase().includes('verify')) {
+          navigate('/verify-otp', { state: { email, redirectTo } });
+          return;
+        }
+        throw new Error(data.detail || 'Authentication failed');
+      }
       localStorage.setItem('vidhan_token', data.access_token);
       localStorage.setItem('vidhan_user', data.name);
       localStorage.setItem('vidhan_email', email);
-      navigate('/');
+      navigate(redirectTo);
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -95,10 +105,10 @@ export default function Login() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Signup failed');
-      localStorage.setItem('vidhan_token', data.access_token || 'demo_token');
-      localStorage.setItem('vidhan_user', name);
-      localStorage.setItem('vidhan_email', email);
-      navigate('/');
+
+      // /auth/signup no longer logs the user straight in — the account starts
+      // unverified and must complete the emailed OTP code first.
+      navigate('/verify-otp', { state: { email, redirectTo, justSignedUp: true } });
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -144,7 +154,6 @@ export default function Login() {
             <li><span className="auth-feat-icon">⚖️</span> IPC 1860 &amp; BNS 2023 side-by-side</li>
             <li><span className="auth-feat-icon">🤖</span> AI legal assistant in your language</li>
             <li><span className="auth-feat-icon">📚</span> Interactive quizzes &amp; law comics</li>
-            <li><span className="auth-feat-icon">🔍</span> Detective case simulator</li>
           </ul>
         </div>
         {/* decorative orbs */}

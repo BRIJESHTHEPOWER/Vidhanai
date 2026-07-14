@@ -2,24 +2,22 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Canvas, extend, useFrame } from '@react-three/fiber';
-import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
+import { useGLTF, Environment, Lightformer } from '@react-three/drei';
 import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
 
 import cardGLB from './card.glb';
-import lanyard from './lanyard.png';
 
 import * as THREE from 'three';
 import './Lanyard.css';
 
 extend({ MeshLineGeometry, MeshLineMaterial });
 
-// Warm the GLTF model + texture caches as soon as this module is imported,
+// Warm the GLTF model cache as soon as this module is imported,
 // so the card has no asset-loading delay when the Lanyard is first shown.
 useGLTF.preload(cardGLB);
-useTexture.preload(lanyard);
 
-export default function Lanyard({ position = [0, 0, 30], gravity = [0, -40, 0], fov = 20, transparent = true, name = "" }) {
+export default function Lanyard({ position = [0, 0, 30], gravity = [0, -40, 0], fov = 20, transparent = true, name = "", replay = false }) {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
 
   useEffect(() => {
@@ -38,7 +36,7 @@ export default function Lanyard({ position = [0, 0, 30], gravity = [0, -40, 0], 
       >
         <ambientLight intensity={Math.PI} />
         <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
-          <Band isMobile={isMobile} name={name} />
+          <Band isMobile={isMobile} name={name} replay={replay} />
         </Physics>
         <Environment blur={0.75}>
           <Lightformer
@@ -75,7 +73,7 @@ export default function Lanyard({ position = [0, 0, 30], gravity = [0, -40, 0], 
   );
 }
 
-function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, name = "" }) {
+function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, name = "", replay = false }) {
   const band = useRef(),
     fixed = useRef(),
     j1 = useRef(),
@@ -88,7 +86,6 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, name = "" }) {
     dir = new THREE.Vector3();
   const segmentProps = { type: 'dynamic', canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 };
   const { nodes, materials } = useGLTF(cardGLB);
-  const texture = useTexture(lanyard);
   const [curve] = useState(
     () =>
       new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()])
@@ -168,6 +165,28 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, name = "" }) {
     }
   }, [hovered, dragged]);
 
+  /* Replay the drop-in entrance: when `replay` flips true (card revealed),
+     teleport the rope joints + card back to their horizontal spawn line with
+     zero velocity so gravity swings the card in like a fresh mount. */
+  useEffect(() => {
+    if (!replay) return;
+    const spawns = [
+      [j1,   [0.5, 4, 0]],
+      [j2,   [1,   4, 0]],
+      [j3,   [1.5, 4, 0]],
+      [card, [2,   4, 0]],
+    ];
+    spawns.forEach(([ref, [x, y, z]]) => {
+      const body = ref.current;
+      if (!body) return;
+      body.wakeUp();
+      body.setTranslation({ x, y, z }, true);
+      body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    });
+    card.current?.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
+  }, [replay]);
+
   useFrame((state, delta) => {
     if (dragged) {
       vec.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
@@ -197,7 +216,6 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, name = "" }) {
   });
 
   curve.curveType = 'chordal';
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 
   return (
     <>
@@ -243,12 +261,9 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, name = "" }) {
       <mesh ref={band}>
         <meshLineGeometry />
         <meshLineMaterial
-          color="white"
+          color="black"
           depthTest={false}
           resolution={isMobile ? [1000, 2000] : [1000, 1000]}
-          useMap
-          map={texture}
-          repeat={[-4, 1]}
           lineWidth={1}
         />
       </mesh>

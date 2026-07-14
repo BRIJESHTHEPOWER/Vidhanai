@@ -66,7 +66,7 @@ export default function AdminLogin() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="admin@vidhan.ai"
+                placeholder="admin@vidhanai.com"
                 autoComplete="email"
                 required
               />

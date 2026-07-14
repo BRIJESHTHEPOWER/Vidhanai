@@ -598,3 +598,107 @@
   .vcmp-chip  { font-size: 0.75rem; padding: 6px 10px; }
   .vcmp-stats { grid-template-columns: 1fr 1fr; }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   LIGHT MODE — full override for every dark-hardcoded colour
+══════════════════════════════════════════════════════════════ */
+
+/* ── Root & hero ── */
+[data-theme="light"] .vcmp-root       { background: #f5f5f7; color: #1e293b; }
+[data-theme="light"] .vcmp-title      { color: #1e293b; }
+[data-theme="light"] .vcmp-subtitle   { color: #475569; }
+[data-theme="light"] .vcmp-orb        { opacity: 0.06; }
+[data-theme="light"] .vcmp-live-pill  { background: rgba(99,102,241,0.07); border-color: rgba(99,102,241,0.2); color: #4338ca; }
+
+/* ── Search bar ── */
+[data-theme="light"] .vcmp-search-wrap  { background: #ffffff; border-color: #e2e8f0; }
+[data-theme="light"] .vcmp-input        { color: #1e293b; background: transparent; }
+[data-theme="light"] .vcmp-input::placeholder { color: #94a3b8; }
+[data-theme="light"] .vcmp-search-svg   { color: #94a3b8; }
+[data-theme="light"] .vcmp-clear        { color: #94a3b8; }
+[data-theme="light"] .vcmp-clear:hover  { color: #1e293b; }
+
+/* ── Topic chips ── */
+[data-theme="light"] .vcmp-chip        { background: #ffffff; border-color: #e2e8f0; color: #475569; }
+[data-theme="light"] .vcmp-chip:hover  { border-color: #818cf8; color: #4338ca; background: #eef2ff; }
+[data-theme="light"] .vcmp-chip--active { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.35); color: #3730a3; }
+[data-theme="light"] .vcmp-chip-count  { color: #94a3b8; }
+
+/* ── IPC Panel ── */
+[data-theme="light"] .vcmp-panel-ipc {
+  background: #fff2f2;
+  border-color: rgba(220, 38, 38, 0.3);
+}
+[data-theme="light"] .vcmp-panel-hd-ipc  { border-bottom-color: rgba(220,38,38,0.18); }
+[data-theme="light"] .vcmp-book-icon-ipc  { background: rgba(220,38,38,0.12); }
+[data-theme="light"] .vcmp-law-name-ipc   { color: #b91c1c; }
+[data-theme="light"] .vcmp-sec-label-ipc  {
+  background: rgba(220, 38, 38, 0.12);
+  color: #991b1b;
+  border-top-color: rgba(220,38,38,0.15);
+  border-bottom-color: rgba(220,38,38,0.15);
+}
+
+/* ── BNS Panel ── */
+[data-theme="light"] .vcmp-panel-bns {
+  background: #f0fdf4;
+  border-color: rgba(22, 163, 74, 0.3);
+}
+[data-theme="light"] .vcmp-panel-hd-bns  { border-bottom-color: rgba(22,163,74,0.18); }
+[data-theme="light"] .vcmp-book-icon-bns  { background: rgba(22,163,74,0.12); }
+[data-theme="light"] .vcmp-law-name-bns   { color: #15803d; }
+[data-theme="light"] .vcmp-sec-label-bns  {
+  background: rgba(22, 163, 74, 0.12);
+  color: #166534;
+  border-top-color: rgba(22,163,74,0.15);
+  border-bottom-color: rgba(22,163,74,0.15);
+}
+
+/* ── Law full name (subtitle under IPC 1860 / BNS 2023) ── */
+[data-theme="light"] .vcmp-law-full { color: #64748b; }
+
+/* ── Bullet list — the core visibility fix ── */
+[data-theme="light"] .vcmp-bullet       { color: #334155; }
+[data-theme="light"] .vcmp-bullet-label { color: #111827; }
+[data-theme="light"] .vcmp-bullet-val   { color: #374151; }
+[data-theme="light"] .vcmp-dot-ipc      { color: #dc2626; }
+[data-theme="light"] .vcmp-dot-bns      { color: #16a34a; }
+
+/* ── Stats row ── */
+[data-theme="light"] .vcmp-stat {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+[data-theme="light"] .vcmp-stat:hover { border-color: #c7d2fe; }
+[data-theme="light"] .vcmp-stat-lbl   { color: #64748b; }
+
+/* ── Sidebar (What Changed) ── */
+[data-theme="light"] .vcmp-sidebar {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+[data-theme="light"] .vcmp-sidebar-title  { color: #1e293b; }
+[data-theme="light"] .vcmp-change-title   { color: #1e293b; }
+[data-theme="light"] .vcmp-change-desc    { color: #64748b; }
+
+/* ── Loading / empty / error states ── */
+[data-theme="light"] .vcmp-loading-text { color: #64748b; }
+[data-theme="light"] .vcmp-empty        { color: #64748b; }
+[data-theme="light"] .vcmp-empty h3     { color: #475569; }
+
+/* ── Example comparison block (if present) ── */
+[data-theme="light"] .vcmp-example {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+/* ── View toggle buttons ── */
+[data-theme="light"] .vcmp-view-btn {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+[data-theme="light"] .vcmp-view-btn--active { color: #ffffff; }

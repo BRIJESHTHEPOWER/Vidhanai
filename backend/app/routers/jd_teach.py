@@ -1,7 +1,7 @@
 """
 JD Teach router — voice-driven chapter-by-chapter lessons.
 
-Pipeline: legal dataset (Mongo) -> Groq (JD teaching script) -> Kokoro TTS -> audio/wav
+Pipeline: legal dataset (Mongo) -> Groq (JD teaching script) -> Sarvam TTS -> audio/wav
 
 Endpoints:
   POST /jd/teach/start          — start a lesson session at a chapter/section
@@ -17,7 +17,7 @@ import time
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from slowapi import Limiter
@@ -26,7 +26,14 @@ from slowapi.util import get_remote_address
 from app.routers import sanitize_input
 from app.routers.tutor import _get_chapters, _pun_to_str
 from app.services import teaching
-from app.services import tts as tts_service
+from app.services import sarvam_tts as sarvam_service
+from app.services.plan_gate import require_pro
+
+# JD voice lessons are Pro-only. Each endpoint is gated individually because
+# /audio/{sid}/{turn_id} must stay header-free — it is played via <audio src>,
+# which cannot send an Authorization header. Audio is only reachable through
+# unguessable session/turn ids created by the Pro-gated /start.
+_PRO = [Depends(require_pro)]
 
 logger = logging.getLogger(__name__)
 
@@ -74,14 +81,22 @@ def _normalize_sections(law_code: str, chapter_num: int):
 
 
 def _make_audio(text: str, session: dict) -> Optional[str]:
-    """Synthesize audio for `text`, cache it, return a turn_id (or None if TTS unavailable)."""
-    if not tts_service.is_available():
+    """
+    Synthesize audio via Sarvam AI only — no Kokoro, no browser TTS.
+    Returns a turn_id (cached audio URL key) or None if Sarvam is unavailable.
+    """
+    if not sarvam_service.is_available():
+        logger.warning("[JD Teach] Sarvam API key not set — returning text-only mode")
         return None
+
+    language = session.get("language", "English")
     try:
-        audio_bytes = tts_service.synthesize(text, voice=tts_service.DEFAULT_VOICE)
-    except Exception as e:
-        logger.error("[JD Teach] TTS synthesis failed: %s", e)
+        audio_bytes = sarvam_service.synthesize(text, language=language)
+        logger.debug("[JD Teach] Sarvam synthesised %d bytes for language=%s", len(audio_bytes), language)
+    except Exception as exc:
+        logger.error("[JD Teach] Sarvam TTS failed: %s", exc)
         return None
+
     turn_id = uuid.uuid4().hex
     session["audio_cache"][turn_id] = audio_bytes
     return turn_id
@@ -105,7 +120,7 @@ def _section_payload(session: dict, text: str, turn_id: Optional[str]):
         },
         "text":      text,
         "audio_url": f"/jd/teach/audio/{session['session_id']}/{turn_id}" if turn_id else None,
-        "tts_available": tts_service.is_available(),
+        "tts_available": sarvam_service.is_available(),
     }
 
 
@@ -115,11 +130,11 @@ class StartRequest(BaseModel):
     law_code:      str
     chapter_num:   int
     section_index: Optional[int] = 0
-    mode:          Optional[str] = "student"
+    mode:          Optional[str] = "general"   # single unified mode
     language:      Optional[str] = "English"
 
 
-@router.post("/start")
+@router.post("/start", dependencies=_PRO)
 @limiter.limit("15/minute")
 def start_lesson(request: Request, body: StartRequest):
     law_code = body.law_code.upper().strip()
@@ -143,7 +158,7 @@ def start_lesson(request: Request, body: StartRequest):
         "chapter_name": chapter["chapter_name"],
         "sections":     sections,
         "idx":          idx,
-        "mode":         body.mode or "student",
+        "mode":         "general",
         "language":     body.language or "English",
         "history":      [],
         "audio_cache":  {},
@@ -194,7 +209,7 @@ class InterruptRequest(BaseModel):
     question:   str
 
 
-@router.post("/interrupt")
+@router.post("/interrupt", dependencies=_PRO)
 @limiter.limit("20/minute")
 def interrupt(request: Request, body: InterruptRequest):
     session = _get_session(body.session_id)
@@ -224,7 +239,7 @@ def interrupt(request: Request, body: InterruptRequest):
         "text":       answer,
         "audio_url":  f"/jd/teach/audio/{session['session_id']}/{turn_id}" if turn_id else None,
         "awaiting":   "doubt_clear",
-        "tts_available": tts_service.is_available(),
+        "tts_available": sarvam_service.is_available(),
     }
 
 
@@ -235,7 +250,7 @@ class DoubtResolvedRequest(BaseModel):
     resolved:   bool
 
 
-@router.post("/doubt-resolved")
+@router.post("/doubt-resolved", dependencies=_PRO)
 @limiter.limit("20/minute")
 def doubt_resolved(request: Request, body: DoubtResolvedRequest):
     session = _get_session(body.session_id)
@@ -253,13 +268,11 @@ def doubt_resolved(request: Request, body: DoubtResolvedRequest):
         section_number=section["section_number"],
         section_title=section["title"],
         section_text=section["text"],
-        question=(
-            f"The student still doesn't understand. Please re-explain more simply, "
-            f"using a different, simpler example. Original question: {last_question}"
-        ),
+        question=last_question or "Please re-explain the concept more simply.",
         history=session["history"],
         language=session["language"],
         ask_clear=True,
+        reexplain=True,   # use different analogy / simpler approach
     )
     session["history"].append(("assistant", answer))
 
@@ -271,7 +284,7 @@ def doubt_resolved(request: Request, body: DoubtResolvedRequest):
         "text":       answer,
         "audio_url":  f"/jd/teach/audio/{session['session_id']}/{turn_id}" if turn_id else None,
         "awaiting":   "doubt_clear",
-        "tts_available": tts_service.is_available(),
+        "tts_available": sarvam_service.is_available(),
     }
 
 
@@ -281,7 +294,7 @@ class NextRequest(BaseModel):
     session_id: str
 
 
-@router.post("/next")
+@router.post("/next", dependencies=_PRO)
 @limiter.limit("15/minute")
 def next_section(request: Request, body: NextRequest):
     session = _get_session(body.session_id)
@@ -315,7 +328,7 @@ def next_section(request: Request, body: NextRequest):
 
 # ── session state (for reloads) ───────────────────────────────────────────────
 
-@router.get("/session/{session_id}")
+@router.get("/session/{session_id}", dependencies=_PRO)
 @limiter.limit("60/minute")
 def get_session_state(request: Request, session_id: str):
     session = _get_session(session_id)

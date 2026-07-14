@@ -14,8 +14,10 @@ from app.routers import get_current_user_email_optional, rag_context_from_db, sa
 from app.services.rag import find_relevant_law
 from app.services.ai import generate_ai_response, generate_translation
 from app.services.story import generate_story
+from app.services.plan_gate import require_pro
 
-router = APIRouter(tags=["Voice & Translation"])
+# Voice input and multi-language translation are Pro-plan features.
+router = APIRouter(tags=["Voice & Translation"], dependencies=[Depends(require_pro)])
 limiter = Limiter(key_func=get_remote_address)
 
 
@@ -138,11 +140,10 @@ def voice_intent(request: Request, body: VoiceIntentRequest):
         system_prompt = (
             "You are the Voice Intent Engine for Vidhan.ai (Indian legal app).\n"
             "Analyze the transcript and current_section, and classify it into one of these intents:\n"
-            "- open_home, open_chatbot, open_detective, open_quiz, open_comic, open_comparison, go_back\n"
+            "- open_home, open_chatbot, open_quiz, open_comic, open_comparison, go_back\n"
             "- explain_law, search_section, read_punishment, legal_example, summarize_section, related_sections (parameter: section number/name, default to current_section if applicable)\n"
             "- compare_sections (parameter: sections like '378,303')\n"
             "- generate_comic (parameter: topic or section)\n"
-            "- start_detective, inspect_scene, inspect_clue (parameter: clue name), show_evidence, interrogate_suspect (parameter: suspect name), accuse_suspect (parameter: suspect name), reveal_hint\n"
             "- start_quiz, next_question, submit_answer (parameter: answer like 'A' or 'B'), show_score\n"
             "- stop_speaking\n"
             "- default (fallback to general QA search)\n\n"
@@ -164,8 +165,6 @@ def voice_intent(request: Request, body: VoiceIntentRequest):
         print("Voice Intent Parsing Error:", e)
         # Simple rule-based fallback
         lower_trans = transcript.lower()
-        if "detective" in lower_trans or "game" in lower_trans or "case" in lower_trans:
-            return {"intent": "open_detective", "parameter": None, "response": "Opening the detective game."}
         if "quiz" in lower_trans or "test" in lower_trans:
             return {"intent": "open_quiz", "parameter": None, "response": "Starting the quiz."}
         if "comic" in lower_trans or "story" in lower_trans:

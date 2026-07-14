@@ -15,7 +15,6 @@ import ScrollReveal from '../components/ScrollReveal';
 import TestimonialStack from '../components/TestimonialStack';
 import './VidhanHome.css';
 
-const AIChatInterface  = lazy(() => import('../components/AIChatInterface'));
 const CaseVisualization = lazy(() => import('../components/CaseVisualization'));
 const LawComparison    = lazy(() => import('../components/LawComparison'));
 
@@ -65,6 +64,320 @@ function LazySection({ children, height = '400px' }) {
   );
 }
 
+/* ── Features overview — the 5 core tools, each linking to its page ── */
+const FEATURES_OV = [
+  {
+    to: '/ask-ai',
+    iconColor: '#818cf8', iconBg: 'rgba(99,102,241,0.15)',
+    title: 'Ask AI',
+    desc: 'Get instant AI-powered answers to your legal questions grounded in Indian statutes, judgments, and procedures.',
+    renderIcon: () => <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>,
+  },
+  {
+    to: '/comic',
+    iconColor: '#fb923c', iconBg: 'rgba(249,115,22,0.15)',
+    title: 'Comic Story',
+    desc: 'Understand complex Indian laws through visual storytelling and illustrated real-life case scenarios.',
+    renderIcon: () => (
+      <>
+        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+        <line x1="10" y1="7" x2="16" y2="7"/>
+        <line x1="10" y1="11" x2="14" y2="11"/>
+      </>
+    ),
+  },
+  {
+    to: '/tutor',
+    iconColor: '#34d399', iconBg: 'rgba(16,185,129,0.15)',
+    title: 'Tutor',
+    desc: 'Learn Indian law interactively with a personal AI law tutor that explains concepts at your own pace.',
+    renderIcon: () => (
+      <>
+        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+      </>
+    ),
+  },
+  {
+    to: '/compare',
+    iconColor: '#22d3ee', iconBg: 'rgba(6,182,212,0.15)',
+    title: 'Compare',
+    desc: 'Compare IPC vs BNS and other Indian laws side by side to clearly understand what changed and why.',
+    renderIcon: () => (
+      <>
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        <line x1="12" y1="8" x2="12" y2="16"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+      </>
+    ),
+  },
+  {
+    to: '/quiz',
+    iconColor: '#facc15', iconBg: 'rgba(234,179,8,0.15)',
+    title: 'Quiz',
+    desc: 'Test your legal knowledge with interactive quizzes on BNS 2023 and IPC 1860 sections.',
+    renderIcon: () => (
+      <>
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </>
+    ),
+  },
+];
+
+/* ── How It Works — 3-step explainer ── */
+const HOW_STEPS = [
+  {
+    step: '01',
+    accent: '#6366f1',
+    accentRgb: '99, 102, 241',
+    title: 'Ask in Plain Language',
+    desc: 'Type or speak your legal question in English or your regional language. No jargon required — just describe your situation naturally.',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    ),
+  },
+  {
+    step: '02',
+    accent: '#D4A017',
+    accentRgb: '212, 160, 23',
+    title: 'AI Decodes the Law',
+    desc: 'Vidhan.ai searches every BNS 2023 and IPC 1860 section instantly — surfacing the exact section, its punishment, and how the old and new law compare.',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M12 3 13.8 8.2 19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/>
+        <path d="M5 3 5.9 5.6 8.5 6.5 5.9 7.4 5 10l-.9-2.6L1.5 6.5l2.6-.9Z"/>
+        <path d="M19 15l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7Z"/>
+      </svg>
+    ),
+  },
+  {
+    step: '03',
+    accent: '#22d3ee',
+    accentRgb: '34, 211, 238',
+    title: 'Understand & Act',
+    desc: 'Receive clear, simplified explanations with the relevant legal sections highlighted. Know your rights and exactly what to do next.',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <polyline points="9 15 11 17 15 13"/>
+      </svg>
+    ),
+  },
+];
+
+function HowItWorksSection() {
+  return (
+    <section id="how-it-works" className="hiw-section">
+      <div className="container">
+        <ScrollReveal direction="down" distance={30}>
+          <div className="section-header">
+            <div className="section-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v4l3 3"/>
+              </svg>
+              How It Works
+            </div>
+            <h2 className="section-title">
+              Legal clarity in <span className="gradient-text">three steps</span>
+            </h2>
+            <p className="section-subtitle">
+              From question to clarity in seconds — no legal expertise required.
+            </p>
+          </div>
+        </ScrollReveal>
+
+        <div className="hiw-grid">
+          {HOW_STEPS.map((s, i) => (
+            <ScrollReveal key={s.step} direction="up" distance={48} delay={i * 0.13}>
+              <article
+                className="hiw-card"
+                style={{ '--hiw-accent': s.accent, '--hiw-accent-rgb': s.accentRgb }}
+              >
+                {/* Step pill */}
+                <div className="hiw-step-pill">Step {s.step}</div>
+
+                {/* Background watermark number */}
+                <span className="hiw-watermark" aria-hidden="true">{s.step}</span>
+
+                {/* Icon */}
+                <div className="hiw-icon-wrap">{s.icon}</div>
+
+                {/* Text */}
+                <h3 className="hiw-card-title">{s.title}</h3>
+                <p className="hiw-card-desc">{s.desc}</p>
+
+                {/* Bottom accent stripe — revealed on hover */}
+                <div className="hiw-stripe" aria-hidden="true" />
+              </article>
+            </ScrollReveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Features overview — 5 core tools, each linking to its page ── */
+function FeaturesOverview() {
+  return (
+    <section id="features-overview" className="fov-section">
+      <div className="container">
+        <ScrollReveal direction="down" distance={30}>
+          <div className="section-header">
+            <div className="section-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+              What's Inside
+            </div>
+            <h2 className="section-title">
+              Everything you need to <span className="gradient-text">understand Indian Law</span>
+            </h2>
+            <p className="section-subtitle">
+              Five purpose-built tools — from AI chat to visual stories to interactive quizzes.
+            </p>
+          </div>
+        </ScrollReveal>
+
+        <div className="fov-grid fov-grid--3col">
+          {FEATURES_OV.map((f, i) => (
+            <ScrollReveal key={f.title} direction="up" distance={40} delay={i * 0.07}>
+              <Link to={f.to} className="fov-card fov-card--link" style={{ '--fov-accent': f.iconColor }}>
+                <div className="fov-icon" style={{ background: f.iconBg }}>
+                  <svg
+                    width="20" height="20" viewBox="0 0 24 24"
+                    fill="none" stroke={f.iconColor}
+                    strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    {f.renderIcon()}
+                  </svg>
+                </div>
+                <h3 className="fov-title">{f.title}</h3>
+                <p className="fov-desc">{f.desc}</p>
+                <span className="fov-cta" style={{ color: f.iconColor }}>
+                  Open
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <path d="m5 12 14 0m-7-7 7 7-7 7"/>
+                  </svg>
+                </span>
+              </Link>
+            </ScrollReveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── FAQ data — Vidhan.ai website questions ── */
+const HOME_FAQS = [
+  {
+    q: 'What is Vidhan.ai?',
+    a: 'Vidhan.ai is an AI-powered platform for learning Indian criminal law. It lets you search, understand, and compare the Bharatiya Nyaya Sanhita (BNS) 2023 and the Indian Penal Code (IPC) 1860 in plain language — without needing a law degree.',
+  },
+  {
+    q: 'Which laws does Vidhan.ai cover?',
+    a: 'Vidhan.ai focuses on India\'s two core criminal codes: the Bharatiya Nyaya Sanhita (BNS) 2023 — the current law — and the Indian Penal Code (IPC) 1860, which it replaced. You can browse every section of both codes (over 900 sections in all), compare them side by side, and learn them chapter by chapter.',
+  },
+  {
+    q: 'Is the legal information on Vidhan.ai accurate?',
+    a: 'Every answer is grounded in the actual text of the BNS 2023 and IPC 1860 sections in our database, and the AI explains them in simple words. While we strive for accuracy, Vidhan.ai is an educational and research tool — it does not replace advice from a qualified advocate. Always consult a legal professional for your specific situation.',
+  },
+  {
+    q: 'What is the difference between IPC and BNS?',
+    a: 'The Indian Penal Code (IPC) 1860 was India\'s primary criminal law, enacted during British rule. The Bharatiya Nyaya Sanhita (BNS) 2023 replaced it with updated provisions, renumbered sections, added community service as a punishment, and removed colonial-era language. Vidhan.ai\'s Compare tool shows you exactly what changed between the two.',
+  },
+  {
+    q: 'Can I ask questions in Hindi or other regional languages?',
+    a: 'Yes. Vidhan.ai supports 7 Indian languages including Hindi, Tamil, Telugu, Kannada, Marathi, and Malayalam. You can ask in your language and receive answers — and even voice lessons from the AI Tutor — in the same language. Full multilingual access is included in the Pro plan.',
+  },
+  {
+    q: 'How can I learn the law on Vidhan.ai?',
+    a: 'Beyond searching sections, you can use the AI Law Tutor for voice-guided, chapter-by-chapter lessons, take quizzes to test yourself, read law comics that turn a section into a visual story, and compare IPC vs BNS side by side. Pick "Citizen" mode for plain everyday explanations or "Student" mode for legal terminology.',
+  },
+  {
+    q: 'Is my data and conversation private?',
+    a: 'Yes. Your questions and history are private to your account. We do not share or sell personal data to third parties, and all communications are encrypted in transit. You can delete your account and data at any time from your Profile page.',
+  },
+  {
+    q: 'How is Vidhan.ai different from a regular Google search?',
+    a: 'Google returns a list of links — Vidhan.ai gives you a direct answer grounded in the actual BNS/IPC section, explained in plain language. It compares old (IPC) versus new (BNS) law, cites the exact section, and can even teach you the topic by voice. It\'s a legal learning assistant, not a search engine.',
+  },
+];
+
+function HomeFAQ() {
+  const [openIdx, setOpenIdx] = useState(null);
+
+  return (
+    <section id="faq" className="home-faq-section">
+      <div className="container">
+        <ScrollReveal direction="down" distance={30}>
+          <div className="section-header">
+            <div className="section-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              FAQ
+            </div>
+            <h2 className="section-title">
+              Questions about <span className="gradient-text">Vidhan.ai</span>
+            </h2>
+            <p className="section-subtitle">
+              Everything you need to know about how it works, what it covers, and how to get started.
+            </p>
+          </div>
+        </ScrollReveal>
+
+        <div className="home-faq-list">
+          {HOME_FAQS.map((item, i) => {
+            const isOpen = openIdx === i;
+            return (
+              <ScrollReveal key={item.q} direction="up" distance={24} delay={i * 0.04}>
+                <div className={`home-faq-item${isOpen ? ' home-faq-item--open' : ''}`}>
+                  <button
+                    className="home-faq-q"
+                    onClick={() => setOpenIdx(isOpen ? null : i)}
+                    aria-expanded={isOpen}
+                  >
+                    <span className="home-faq-q-text">{item.q}</span>
+                    <span className="home-faq-icon" aria-hidden="true">
+                      <svg
+                        width="16" height="16" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor"
+                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                        style={{ transform: isOpen ? 'rotate(45deg)' : 'rotate(0)', transition: 'transform 0.22s ease' }}
+                      >
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                    </span>
+                  </button>
+                  {isOpen && (
+                    <p className="home-faq-a">{item.a}</p>
+                  )}
+                </div>
+              </ScrollReveal>
+            );
+          })}
+        </div>
+
+      </div>
+    </section>
+  );
+}
+
 export default function VidhanHome() {
   return (
     <div className="vidhan-root">
@@ -73,11 +386,14 @@ export default function VidhanHome() {
         {/* HeroSection is above-fold — loads eagerly */}
         <HeroSection />
 
-        {/* All below-fold sections lazy-loaded via IntersectionObserver */}
-        <LazySection height="450px">
-          <AIChatInterface />
-        </LazySection>
+        {/* 8 feature cards — scrolled to by hero "Explore All Features" */}
+        <FeaturesOverview />
 
+        {/* How It Works — scrolled to by navbar link */}
+        <HowItWorksSection />
+
+        {/* #features anchor for Navbar "Explore" link */}
+        <div id="features" />
         <LazySection height="400px">
           <CaseVisualization />
         </LazySection>
@@ -91,6 +407,37 @@ export default function VidhanHome() {
 
         {/* LearnSection is lightweight — no lazy needed */}
         <LearnSection />
+
+        {/* FAQ — website-related questions */}
+        <HomeFAQ />
+
+        {/* Final CTA banner — last element before footer */}
+        <section className="final-cta-section">
+          <div className="container">
+            <ScrollReveal direction="up" distance={48} delay={0.1}>
+              <div className="learn-cta-banner">
+                <div className="learn-cta-bg" />
+                <div className="learn-cta-content">
+                  <div>
+                    <h3 className="learn-cta-title">Ready to understand your legal rights?</h3>
+                    <p className="learn-cta-sub">Ask Vidhan.ai anything. Get instant, accurate, and simplified legal guidance.</p>
+                  </div>
+                  <div className="learn-cta-buttons">
+                    <Link to="/ask-ai" className="btn btn-primary" id="final-cta-ai">
+                      Start with AI
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="m5 12 14 0m-7-7 7 7-7 7"/>
+                      </svg>
+                    </Link>
+                    <Link to="/compare" className="btn btn-outline" id="final-cta-compare">
+                      Compare Laws
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </ScrollReveal>
+          </div>
+        </section>
       </main>
       <Footer />
     </div>
@@ -524,25 +871,6 @@ function LearnSection() {
           <GuideModal guide={openGuide} data={GUIDES[openGuide]} onClose={closeGuide} />
         )}
 
-        {/* CTA Banner */}
-        <ScrollReveal direction="up" distance={60} delay={0.2}>
-          <div className="learn-cta-banner">
-            <div className="learn-cta-bg" />
-            <div className="learn-cta-content">
-              <div>
-                <h3 className="learn-cta-title">Ready to understand your legal rights?</h3>
-                <p className="learn-cta-sub">Ask Vidhan.ai anything. Get instant, accurate, and simplified legal guidance.</p>
-              </div>
-              <div className="learn-cta-buttons">
-                <Link to="/ask-ai" className="btn btn-primary" id="learn-cta-ai">
-                  Start with AI
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m5 12 14 0m-7-7 7 7-7 7"/></svg>
-                </Link>
-                <Link to="/compare" className="btn btn-outline" id="learn-cta-compare">Compare Laws</Link>
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
       </div>
     </section>
   );

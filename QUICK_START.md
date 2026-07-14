@@ -13,18 +13,12 @@
 
 ### Step 1: Start MongoDB (Choose ONE option)
 
-**EASIEST - Using Docker:**
-```bash
-cd ai-legal-system
-docker-compose up -d
-```
-
-**OR - Windows (Manual):**
+**Windows:**
 ```cmd
 setup-mongodb.bat
 ```
 
-**OR - Direct:**
+**OR - Direct (any platform):**
 ```bash
 mongod
 ```
@@ -68,7 +62,6 @@ Total: 5/5 tests passed
 ## 🎯 What Was Fixed
 
 ✅ **MongoDB Setup**
-   - Created Docker Compose for easy setup
    - Added Windows batch setup script
    - Added Linux/Mac shell script
 
@@ -90,7 +83,6 @@ Total: 5/5 tests passed
 ## 📁 Files Created/Modified
 
 **Created:**
-- `docker-compose.yml` - MongoDB Docker setup
 - `setup-mongodb.bat` - Windows MongoDB helper
 - `setup-mongodb.sh` - Linux/Mac MongoDB helper
 - `FIX_GUIDE.md` - Comprehensive troubleshooting

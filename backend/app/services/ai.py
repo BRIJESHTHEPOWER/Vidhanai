@@ -1,16 +1,16 @@
 """
 AI service — dual-provider wrapper with strict separation:
 
+  Groq (GROQ_API_KEY):
+    - Chat RAG answers (/ask, /ask-stream) in ENGLISH — primary engine
+    - IPC↔BNS comparison (/ai-compare via generate_groq_json_response)
+
   Gemini (GEMINI_API_KEY):
-    - Chat RAG answers (/ask, /ask-stream)
+    - Chat answers in Indian languages (Llama can't write Tamil/Kannada/
+      Telugu/Malayalam scripts reliably), with Groq as resilience fallback
+    - Fallback for English chat if Groq is rate-limited or unavailable
     - Comic story generation (/comic-story, /ask mode=comic)
     - Translation, simplify, voice intent
-    - Quiz, detective, scenario generation
-
-  Groq (GROQ_API_KEY):
-    - IPC↔BNS comparison ONLY (/ai-compare via generate_groq_json_response)
-    - Resilience fallback for chat (/ask, /ask-stream) if Gemini is
-      rate-limited or unavailable, so the assistant keeps responding.
 
 Never use Gemini for /ai-compare.
 """
@@ -122,11 +122,23 @@ def _build_user_prompt(question: str, context: str, language: str) -> str:
     )
 
 
+def _is_english(language: str) -> bool:
+    return not language or language.strip().lower() in ("english", "en")
+
+
 def generate_ai_response(question: str, context: str, language: str = "English") -> str:
     if not context:
         return "I couldn't find specific legal information for this question. Please try rephrasing or ask about a specific IPC/BNS section."
 
     user_prompt = _build_user_prompt(question, context, language)
+
+    # English → Groq is the PRIMARY engine (fast, generous quota).
+    # Indian languages stay on Gemini — Llama can't write Indic scripts reliably.
+    if _is_english(language):
+        answer = generate_groq_text(_SYSTEM_PROMPT, user_prompt, temperature=0.3, max_tokens=2048)
+        if answer:
+            return answer
+        logger.warning("[AI] Groq primary failed for /ask — falling back to Gemini")
 
     try:
         return _call_gemini(
@@ -204,12 +216,51 @@ def _call_gemini_stream(model_name: str, messages: list, temperature: float, max
         raise e
 
 
+def _call_groq_stream(system_prompt: str, user_prompt: str, temperature: float, max_tokens: int):
+    """Stream a Groq chat completion chunk by chunk."""
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY not set")
+    client = Groq(api_key=api_key)
+    stream = client.chat.completions.create(
+        model=GROQ_MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=temperature,
+        max_tokens=max_tokens,
+        stream=True,
+    )
+    for chunk in stream:
+        delta = chunk.choices[0].delta.content if chunk.choices else None
+        if delta:
+            yield delta
+
+
 def generate_ai_response_stream(question: str, context: str, language: str = "English"):
     if not context:
         yield "I couldn't find specific legal information for this question. Please try rephrasing or ask about a specific IPC/BNS section."
         return
 
     user_prompt = _build_user_prompt(question, context, language)
+
+    # English → Groq is the PRIMARY engine. Only fall back to Gemini when the
+    # Groq stream produced NOTHING (a mid-stream failure can't be restarted
+    # without duplicating the partial answer already sent to the client).
+    if _is_english(language):
+        streamed_any = False
+        try:
+            for piece in _call_groq_stream(_SYSTEM_PROMPT, user_prompt, temperature=0.3, max_tokens=2048):
+                streamed_any = True
+                yield piece
+            if streamed_any:
+                return
+        except Exception as e:
+            logger.error(f"[AI] Groq stream failed for /ask-stream: {e}")
+            if streamed_any:
+                return
+        logger.warning("[AI] Groq stream empty — falling back to Gemini")
 
     try:
         yield from _call_gemini_stream(
@@ -246,169 +297,6 @@ from groq import Groq
 
 GROQ_MODEL             = "llama-3.3-70b-versatile"
 GROQ_COMPARISON_MODEL  = GROQ_MODEL  # alias kept for /ai-compare
-
-# ── JD system prompt (full specification) ────────────────────────────────────
-_JD_SYSTEM_PROMPT = """You are JD, the official AI Voice Assistant and AI Law Tutor of Vidhan AI.
-You are powered by Groq and connected to a legal RAG system containing BNS 2023, IPC 1860, legal chapters, sections, definitions, explanations, examples, and comparisons.
-
-Your job is NOT to repeat legal text. Your responsibility is to help users understand law in a simple, interactive, human-like manner.
-
-You have THREE MODES. Automatically determine the correct mode based on the user's request.
-
-────────────────────────────────────────────
-MODE 1: WEBSITE ASSISTANT
-────────────────────────────────────────────
-When the user gives navigation commands like "Open Tutor", "Start Quiz", "Go Home", "Open Chatbot", "Show Dashboard", "Open Compare", "Open Comics", "Open Profile", return ONLY the action on its own line:
-
-ACTION: OPEN_TUTOR
-ACTION: OPEN_CHATBOT
-ACTION: OPEN_COMPARISON
-ACTION: OPEN_DASHBOARD
-ACTION: OPEN_PROFILE
-ACTION: OPEN_COMICS
-ACTION: START_QUIZ
-ACTION: OPEN_HOME
-ACTION: OPEN_DETECTIVE
-
-Recognize natural language variations. "Take me to the tutor", "Launch learning", "Open learning mode" all → ACTION: OPEN_TUTOR
-
-────────────────────────────────────────────
-MODE 2: LEGAL ASSISTANT
-────────────────────────────────────────────
-When users ask legal questions (what is murder, explain Section 103, punishment for theft, etc.):
-
-Use the RAG context provided as your primary source. Never hallucinate legal content.
-
-Structure every explanation as:
-1. Simple meaning (1 sentence)
-2. Why this law exists
-3. Key concepts
-4. Real-life Indian example with named characters
-5. Punishment (if applicable)
-6. Practical note: what to do (file FIR, consult lawyer, etc.)
-
-Always cite BNS first (current law), mention IPC as historical reference. Example: "BNS 103 (previously IPC 302)".
-
-────────────────────────────────────────────
-MODE 3: AI LAW TUTOR
-────────────────────────────────────────────
-When users ask to learn, explain a chapter, teach a concept, or continue a lesson:
-
-Teach like a real teacher — concept-first, never dump legal text.
-
-Teaching sequence:
-Concept → Simple Explanation → Real-Life Indian Example → Question to user → Wait for answer → Give Feedback → Next Concept
-
-After every concept, ask one question. Examples:
-"What is the most important element in this offence?"
-"Would this be considered murder or an accident?"
-
-After 3-4 concepts, give a quick MCQ or True/False.
-
-If the user answers wrong: simplify, give another example, ask an easier question.
-
-────────────────────────────────────────────
-VOICE OUTPUT RULES (ALWAYS APPLY)
-────────────────────────────────────────────
-Your responses will be read aloud by SpeechSynthesis. Therefore:
-- Short sentences. Maximum 2-3 sentences per paragraph.
-- No markdown headers (##, ---).
-- No bullet point symbols (*, -, •). Use numbered lists or plain prose.
-- Sound like a teacher speaking, not a document.
-- Pause naturally between concepts.
-- Keep total response under 120 words for legal answers, under 80 words for tutor turns.
-
-NEVER use: "As an AI...", "I am JD and I will...", preambles, greetings per message.
-Go straight to the answer.
-"""
-
-
-def generate_jd_response(
-    message: str,
-    rag_context: str = "",
-    history: list = None,
-    language: str = "English",
-    context_section: str = "",
-) -> dict:
-    """
-    Generate a JD response via Groq. Returns:
-    {
-        "response": str,          # spoken reply
-        "action":   str | None,   # e.g. "OPEN_TUTOR" if navigation
-        "mode":     str,          # "website_assistant" | "legal" | "tutor"
-        "rag_used": bool
-    }
-    """
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        logger.error("[JD] GROQ_API_KEY not set")
-        return {"response": "I'm temporarily unavailable. Please try again.", "action": None, "mode": "error", "rag_used": False}
-
-    # Build message list for Groq
-    msgs = [{"role": "system", "content": _JD_SYSTEM_PROMPT}]
-
-    # Add conversation history (last 3 turns = 6 messages max)
-    for role, text in (history or [])[-6:]:
-        groq_role = "user" if role == "user" else "assistant"
-        msgs.append({"role": groq_role, "content": text})
-
-    # Build user content — include RAG context and section context if available
-    user_parts = []
-    if context_section:
-        user_parts.append(f"[Current lesson section: {context_section}]")
-    if rag_context:
-        user_parts.append(f"[Legal RAG Context]\n{rag_context}\n[End RAG Context]")
-    if language and language.lower() != "english":
-        user_parts.append(f"[Respond entirely in {language}]")
-    user_parts.append(message)
-
-    msgs.append({"role": "user", "content": "\n\n".join(user_parts)})
-
-    try:
-        client = Groq(api_key=api_key)
-        completion = client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=msgs,
-            temperature=0.5,
-            max_tokens=300,
-        )
-        raw = (completion.choices[0].message.content or "").strip()
-
-        # Detect ACTION response (Mode 1 navigation)
-        action = None
-        mode   = "legal"
-        if raw.startswith("ACTION:"):
-            action_code = raw.split("ACTION:")[-1].strip().split()[0]
-            action = action_code
-            mode   = "website_assistant"
-            # Friendly spoken confirmation
-            nav_replies = {
-                "OPEN_TUTOR":      "Opening the Law Tutor.",
-                "OPEN_CHATBOT":    "Opening the AI Legal Chat.",
-                "OPEN_COMPARISON": "Opening Law Comparison.",
-                "OPEN_DASHBOARD":  "Opening your Dashboard.",
-                "OPEN_PROFILE":    "Opening your Profile.",
-                "OPEN_COMICS":     "Opening Legal Comics.",
-                "START_QUIZ":      "Starting the Quiz. Good luck!",
-                "OPEN_HOME":       "Going to the home page.",
-                "OPEN_DETECTIVE":  "Starting the Detective Game!",
-            }
-            raw = nav_replies.get(action_code, f"Opening {action_code.replace('_', ' ').title()}.")
-
-        elif any(kw in message.lower() for kw in ["teach", "learn", "explain chapter", "next concept", "continue lesson", "tutor"]):
-            mode = "tutor"
-
-        return {"response": raw, "action": action, "mode": mode, "rag_used": bool(rag_context)}
-
-    except Exception as e:
-        logger.error(f"[JD] Groq generate_jd_response failed: {e}")
-        return {
-            "response": "I'm having trouble right now. Please try again in a moment.",
-            "action": None,
-            "mode": "error",
-            "rag_used": False,
-        }
-
 
 def generate_groq_text(system_prompt: str, user_prompt: str, temperature: float = 0.4, max_tokens: int = 600) -> str:
     """Generate a plain-text answer via Groq (fast). Returns '' on failure."""

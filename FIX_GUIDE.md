@@ -12,26 +12,7 @@
 
 ## ✅ Solution: Start MongoDB
 
-### Option 1: Using Docker (Easiest & Recommended) 🐳
-
-**Prerequisites:** Docker installed ([Download here](https://www.docker.com/products/docker-desktop))
-
-```bash
-# Navigate to project directory
-cd ai-legal-system
-
-# Start MongoDB with Docker Compose
-docker-compose up -d
-
-# Verify it's running
-docker ps | grep mongodb
-```
-
-**Output should show:** `ai-legal-system-mongodb` running on port 27017
-
----
-
-### Option 2: MongoDB Service (Windows) 🪟
+### Option 1: MongoDB Service (Windows) 🪟
 
 ```cmd
 # Run setup script
@@ -52,7 +33,7 @@ mongod.exe
 
 ---
 
-### Option 3: MongoDB Installer (macOS/Windows)
+### Option 2: MongoDB Installer (macOS/Windows)
 
 1. Download from: https://www.mongodb.com/try/download/community
 2. Run installer and follow prompts
@@ -62,7 +43,7 @@ mongod.exe
 
 ---
 
-### Option 4: Homebrew (macOS) 🍎
+### Option 3: Homebrew (macOS) 🍎
 
 ```bash
 brew tap mongodb/brew
@@ -203,7 +184,6 @@ python build_index.py
 
 - `requirements.txt` - Fixed corrupted file with proper dependencies
 - `app/routers/comic.py` - Fixed image URLs (localhost → relative paths)
-- `docker-compose.yml` - NEW: Docker setup for MongoDB
 - `setup-mongodb.bat` - NEW: Windows setup script
 - `setup-mongodb.sh` - NEW: Linux/Mac setup script
 
@@ -211,14 +191,14 @@ python build_index.py
 
 ## 🎯 Quick Start Command (All-in-One)
 
-### On Windows with Docker:
+### On Windows:
 ```cmd
-docker-compose up -d && cd backend && pip install -r requirements.txt && python main.py
+setup-mongodb.bat && cd backend && pip install -r requirements.txt && python main.py
 ```
 
-### On macOS/Linux with Docker:
+### On macOS/Linux:
 ```bash
-docker-compose up -d && cd backend && pip install -r requirements.txt && python main.py &
+mongod --fork --logpath /tmp/mongodb.log && cd backend && pip install -r requirements.txt && python main.py &
 cd frontend && npm run dev
 ```
 

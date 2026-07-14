@@ -5,7 +5,7 @@ import time
 import logging
 import requests
 import threading
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 from typing import Optional, List
@@ -14,10 +14,12 @@ from slowapi.util import get_remote_address
 
 from app.db.connection import bns_collection, normalize_law_doc
 from app.services.ai import generate_json_response, generate_groq_text
+from app.services.plan_gate import require_pro
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/comic-story", tags=["comic"])
+# Comic Story mode is a Pro-plan feature — every endpoint requires Pro.
+router = APIRouter(prefix="/comic-story", tags=["comic"], dependencies=[Depends(require_pro)])
 limiter = Limiter(key_func=get_remote_address)
 
 # HF_API_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
@@ -227,33 +229,86 @@ _STYLE_DIRECTIVE = (
     "highly consistent character design, professional comic panel layout"
 )
 
+# Which characters appear in each panel, per the fixed 6-panel sequence. Drawing
+# only the people who belong in a panel (instead of all four every time) keeps
+# the prompt focused and stops the image model from inventing inconsistent extras.
+_PANEL_DEFAULT_CAST = {
+    1: ["accused", "victim"],
+    2: ["accused", "victim"],
+    3: ["victim", "officer"],
+    4: ["officer", "accused"],
+    5: ["judge", "accused"],
+    6: ["judge", "accused"],
+}
+
+_CHAR_DEFAULTS = {
+    "accused": "Indian person in everyday clothes",
+    "victim":  "Indian person in everyday clothes",
+    "officer": "Indian police officer in khaki uniform with a peaked cap",
+    "judge":   "older Indian judge in black court robes and glasses",
+}
+
+
+def _present_characters(panel: dict) -> List[str]:
+    """The characters that should be drawn in this panel: the panel's default
+    cast unioned with whoever actually speaks in it (order preserved)."""
+    present: List[str] = []
+
+    def add(role: str):
+        if role not in present:
+            present.append(role)
+
+    for role in _PANEL_DEFAULT_CAST.get(panel.get("number"), []):
+        add(role)
+    for b in panel.get("speech_bubbles", []):
+        c = (b.get("character") or "").lower()
+        if "judge" in c:
+            add("judge")
+        elif "officer" in c or "police" in c:
+            add("officer")
+        elif "accused" in c:
+            add("accused")
+        elif "victim" in c:
+            add("victim")
+
+    return present or ["accused", "victim"]
+
+
 def _build_image_prompt(panel: dict, characters: dict, character_visuals: dict, section_title: str) -> str:
     """
     Build a detailed, story-aware image prompt for a single comic panel.
-    Uses explicit visual descriptions to ensure character consistency across panels.
+
+    Character consistency: only the characters that belong in this panel are
+    described, using the SAME colour-locked visual description in every panel, so
+    a character's face/outfit/colours stay identical across the whole comic.
+    Framing: faces centred and uncropped, with clear space at top and bottom for
+    the speech bubbles the frontend overlays.
     """
-    scene = panel.get("scene_description", "")
-    caption = panel.get("caption", "")
+    scene = panel.get("scene_description") or panel.get("caption") or ""
 
-    # Extract detailed visual descriptions
-    accused_vis = character_visuals.get("accused", f"{characters.get('accused', 'Man')}, Indian person in everyday clothes")
-    victim_vis = character_visuals.get("victim", f"{characters.get('victim', 'Person')}, Indian person in everyday clothes")
-    officer_vis = character_visuals.get("officer", "Indian Police Officer in standard khaki uniform")
-    judge_vis = character_visuals.get("judge", "Indian Judge in black robes")
-
-    # Build scene-specific details based on panel number/title
-    scene_context = scene or caption
+    # Colour-locked description per present character (LLM visual, else a default).
+    cast_bits = []
+    for role in _present_characters(panel):
+        vis = (character_visuals.get(role) or "").strip() or _CHAR_DEFAULTS[role]
+        name = characters.get(role)
+        label = f"{role.upper()} ({name})" if name and role in ("accused", "victim") else role.upper()
+        cast_bits.append(f"{label} = {vis}")
+    cast = "; ".join(cast_bits)
 
     prompt = (
         f"{_STYLE_DIRECTIVE}. "
-        f"Scene: {scene_context}. "
-        f"Characters present: {accused_vis}. {victim_vis}. {officer_vis}. {judge_vis}. "
-        f"Setting is a realistic Indian location. "
-        f"No text, no speech bubbles, no captions, no writing anywhere in the image."
+        f"Medium shot: characters centred and fully visible, faces clearly shown and "
+        f"unobstructed, clear empty headroom at the top and open space at the bottom, "
+        f"do NOT crop heads or faces. "
+        f"Scene: {scene}. "
+        f"ONLY these characters appear, and each MUST look identical in every panel - "
+        f"same face, hairstyle, body type and EXACT clothing colours: {cast}. "
+        f"Realistic Indian setting. "
+        f"No text, no speech bubbles, no captions, no letters or writing anywhere in the image."
     )
 
-    # Trim to max 450 chars for API limits
-    return prompt[:450]
+    # T5 text encoder (FLUX) handles long prompts — keep the colour details intact.
+    return prompt[:900]
 
 
 # ── LLM call with retry + fallback ────────────────────────────────────────────
@@ -336,6 +391,9 @@ Scenario Generation Rules:
    Panel 4: Investigation — evidence gathered, accused identified
    Panel 5: Court hearing — trial proceedings
    Panel 6: The Verdict — guilty verdict with exact punishment
+9. Character consistency: in `character_visuals`, give each character ONE fixed
+   outfit with SPECIFIC colours (e.g. "green kurta, blue jeans"). That same
+   person wears the SAME outfit and colours in every panel — never change them.
 
 Return ONLY valid JSON matching this exact schema:
 {{

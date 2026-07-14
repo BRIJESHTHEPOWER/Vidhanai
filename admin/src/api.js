@@ -44,6 +44,7 @@ export const api = {
   // Reviews
   reviews:      (p, l, s, r) => request(`/admin/reviews?page=${p}&limit=${l}&search=${encodeURIComponent(s)}&rating=${r}`),
   deleteReview: (id)         => request(`/admin/reviews/${id}`, { method: 'DELETE' }),
+  featureReview: (id, featured) => request(`/admin/reviews/${id}/feature`, { method: 'PATCH', body: JSON.stringify({ featured }) }),
 
   // Queries
   queries: (p, l, s, email = '') => request(`/admin/queries?page=${p}&limit=${l}&search=${encodeURIComponent(s)}&email=${encodeURIComponent(email)}`),
@@ -66,4 +67,9 @@ export const api = {
   // Admins
   admins:      ()   => request('/admin/admins'),
   deleteAdmin: (id) => request(`/admin/admins/${id}`, { method: 'DELETE' }),
+
+  // Updates / announcements (bell + newsletter email)
+  announcements:      ()     => request('/admin/announcements'),
+  createAnnouncement: (body) => request('/admin/announcements', { method: 'POST', body: JSON.stringify(body) }),
+  deleteAnnouncement: (id)   => request(`/admin/announcements/${id}`, { method: 'DELETE' }),
 };

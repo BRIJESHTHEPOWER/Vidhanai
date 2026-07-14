@@ -13,7 +13,7 @@ import time
 from typing import Optional, List
 
 import jwt
-from fastapi import Header
+from fastapi import Header, HTTPException
 
 from app.db.connection import bns_collection, ipc_collection, normalize_law_doc, normalize_ipc_doc
 
@@ -83,6 +83,17 @@ def get_current_user_email_optional(
         return payload.get("sub")
     except Exception:
         return None
+
+
+def get_current_user_email(
+    authorization: Optional[str] = Header(None),
+) -> str:
+    """Required auth: returns the logged-in user's email or raises 401.
+    Same JWT scheme as get_current_user_email_optional (Bearer <token>, sub=email)."""
+    email = get_current_user_email_optional(authorization)
+    if not email:
+        raise HTTPException(status_code=401, detail="Authentication required. Please log in.")
+    return email
 
 
 # ── Law serializer ────────────────────────────────────────────────────────────

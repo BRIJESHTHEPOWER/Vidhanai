@@ -252,7 +252,12 @@ export default function QuizMode({ topic, onBack, onClose }) {
     const controller = new AbortController();
     const timeoutId  = setTimeout(() => controller.abort(), 30000);
 
-    fetch(url, { signal: controller.signal, cache: 'no-store' })
+    const quizToken = localStorage.getItem('vidhan_token');
+    fetch(url, {
+      signal: controller.signal,
+      cache: 'no-store',
+      headers: quizToken ? { Authorization: `Bearer ${quizToken}` } : {},
+    })
       .then(r => {
         clearTimeout(timeoutId);
         if (!r.ok) throw new Error(r.status);

@@ -2,14 +2,18 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { useLanguage, LANGUAGES } from '../LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import VidhanLogo from '../components/VidhanLogo';
+import { BorderBeam } from '../components/ui/BorderBeam';
+import usePlanStatus from '../hooks/usePlanStatus';
+import { authHeaders, readPlanError } from '../utils/authHeaders';
 import './AskAI.css';
 
 const API = 'http://127.0.0.1:8000';
 
 const LANG_CODES = {
   English: 'en-IN', Hindi: 'hi-IN', Kannada: 'kn-IN',
-  Tamil: 'ta-IN', Telugu: 'te-IN', Marathi: 'mr-IN', Bengali: 'bn-IN',
+  Tamil: 'ta-IN', Telugu: 'te-IN', Marathi: 'mr-IN', Malayalam: 'ml-IN',
 };
 
 function IPCBadge({ text }) {
@@ -121,20 +125,36 @@ export default function AskAI() {
     // Never restore a half-streamed message as "streaming"
     return active ? active.messages.map(m => ({ ...m, isStreaming: false })) : [];
   });
-  const [input, setInput]         = useState('');
-  const [loading, setLoading]     = useState(false);
-  const [listening, setListening] = useState(false);
+  const [input, setInput]           = useState('');
+  const [loading, setLoading]       = useState(false);
+  const [listening, setListening]   = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [langOpen, setLangOpen]   = useState(false);
   const [voiceError, setVoiceError] = useState('');
   const [streamingIdx, setStreamingIdx] = useState(-1);
   const [statusText, setStatusText]     = useState('');
   const [elapsed, setElapsed]           = useState(0);
-  const [theme, setTheme] = useState(() => localStorage.getItem('vidhan_askai_theme') || 'dark');
+  const { theme, toggleTheme } = useTheme();
   const timerRef      = useRef(null);
   const streamTextRef = useRef(''); // accumulates tokens during streaming
 
   const { language, setLanguage, currentLang } = useLanguage();
+
+  // Plan gating — Free: 5 questions/day, English only, no voice input.
+  const { isPro, usage, loading: planLoading } = usePlanStatus();
+  const [questionsLeft, setQuestionsLeft] = useState(null);
+  const [upgradeMsg, setUpgradeMsg] = useState('');
+
+  useEffect(() => {
+    if (usage?.questions_remaining != null) setQuestionsLeft(usage.questions_remaining);
+  }, [usage]);
+
+  // Free plan is English-only — snap back if another language was left selected.
+  useEffect(() => {
+    if (!planLoading && !isPro && language !== 'English') setLanguage('English');
+  }, [planLoading, isPro, language, setLanguage]);
+
   const bottomRef  = useRef(null);
   const inputRef   = useRef(null);
   const recogRef   = useRef(null);
@@ -178,13 +198,6 @@ export default function AskAI() {
     try { localStorage.setItem(ACTIVE_KEY, activeChatId); } catch { /* ignore */ }
   }, [activeChatId]);
 
-  /* Light / dark theme toggle */
-  useEffect(() => {
-    try { localStorage.setItem('vidhan_askai_theme', theme); } catch { /* ignore */ }
-  }, [theme]);
-  const toggleTheme = useCallback(() => {
-    setTheme(t => (t === 'dark' ? 'light' : 'dark'));
-  }, []);
 
   /* Start a fresh chat thread */
   const newChat = useCallback(() => {
@@ -254,11 +267,27 @@ export default function AskAI() {
     try {
       const res = await fetch(`${API}/ask-stream`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ question, mode: 'rag', language }),
         signal: controller.signal
       });
       clearTimeout(timeoutId);
+
+      // Plan-gate rejections (daily limit / Pro-only language) — show the
+      // server's message with an upgrade CTA instead of retrying.
+      if (res.status === 403 || res.status === 429) {
+        const gate = await readPlanError(res);
+        const msg = gate.message || 'This request is not available on your current plan.';
+        setUpgradeMsg(msg);
+        if (gate.error === 'daily_limit_reached') setQuestionsLeft(0);
+        setMessages(m => [...m, {
+          role: 'assistant', text: `🔒 ${msg}`, time: '', isError: true, question,
+        }]);
+        clearInterval(timerRef.current);
+        setLoading(false);
+        setStatusText('');
+        return;
+      }
 
       if (!res.ok || !res.body) {
         throw new Error('Stream unavailable');
@@ -316,6 +345,7 @@ export default function AskAI() {
                 ));
               }
             } else if (evt.type === 'done') {
+              if (evt.questions_remaining != null) setQuestionsLeft(evt.questions_remaining);
               setMessages(prev => prev.map((m, i) =>
                 i === msgIdx ? { ...m, isStreaming: false } : m
               ));
@@ -351,10 +381,23 @@ export default function AskAI() {
         try {
           const fallbackRes = await fetch(`${API}/ask`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ question, mode: 'rag', language }),
           });
+          if (fallbackRes.status === 403 || fallbackRes.status === 429) {
+            const gate = await readPlanError(fallbackRes);
+            const msg = gate.message || 'This request is not available on your current plan.';
+            setUpgradeMsg(msg);
+            if (gate.error === 'daily_limit_reached') setQuestionsLeft(0);
+            setMessages(m => [...m, { role: 'assistant', text: `🔒 ${msg}`, time: '', isError: true, question }]);
+            clearInterval(timerRef.current);
+            setLoading(false);
+            setStreamingIdx(-1);
+            setStatusText('');
+            return;
+          }
           const d = await fallbackRes.json();
+          if (d.questions_remaining != null) setQuestionsLeft(d.questions_remaining);
           const ans = d.answer || 'I could not find a relevant answer.';
           const fallbackMsg = {
             role: 'assistant', text: ans, story: d.story || [],
@@ -434,7 +477,7 @@ export default function AskAI() {
     try {
       const res = await fetch(`${API}/simplify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ answer: msg.text, question: msg.question || '', language }),
         signal: controller.signal
       });
@@ -485,6 +528,11 @@ export default function AskAI() {
   }, [messages, sendMessage, speak]);
 
   const startVoice = () => {
+    // Voice input is a Pro-plan feature.
+    if (!isPro) {
+      setUpgradeMsg('Voice input is a Pro feature. Upgrade to ask questions with your voice.');
+      return;
+    }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     // No alert() — show inline error banner instead
     if (!SR) {
@@ -556,6 +604,21 @@ export default function AskAI() {
           </div>
 
           <div className="askai-topbar-actions">
+            {/* Free-plan daily question counter */}
+            {!planLoading && !isPro && questionsLeft != null && (
+              <Link to="/pricing" title="Upgrade to Pro for unlimited questions" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '4px 10px', borderRadius: 999, textDecoration: 'none',
+                fontSize: '0.72rem', fontWeight: 600,
+                color: questionsLeft === 0 ? '#fca5a5' : '#c4b5fd',
+                background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)',
+              }}>
+                {questionsLeft === 0
+                  ? '0 free questions left — Upgrade'
+                  : `${questionsLeft} free question${questionsLeft === 1 ? '' : 's'} left today`}
+              </Link>
+            )}
+
             {/* Language Selector */}
             <div className="askai-lang" ref={langRef}>
               <button className="askai-lang-btn" onClick={() => setLangOpen(o => !o)} id="askai-lang-btn">
@@ -563,15 +626,29 @@ export default function AskAI() {
               </button>
               {langOpen && (
                 <div className="askai-lang-dropdown">
-                  {LANGUAGES.map(l => (
-                    <button key={l.code}
-                      className={`askai-lang-option${language === l.code ? ' askai-lang-option--active' : ''}`}
-                      onClick={() => { setLanguage(l.code); setLangOpen(false); }}
-                      id={`askai-lang-${l.code}`}>
-                      {l.flag} {l.native} <span className="askai-lang-en">{l.label}</span>
-                      {language === l.code && <span style={{ marginLeft: 'auto', color: '#6366f1' }}>✓</span>}
-                    </button>
-                  ))}
+                  {LANGUAGES.map(l => {
+                    // Free plan is English-only — other languages are Pro.
+                    const locked = !isPro && l.code !== 'English';
+                    return (
+                      <button key={l.code}
+                        className={`askai-lang-option${language === l.code ? ' askai-lang-option--active' : ''}`}
+                        style={locked ? { opacity: 0.55 } : undefined}
+                        onClick={() => {
+                          if (locked) {
+                            setLangOpen(false);
+                            setUpgradeMsg('All 7 Indian languages are a Pro feature. The Free plan supports English only.');
+                            return;
+                          }
+                          setLanguage(l.code); setLangOpen(false);
+                        }}
+                        id={`askai-lang-${l.code}`}>
+                        {l.flag} {l.native} <span className="askai-lang-en">{l.label}</span>
+                        {locked
+                          ? <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: '#a78bfa' }}>🔒 PRO</span>
+                          : language === l.code && <span style={{ marginLeft: 'auto', color: '#6366f1' }}>✓</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -605,6 +682,28 @@ export default function AskAI() {
               background: 'none', border: 'none', color: '#fcd34d',
               cursor: 'pointer', fontSize: '0.8rem', opacity: 0.7
             }}>✕</button>
+          </div>
+        )}
+
+        {/* Plan-limit / upgrade inline banner */}
+        {upgradeMsg && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 16px', background: 'rgba(139,92,246,0.08)',
+            borderBottom: '1px solid rgba(139,92,246,0.25)',
+            fontSize: '0.8rem', color: '#c4b5fd', gap: '12px'
+          }} role="alert">
+            <span>🔒 {upgradeMsg}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+              <Link to="/pricing" style={{
+                padding: '4px 12px', borderRadius: 8, textDecoration: 'none',
+                fontWeight: 700, color: '#fff', background: '#7c3aed', whiteSpace: 'nowrap',
+              }}>Upgrade to Pro →</Link>
+              <button onClick={() => setUpgradeMsg('')} style={{
+                background: 'none', border: 'none', color: '#c4b5fd',
+                cursor: 'pointer', fontSize: '0.8rem', opacity: 0.7
+              }}>✕</button>
+            </span>
           </div>
         )}
 
@@ -728,7 +827,21 @@ export default function AskAI() {
 
         {/* Input Row */}
         <div className="askai-input-wrap">
-          <div className={`askai-input-box${listening ? ' askai-input-box--listening' : ''}`}>
+          <div
+            className="askai-input-beam-wrap"
+            data-focused={inputFocused || listening || undefined}
+          >
+            {/* Magic UI BorderBeam — appears on focus */}
+            {(inputFocused || listening) && (
+              <BorderBeam
+                colorFrom={listening ? '#22d3ee' : (theme === 'light' ? '#4f46e5' : '#818cf8')}
+                colorTo={listening ? '#818cf8' : '#D4A017'}
+                duration={listening ? 2.5 : 4}
+                borderWidth={1.8}
+                size={180}
+              />
+            )}
+            <div className={`askai-input-box${listening ? ' askai-input-box--listening' : ''}`}>
             <textarea
               ref={inputRef}
               className="askai-input"
@@ -736,6 +849,8 @@ export default function AskAI() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
               rows={1}
               id="askai-input"
               disabled={listening}
@@ -745,7 +860,8 @@ export default function AskAI() {
               <button
                 className={`askai-mic-btn${listening ? ' askai-mic-btn--active' : ''}`}
                 onClick={listening ? () => recogRef.current?.stop() : startVoice}
-                title={listening ? 'Stop' : 'Voice input'}
+                title={listening ? 'Stop' : (isPro ? 'Voice input' : 'Voice input (Pro feature)')}
+                style={!isPro ? { opacity: 0.55 } : undefined}
                 id="askai-voice-btn"
               >
                 {listening && <span className="askai-mic-ring" />}
@@ -765,7 +881,8 @@ export default function AskAI() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
               </button>
             </div>
-          </div>
+            </div>{/* end .askai-input-box */}
+          </div>{/* end .askai-input-beam-wrap */}
           <p className="askai-input-hint">🔒 Your conversations are secure and confidential</p>
         </div>
       </main>

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import CinematicSectionBackground from './CinematicSectionBackground';
+import { useNavigate } from 'react-router-dom';
+import { BorderBeam } from './ui/BorderBeam';
 import './AIChatInterface.css';
 
 /* ── Case category detector ─────────────────────────────────────────────────── */
@@ -163,38 +164,43 @@ function TypingIndicator() {
 const INITIAL = [
   {
     role: 'ai',
-    text: "Hello! I'm Vidhan.ai. Ask me anything about Indian law, IPC sections, your rights, or legal procedures. I can simplify complex legal language for you.",
+    text: "Hello! I'm Vidhan.ai. Ask me anything about Indian law — BNS sections, your rights, or legal procedures. I explain complex legal language in plain words.",
     ipcs: [],
   },
   {
     role: 'user',
-    text: 'What is the punishment for theft under IPC?',
+    text: 'What is the punishment for theft under BNS 303?',
     ipcs: [],
   },
   {
     role: 'ai',
-    text: 'Under IPC 379, theft is punishable with imprisonment up to 3 years, or fine, or both. If committed in a dwelling house (IPC 380), the punishment increases to 7 years. For robbery (IPC 392), it\'s up to 10 years with fine.',
-    ipcs: [{ ref: 'IPC 379', section: '379' }],
-    question: 'What is the punishment for theft under IPC?',
+    text: 'Under BNS 303, theft is punishable with imprisonment up to 3 years, or fine, or both. Snatching (BNS 304) also carries up to 3 years. For robbery (BNS 309), punishment is rigorous imprisonment of at least 10 years, extendable to life. Dacoity (BNS 310) carries 7 years to life imprisonment.',
+    ipcs: [{ ref: 'BNS 303', section: '303' }],
+    question: 'What is the punishment for theft under BNS 303?',
   },
 ];
 
 const SUGGESTIONS = [
-  'What is section 318 BNS?',
-  'Explain POCSO Act',
-  'My rights if arrested',
-  'Domestic violence law',
+  'What is BNS 103 — punishment for murder?',
+  'Explain BNS 85 — cruelty by husband',
+  'What are my rights when arrested?',
+  'What is BNS 64 — rape punishment?',
 ];
 
 const API = 'http://localhost:8000';
 
 export default function AIChatInterface() {
   const [messages, setMessages] = useState(INITIAL);
-  const [input, setInput]       = useState('');
-  const [thinking, setThinking] = useState(false);
-  const [error, setError]       = useState('');
+  const [input, setInput]             = useState('');
+  const [thinking, setThinking]       = useState(false);
+  const [error, setError]             = useState('');
+  const [inputFocused, setInputFocused] = useState(false);
+  const [demoCount, setDemoCount] = useState(0);
+  const navigate     = useNavigate();
   const bottomRef    = useRef(null);
   const containerRef = useRef(null);
+
+  const isLoggedIn = !!localStorage.getItem('vidhan_token');
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -202,17 +208,33 @@ export default function AIChatInterface() {
 
   const sendMessage = async (text = input.trim()) => {
     if (!text || thinking) return;
+    if (!isLoggedIn && demoCount >= 1) return;
     setError('');
     setMessages(prev => [...prev, { role: 'user', text, ipcs: [] }]);
     setInput('');
     setThinking(true);
 
     try {
+      const token = localStorage.getItem('vidhan_token');
       const res = await fetch(`${API}/ask`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ question: text, mode: 'rag', language: 'English' }),
       });
+
+      // Plan gate: daily/demo limit reached — show the server's message.
+      if (res.status === 403 || res.status === 429) {
+        let gateMsg = 'You have reached your free question limit. Upgrade to Pro for unlimited questions.';
+        try {
+          const body = await res.json();
+          if (body?.detail?.message) gateMsg = body.detail.message;
+        } catch { /* keep default */ }
+        setMessages(prev => [...prev, { role: 'ai', text: `🔒 ${gateMsg}`, ipcs: [] }]);
+        return; // finally-block below handles setThinking/demoCount
+      }
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
 
@@ -242,6 +264,7 @@ export default function AIChatInterface() {
       }]);
     } finally {
       setThinking(false);
+      if (!isLoggedIn) setDemoCount(c => c + 1);
     }
   };
 
@@ -263,16 +286,14 @@ export default function AIChatInterface() {
 
   return (
     <section id="chat" className="section chat-section cinematic-section-wrapper">
-      <CinematicSectionBackground type="neural" color1="#3b82f6" color2="#6366f1" />
-
       <div className="container" style={{ position: 'relative', zIndex: 10 }}>
         <div className="section-header">
           <div className="section-label">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 8v4l3 3"/></svg>
             AI Chat Interface
           </div>
-          <h2 className="story-header"><span className="typing-cursor">Ask Anything, Understand Everything</span></h2>
-          <p className="section-subtitle">Conversational AI that explains complex Indian law in plain language with instant IPC references.</p>
+          <h2 className="story-header"><span className="typing-cursor">Your AI Legal Guide for Indian Law</span></h2>
+          <p className="section-subtitle">Ask one question free — sign in to unlock unlimited legal guidance in your language.</p>
         </div>
 
         <div className="chat-container glowing-border-container" ref={containerRef} onMouseMove={handleMouseMove}>
@@ -300,11 +321,26 @@ export default function AIChatInterface() {
               BNS Highlights
             </div>
             <div className="chat-ipc-list">
-              {['74 — Outraging Modesty', '318 — Cheating', '85 — Domestic Violence', '101 — Murder', '303 — Theft'].map(ipc => (
-                <div key={ipc} className="chat-ipc-item">
+              {[
+                '63 — Rape',
+                '64 — Punishment for Rape',
+                '85 — Cruelty by Husband',
+                '103 — Murder',
+                '111 — Organised Crime',
+                '303 — Theft',
+                '309 — Robbery',
+                '318 — Cheating',
+                '351 — Criminal Intimidation',
+                '356 — Defamation',
+              ].map(ipc => (
+                <button
+                  key={ipc}
+                  className="chat-ipc-item chat-ipc-item--btn"
+                  onClick={() => sendMessage(`Explain BNS ${ipc.split(' — ')[0]} — ${ipc.split(' — ')[1]}`)}
+                >
                   <span className="chat-ipc-dot" />
                   {ipc}
-                </div>
+                </button>
               ))}
             </div>
 
@@ -331,30 +367,67 @@ export default function AIChatInterface() {
             </div>
 
             <div className="chat-input-wrap">
-              <div className="chat-input-bar">
-                <textarea
-                  id="chat-input"
-                  className="chat-input"
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={onKey}
-                  placeholder="Ask about any law, your rights, or an IPC section..."
-                  rows={1}
-                />
-                <div className="chat-input-actions">
+              {!isLoggedIn && demoCount >= 1 ? (
+                <div className="chat-demo-gate">
+                  <div className="chat-demo-gate-lock">🔒</div>
+                  <div className="chat-demo-gate-text">
+                    <strong>Free demo used!</strong>
+                    <span>Sign in to ask unlimited legal questions</span>
+                  </div>
                   <button
-                    className="chat-send-btn"
-                    id="chat-send"
-                    onClick={() => sendMessage()}
-                    disabled={!input.trim() || thinking}
+                    className="chat-demo-gate-btn"
+                    onClick={() => navigate('/login?redirect=/ask-ai')}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
-                    </svg>
+                    Sign in for Full Access
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m5 12 14 0m-7-7 7 7-7 7"/></svg>
                   </button>
                 </div>
-              </div>
-              <p className="chat-input-hint">Press Enter to send · Shift+Enter for new line</p>
+              ) : (
+                <>
+                  <div
+                    className="chat-input-beam-wrap"
+                    data-focused={inputFocused || undefined}
+                  >
+                    {inputFocused && (
+                      <BorderBeam
+                        colorFrom="#818cf8"
+                        colorTo="#D4A017"
+                        duration={4}
+                        borderWidth={1.8}
+                        size={180}
+                      />
+                    )}
+                    <div className="chat-input-bar">
+                      <textarea
+                        id="chat-input"
+                        className="chat-input"
+                        value={input}
+                        onChange={e => setInput(e.target.value)}
+                        onKeyDown={onKey}
+                        onFocus={() => setInputFocused(true)}
+                        onBlur={() => setInputFocused(false)}
+                        placeholder={isLoggedIn ? 'Ask about any law, your rights, or an IPC section...' : 'Try 1 free question — ask anything about Indian law…'}
+                        rows={1}
+                      />
+                      <div className="chat-input-actions">
+                        <button
+                          className="chat-send-btn"
+                          id="chat-send"
+                          onClick={() => sendMessage()}
+                          disabled={!input.trim() || thinking}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="chat-input-hint">
+                    {isLoggedIn ? 'Press Enter to send · Shift+Enter for new line' : '1 free question · Sign in for unlimited access'}
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>

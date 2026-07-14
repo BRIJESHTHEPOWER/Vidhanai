@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import CinematicSectionBackground from './CinematicSectionBackground';
 import './LawComparison.css';
 
 const COMPARISONS = [
@@ -90,9 +89,6 @@ export default function LawComparison() {
       ref={sectionRef}
       onMouseMove={handleMouseMove}
     >
-      {/* Cinematic 3D Background — floating golden justice rings */}
-      <CinematicSectionBackground type="scales" color1="#f59e0b" color2="#6366f1" />
-
       <div className="container" style={{ position: 'relative', zIndex: 10 }}>
         <div className="section-header">
           <motion.div

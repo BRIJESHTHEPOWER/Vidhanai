@@ -24,9 +24,6 @@ if ! command -v mongod &> /dev/null; then
     echo "   echo 'deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/7.0 multiverse' | tee /etc/apt/sources.list.d/mongodb-org-7.0.list"
     echo "   apt-get update && apt-get install -y mongodb-org"
     echo ""
-    echo "4️⃣  Docker (Recommended):"
-    echo "   docker run -d -p 27017:27017 --name mongodb-legal mongo:latest"
-    echo ""
     exit 1
 fi
 

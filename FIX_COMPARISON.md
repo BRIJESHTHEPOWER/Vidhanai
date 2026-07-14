@@ -76,11 +76,11 @@ After running the setup, you should see:
 
 1. Make sure MongoDB is running:
    ```bash
-   # If using Docker:
-   docker-compose up -d
-   
-   # If Windows:
+   # Windows:
    setup-mongodb.bat
+
+   # macOS/Linux:
+   mongod
    ```
 
 2. Start the backend:

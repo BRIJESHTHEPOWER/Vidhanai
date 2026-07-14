@@ -13,6 +13,7 @@ export default function ReviewsPanel() {
   const [ratingFilter, setRatingFilter] = useState(0);
   const [loading, setLoading]   = useState(true);
   const [deleting, setDeleting] = useState(null);
+  const [featuring, setFeaturing] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -43,6 +44,19 @@ export default function ReviewsPanel() {
       alert(e.message);
     } finally {
       setDeleting(null);
+    }
+  }
+
+  async function handleToggleFeature(id, current) {
+    const next = !current;
+    setFeaturing(id);
+    try {
+      await api.featureReview(id, next);
+      setData(d => ({ ...d, reviews: d.reviews.map(r => r.id === id ? { ...r, featured: next } : r) }));
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setFeaturing(null);
     }
   }
 
@@ -80,7 +94,7 @@ export default function ReviewsPanel() {
             <div style={{ overflowX: 'auto' }}>
               <table className="adm-table">
                 <thead>
-                  <tr><th>Author</th><th>Rating</th><th>Review</th><th>Role</th><th>Date</th><th>Action</th></tr>
+                  <tr><th>Author</th><th>Rating</th><th>Review</th><th>Role</th><th>Date</th><th>Homepage</th><th>Action</th></tr>
                 </thead>
                 <tbody>
                   {data.reviews.map(r => {
@@ -110,6 +124,28 @@ export default function ReviewsPanel() {
                           }
                         </td>
                         <td style={{ fontSize: 12, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>{date}</td>
+                        <td>
+                          <button
+                            className="adm-feature-btn"
+                            onClick={() => handleToggleFeature(r.id, r.featured)}
+                            disabled={featuring === r.id}
+                            title={r.featured ? 'Shown on homepage — click to remove' : 'Not shown publicly — click to show on homepage'}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                              padding: '5px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                              cursor: featuring === r.id ? 'default' : 'pointer',
+                              border: `1px solid ${r.featured ? '#f59e0b' : 'var(--border, rgba(255,255,255,0.12))'}`,
+                              background: r.featured ? 'rgba(245,158,11,0.15)' : 'transparent',
+                              color: r.featured ? '#f59e0b' : 'var(--text-faint)',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {featuring === r.id
+                              ? <div className="adm-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+                              : <>{r.featured ? '★ Featured' : '☆ Feature'}</>
+                            }
+                          </button>
+                        </td>
                         <td>
                           <button
                             className="adm-delete-btn"

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚖️</text></svg>" />
+    <link rel="icon" type="image/png" href="/vidhan-logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#060b18" />
 
@@ -24,6 +24,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="http://localhost:8000" />
 
+    <!-- Hero background photo is the LCP element — preload it -->
+    <link rel="preload" as="image" href="/hero-court-bg-v3.jpg" />
+
     <!-- Font: preload critical font files to eliminate FOUT -->
     <link
       rel="preload"
@@ -35,7 +38,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
     />
 
-    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="apple-touch-icon" href="/vidhan-logo.png" />
     <link rel="manifest" href="/manifest.json" />
 
     <title>Vidhan.ai — AI-Powered Legal Intelligence for India</title>
@@ -49,5 +52,7 @@
     <noscript>Vidhan.ai requires JavaScript to run. Please enable JavaScript in your browser.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/index.jsx"></script>
+    <!-- GestureFlow AI — touchless hand control (whole app). Loads on demand. -->
+    <script defer src="/gesture-control.js"></script>
   </body>
 </html>

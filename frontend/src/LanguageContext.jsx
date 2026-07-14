@@ -8,7 +8,7 @@ export const LANGUAGES = [
   { code: 'Tamil',     label: 'Tamil',     flag: '🇮🇳', native: 'தமிழ்'     },
   { code: 'Telugu',    label: 'Telugu',    flag: '🇮🇳', native: 'తెలుగు'    },
   { code: 'Marathi',   label: 'Marathi',   flag: '🇮🇳', native: 'मराठी'     },
-  { code: 'Bengali',   label: 'Bengali',   flag: '🇮🇳', native: 'বাংলা'     },
+  { code: 'Malayalam', label: 'Malayalam', flag: '🇮🇳', native: 'മലയാളം'   },
 ];
 
 /* ── Context ── */

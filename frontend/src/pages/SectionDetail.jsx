@@ -348,9 +348,6 @@ export default function SectionDetail() {
             <Link to="/compare" className="action-chip">
               ⚖️ Compare More Laws
             </Link>
-            <Link to="/learn" className="action-chip">
-              📖 Learn With Stories
-            </Link>
           </div>
         </div>
 

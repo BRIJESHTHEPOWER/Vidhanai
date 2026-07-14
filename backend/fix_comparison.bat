@@ -37,8 +37,7 @@ echo NEXT STEPS:
 echo ============================================================
 echo.
 echo 1. Make sure MongoDB is running:
-echo    - If using Docker: docker-compose up -d
-echo    - If using Windows: Run setup-mongodb.bat
+echo    - Run setup-mongodb.bat (or start the MongoDB Windows service)
 echo.
 echo 2. Start the backend:
 echo    python main.py

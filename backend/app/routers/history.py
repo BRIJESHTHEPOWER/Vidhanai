@@ -26,6 +26,7 @@ from app.db.connection import queries_collection, bns_collection
 from app.routers import get_current_user_email_optional, rag_context_from_db, sanitize_input
 from app.services.rag import find_relevant_law
 from app.services.ai import generate_ai_response
+from app.services.plan_gate import enforce_question_quota
 from app.services.story import generate_story
 
 router = APIRouter(tags=["History & Chat"])
@@ -53,6 +54,13 @@ def ask_question(
     if not question:
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
+    # Plan gate: Free = 5 questions/day + English only; Pro = unlimited.
+    # NOTE: this router's /ask is registered before app.main's /ask, so it is
+    # the route that actually serves production traffic — the gate lives here.
+    usage = enforce_question_quota(
+        user_email, language, request.client.host if request.client else None
+    )
+
     # Context: try FAISS first, then keyword fallback
     try:
         context = find_relevant_law(question)
@@ -72,6 +80,8 @@ def ask_question(
             "question": question,
             "answer":   "This question is not related to Indian law. Please ask about IPC or BNS sections." if mode in ["rag", "both"] else None,
             "story":    [] if mode in ["comic", "both"] else None,
+            "questions_remaining": usage["remaining"],
+            "plan":     usage["plan"],
         }
 
     answer = None
@@ -125,6 +135,8 @@ def ask_question(
         "answer":   answer,
         "story":    story,
         "language": language,
+        "questions_remaining": usage["remaining"],
+        "plan":     usage["plan"],
     }
 
 

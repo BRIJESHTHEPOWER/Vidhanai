@@ -289,3 +289,86 @@
   border-radius: 50%;
   animation: prof-spin 0.7s linear infinite;
 }
+
+/* ── GestureFlow AI section ── */
+.prof-gesture-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.prof-gesture-desc {
+  flex: 1;
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #94a3b8;
+}
+.prof-gesture-switch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  width: 92px;
+  height: 38px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  cursor: pointer;
+  transition: background 0.25s, border-color 0.25s;
+}
+.prof-gesture-switch--on {
+  background: rgba(34,197,94,0.18);
+  border-color: rgba(34,197,94,0.5);
+}
+.prof-gesture-knob {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #64748b;
+  transition: transform 0.25s, background 0.25s;
+}
+.prof-gesture-switch--on .prof-gesture-knob {
+  background: #22c55e;
+  transform: translateX(48px);
+}
+.prof-gesture-state {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-left: auto;
+}
+.prof-gesture-switch--on .prof-gesture-state {
+  color: #22c55e;
+  margin-left: 0;
+  margin-right: auto;
+  order: -1;
+  padding-left: 8px;
+}
+.prof-gesture-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.prof-gesture-hints span {
+  font-size: 0.72rem;
+  color: #cbd5e1;
+  background: rgba(99,102,241,0.12);
+  border: 1px solid rgba(99,102,241,0.25);
+  padding: 5px 10px;
+  border-radius: 999px;
+}
+.prof-gesture-guide-btn {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #a5b4fc;
+  background: none;
+  border: 1px solid rgba(99,102,241,0.4);
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.prof-gesture-guide-btn:hover { background: rgba(99,102,241,0.15); }

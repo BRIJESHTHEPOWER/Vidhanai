@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { authHeaders } from '../utils/authHeaders';
 import './ComicStory.css';
 
 const API = 'http://127.0.0.1:8000';
@@ -152,7 +153,8 @@ function ImagePanel({ prompt, alt }) {
 
     try {
       const response = await fetch(
-        `${API}/comic-story/image?prompt=${encodeURIComponent(prompt)}`
+        `${API}/comic-story/image?prompt=${encodeURIComponent(prompt)}`,
+        { headers: authHeaders() }
       );
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const blob = await response.blob();
@@ -286,17 +288,16 @@ function SceneRenderer({ panel, index }) {
     bubbles = FALLBACK_PANELS[index]?.speech_bubbles || [];
   }
 
-  // Spread bubbles across the panel — left/right positioning
-  const positions = [
-    [{ x: 8, y: 8 }, { x: 155, y: 8 }],
-    [{ x: 8, y: 8 }, { x: 150, y: 8 }],
-    [{ x: 8, y: 8 }, { x: 150, y: 8 }],
-    [{ x: 8, y: 8 }, { x: 150, y: 8 }],
-    [{ x: 60, y: 6 }, { x: 150, y: 60 }],
-    [{ x: 40, y: 6 }, { x: 120, y: 80 }],
+  // Keep the vertical centre — where the characters' faces are — clear: pin one
+  // bubble to the top edge and the other to the bottom edge. The bottom bubble's
+  // y is derived from its own text height so it never overflows the 160-tall
+  // viewBox or creeps back up into the face zone.
+  const bubbleH = (t) => 14 + wrapText(t || '', 16).length * 13;
+  const botH = bubbles[1] ? bubbleH(bubbles[1].text) : 30;
+  const pos = [
+    { x: 8, y: 6 },                                   // top edge (left)
+    { x: 150, y: Math.max(96, 150 - botH) },          // bottom edge (right)
   ];
-
-  const pos = positions[index] || positions[0];
 
   // Use story-aware image_prompt from backend, fallback to scene_description
   const imagePrompt = panel.image_prompt ||
@@ -355,7 +356,7 @@ function ComicExplainer({ data }) {
     try {
       const res = await fetch(`${API}/comic-story/explain`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           section_number: data.section_number,
           section_title:  data.section_title,
@@ -468,7 +469,7 @@ export default function ComicStory() {
     try {
       const res = await fetch(`${API}/comic-story`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ topic: searchTopic.trim(), language: 'English' }),
       });
 

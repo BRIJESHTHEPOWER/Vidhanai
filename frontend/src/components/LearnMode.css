@@ -136,6 +136,8 @@
   background: rgba(8,12,24,0.97); border: 1px solid rgba(255,255,255,0.1);
   border-radius: 12px; padding: 5px; min-width: 190px;
   box-shadow: 0 12px 40px rgba(0,0,0,0.6); animation: fadeInUp 0.15s ease both;
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
 }
 .lm-lang-option {
   display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px;

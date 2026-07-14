@@ -3,14 +3,327 @@
  * States: path_select → mode_select → chapters → lesson → checkpoint → assessment → results → achievements
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import VidhanLogo from '../components/VidhanLogo';
-import { useJD } from '../context/JDAssistantContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import JDTeacherPlayer from '../components/JDTeacherPlayer';
+import { authHeaders } from '../utils/authHeaders';
 import './LawTutor.css';
 
 const API = 'http://localhost:8000';
+
+// ── Language config ───────────────────────────────────────────────────────────
+const TUTOR_LANGS = [
+  { code: 'English',   native: 'English',  flag: '🇬🇧', tts: 'en-IN' },
+  { code: 'Hindi',     native: 'हिन्दी',   flag: '🇮🇳', tts: 'hi-IN' },
+  { code: 'Kannada',   native: 'ಕನ್ನಡ',    flag: '🇮🇳', tts: 'kn-IN' },
+  { code: 'Tamil',     native: 'தமிழ்',    flag: '🇮🇳', tts: 'ta-IN' },
+  { code: 'Telugu',    native: 'తెలుగు',   flag: '🇮🇳', tts: 'te-IN' },
+  { code: 'Marathi',   native: 'मराठी',    flag: '🇮🇳', tts: 'mr-IN' },
+  { code: 'Malayalam', native: 'മലയാളം',  flag: '🇮🇳', tts: 'ml-IN' },
+];
+const LANG_TTS   = Object.fromEntries(TUTOR_LANGS.map(l => [l.code, l.tts]));
+const LANG_GREET = {
+  Hindi:     'Namaste! ',
+  Kannada:   'Namaskara! ',
+  Tamil:     'Vanakkam! ',
+  Telugu:    'Namaskaram! ',
+  Marathi:   'Namaskar! ',
+  Malayalam: 'Namaskaram! ',
+};
+
+/* ════════════════════════════════════════════════════
+   JD_PHRASES — every spoken phrase localised per language.
+   When JD speaks, text AND Sarvam TTS voice both use the
+   student's chosen language end-to-end.
+   English is the safe fallback for any gap.
+════════════════════════════════════════════════════ */
+const JD_PHRASES = {
+
+  // After lesson section finishes — "any doubts / continue?"
+  endOfSection: {
+    English:   (t) => `That covers ${t}. Any doubts? Or shall we move to the next topic?`,
+    Hindi:     (t) => `${t} khatam hua. Koi doubt hai, ya hum agle topic par chalein?`,
+    Kannada:   (t) => `${t} mugitu. Yaavude sandehagalu ideyaa? Mundina vishayakke hogalama?`,
+    Tamil:     (t) => `${t} mudintathu. Enna santhegam irukkirathaa? Aduttha vishayakku selvomaa?`,
+    Telugu:    (t) => `${t} aipoyindi. Meeru emi sandehalu unnaara? Tarvata vishayaaniki velthaamaa?`,
+    Marathi:   (t) => `${t} sampla. Kahi shanka aahe kaa? Pudhachyaa vishayavar jaayacha kaa?`,
+    Malayalam: (t) => `${t} mudinnu. Valla sandehavum undoo? Aduttha vishayatthilekku pokkaamo?`,
+  },
+
+  // Student says "not yet / no" — give them time
+  stayHere: {
+    English:   'No problem! Take your time. Click Next whenever you are ready.',
+    Hindi:     'Theek hai! Aaraam se padho. Tayaar ho jaao tab Next dabao.',
+    Kannada:   'Parvaagilla! Nidhaanavaagi odi. Tayaaraadaaga Next click maadi.',
+    Tamil:     'Paravaayillai! Nidanamaa padiyungal. Tayaaraana pothu Next click pannungal.',
+    Telugu:    'Sari! Nemmadiga chadavandi. Tayarayyaaka Next click cheyyandi.',
+    Marathi:   'Thik aahe! Nidhaanepane waachaa. Tayaar zhaalaavar Next daabaa.',
+    Malayalam: 'Paravaayilla! Sammadhattil vaayikkuka. Ready aayaale Next click cheyyuka.',
+  },
+
+  // Checkpoint — correct answer
+  correct: {
+    English:   'Correct! Well done.',
+    Hindi:     'Bilkul sahi! Bahut accha kiya.',
+    Kannada:   'Sari! Tumba chennaagi maadidiri.',
+    Tamil:     'Sari! Nalla panniirkal.',
+    Telugu:    'Correct! Chaalaa baagundi.',
+    Marathi:   'Baro! Chaan keelat.',
+    Malayalam: 'Shire! Valare nannaayi.',
+  },
+
+  // Checkpoint — wrong answer
+  incorrect: {
+    English:   (ans, exp) => `Incorrect. The correct answer is ${ans}. ${exp}`,
+    Hindi:     (ans, exp) => `Galat. Sahi jawab ${ans} hai. ${exp}`,
+    Kannada:   (ans, exp) => `Tappu. Sari uttara ${ans}. ${exp}`,
+    Tamil:     (ans, exp) => `Tappaan. Correct answer ${ans}. ${exp}`,
+    Telugu:    (ans, exp) => `Tappu. Correct answer ${ans}. ${exp}`,
+    Marathi:   (ans, exp) => `Chukle. Barobar uttar ${ans} aahe. ${exp}`,
+    Malayalam: (ans, exp) => `Thettaanu. Shari uthaaram ${ans}. ${exp}`,
+  },
+
+  // Session complete — passed
+  sessionPassed: {
+    English:   (t, p) => `Great work! You completed ${t} with ${p} percent. Shall we start the next topic?`,
+    Hindi:     (t, p) => `Shabaash! Tumne ${t} complete kiya, score ${p} percent. Agle topic par chalein?`,
+    Kannada:   (t, p) => `Tumba chennaagi! ${t} complete maadidiri, score ${p} percent. Mundina vishayakke hogalama?`,
+    Tamil:     (t, p) => `Maruvazhi! ${t} mudinttirkal, score ${p} percent. Aduttha vishayakku pogalama?`,
+    Telugu:    (t, p) => `Chaalaa baagundi! ${t} complete chesaaru, score ${p} percent. Tarvata vishayaaniki velthaamaa?`,
+    Marathi:   (t, p) => `Chaan! ${t} complete kelat, score ${p} percent. Pudhachyaa vishayavar jaayacha kaa?`,
+    Malayalam: (t, p) => `Valare nannaayi! ${t} mudinnu, score ${p} percent. Aduttha vishayatthilekku pokkaamo?`,
+  },
+
+  // Session complete — didn't pass
+  sessionTryAgain: {
+    English:   (t, p) => `You scored ${p} percent in ${t}. Keep practising. Next topic?`,
+    Hindi:     (t, p) => `${t} mein ${p} percent mila. Practice se aur behtar ho jaoge. Agle topic par chalein?`,
+    Kannada:   (t, p) => `${t} alli ${p} percent sigitu. Abhyaasadinda improve aaguttari. Mundina vishayakke hogalama?`,
+    Tamil:     (t, p) => `${t} il ${p} percent kidaitthathu. Pazhakkam varum. Aduttha vishayakku pogalama?`,
+    Telugu:    (t, p) => `${t} lo ${p} percent vachchindi. Abhyaasam cheste better avutundi. Tarvata vishayaaniki velthaamaa?`,
+    Marathi:   (t, p) => `${t} madhe ${p} percent aale. Sarav kela ki changlai yeil. Pudhachyaa vishayavar jaayacha kaa?`,
+    Malayalam: (t, p) => `${t} il ${p} percent kittini. Praavsham valarthum. Aduttha vishayatthilekku pokkaamo?`,
+  },
+
+  // "Next topic?" short reprompt after answering a doubt
+  nextTopicAsk: {
+    English:   'Any more doubts? Or shall we continue?',
+    Hindi:     'Aur koi doubt hai? Ya agle topic par chalein?',
+    Kannada:   'Innu yaavade sandehavaa? Illaa mundakke hogalama?',
+    Tamil:     'Innum santhegam irukkirathaa? Illaa thodaralama?',
+    Telugu:    'Inkaa sandehalu unnaayaa? Leka tarvata ki velthaamaa?',
+    Marathi:   'Aanikahi shanka aahe kaa? Kinkva pudhakde jaayacha kaa?',
+    Malayalam: 'Innum sandehangal undoo? Athallengil thodaraamo?',
+  },
+
+  // Right after answering a doubt — "did that clear it?" (yes → continue, no → re-explain)
+  doubtClearAsk: {
+    English:   'Did that clear your doubt? Say yes or no.',
+    Hindi:     'Kya doubt clear ho gaya? Haan ya nahi bolo.',
+    Kannada:   'Sandeha clear aaytaa? Houdu athavaa illa heli.',
+    Tamil:     'Santhegam clear aachaa? Aamaa illa illai sollungal.',
+    Telugu:    'Sandeham clear ayyindaa? Avunu leda kaadu cheppandi.',
+    Marathi:   'Shanka dur zhaali kaa? Ho kinkva naahi saanga.',
+    Malayalam: 'Sandeham clear aayoo? Athe alle alla parayoo.',
+  },
+
+  // Student still not clear after two re-explains — move on gracefully
+  letsContinue: {
+    English:   'No worries — this one takes time. Read the notes on screen, and ask me again anytime.',
+    Hindi:     'Koi baat nahi — yeh topic thoda time leta hai. Screen par notes padho, aur kabhi bhi phir se poochho.',
+    Kannada:   'Parvaagilla — idu swalpa samaya tegedukolluttade. Screen alli notes odi, matthe yaavaagaladaru keli.',
+    Tamil:     'Paravaayillai — ithu konjam neram edukkum. Screen la notes padiyungal, eppo vendumaanaalum kelunga.',
+    Telugu:    'Parvaledu — idi konchem time padutundi. Screen lo notes chadavandi, eppudaina malli adagandi.',
+    Marathi:   'Kahi harkat naahi — yala thoda vel laagto. Screen varche notes waachaa, ani kadhihi parat vichaaraa.',
+    Malayalam: 'Saaramilla — ithinu kurachu samayam vendam. Screenile notes vaayikkuka, eppozhenkilum veendum chodikkuka.',
+  },
+
+  // Goodbye after student says no
+  goodbye: {
+    English:   'Alright! You did great today. See you next time. Goodbye!',
+    Hindi:     'Theek hai! Aaj bahut accha kiya. Phir milenge. Goodbye!',
+    Kannada:   'Sari! Ivaththu tumba chennaagi maadidiri. Mathe sigona. Goodbye!',
+    Tamil:     'Sari! Indru nalla panniirkal. Marupadiyum kaanaalam. Goodbye!',
+    Telugu:    'Sari! Indu chaalaa baagundi. Tarvata kalisukundam. Goodbye!',
+    Marathi:   'Thik aahe! Aaj chaan keelat. Parat bhetuyaa. Goodbye!',
+    Malayalam: 'Shari! Innu valare nannaayi. Pinne kaanaam. Goodbye!',
+  },
+};
+
+/** Get a JD phrase for the given language. Fallback → English. */
+const jdPhrase = (map, lang, ...args) => {
+  const fn = map[lang] || map['English'];
+  return typeof fn === 'function' ? fn(...args) : fn;
+};
+
+// BCP-47 code → language name (for speak() calls that pass 'hi-IN' etc.)
+const TTS_CODE_TO_LANG = Object.fromEntries(
+  TUTOR_LANGS.map(l => [l.tts, l.code])
+);
+
+/**
+ * useSarvamTTS — production-grade Sarvam AI TTS hook.
+ *
+ * Features:
+ *  • Fetches WAV from /tts/speak (Sarvam backend) and plays it
+ *  • AbortController cancels in-flight fetches when stopAll() is called
+ *  • Detects browser autoplay block (NotAllowedError) and installs a
+ *    ONE-SHOT global interaction listener — the buffered audio plays the
+ *    instant the user taps/clicks/presses any key, with zero extra friction
+ *  • Exposes `fetching` (audio loading) and `blocked` (awaiting user tap)
+ *    so the UI can show the right status message
+ *
+ * speak(text, langCodeOrName, onDone)
+ *   lang: BCP-47 ('hi-IN') | language name ('Hindi') | null → defaultLanguage
+ *   onDone: fires when audio ends OR on error (flow always continues)
+ */
+/* Split text into speakable chunks at sentence boundaries.
+   The FIRST chunk is kept small so audio starts almost immediately —
+   the rest are prefetched while earlier chunks play (pipelining). */
+const _SENT_SPLIT = /(?<=[.!?।])\s+/;
+function splitForSpeech(text) {
+  const sents = text.replace(/\n+/g, ' ').split(_SENT_SPLIT).map(s => s.trim()).filter(Boolean);
+  if (sents.length <= 1) return [text.trim()];
+  const chunks = [];
+  let cur = '';
+  for (const s of sents) {
+    const target = chunks.length === 0 ? 150 : 300;   // small first chunk = fast start
+    if (!cur) cur = s;
+    else if (cur.length + 1 + s.length <= target) cur += ' ' + s;
+    else { chunks.push(cur); cur = s; }
+  }
+  if (cur) chunks.push(cur);
+  return chunks;
+}
+
+function useSarvamTTS(defaultLanguage = 'English') {
+  const audioRef    = useRef(null);
+  const sessionRef  = useRef(0);            // bump = invalidate any in-flight chain
+  const abortersRef = useRef(new Set());    // all in-flight fetch controllers
+  const blobUrlsRef = useRef(new Set());
+  const pendingRef  = useRef(null);         // queued play() waiting for user gesture
+
+  const [fetching, setFetching] = useState(false);
+  const [blocked,  setBlocked]  = useState(false);
+
+  // ── Install a one-shot interaction listener ─────────────────────────────
+  const installUnlock = useCallback((playFn) => {
+    pendingRef.current = playFn;
+    setBlocked(true);
+    const run = () => {
+      setBlocked(false);
+      const fn = pendingRef.current;
+      pendingRef.current = null;
+      fn?.();
+    };
+    // Any interaction type unlocks autoplay
+    ['click', 'keydown', 'touchstart', 'pointerdown'].forEach(evt =>
+      window.addEventListener(evt, run, { once: true, capture: true })
+    );
+  }, []);
+
+  // ── Stop everything immediately ─────────────────────────────────────────
+  const stopAll = useCallback(() => {
+    sessionRef.current += 1;                    // kill any running speak() chain
+    abortersRef.current.forEach(c => c.abort());
+    abortersRef.current.clear();
+    pendingRef.current = null;
+    setFetching(false);
+    setBlocked(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.onended = null;
+      audioRef.current.onerror = null;
+      audioRef.current.src     = '';
+    }
+    blobUrlsRef.current.forEach(u => URL.revokeObjectURL(u));
+    blobUrlsRef.current.clear();
+  }, []);
+
+  // ── Speak (pipelined) ────────────────────────────────────────────────────
+  // Text is split into sentence chunks. Chunk N+1 is fetched from Sarvam
+  // WHILE chunk N plays, so the wait is only ever the first short chunk —
+  // not the whole script. onDone fires after the last chunk finishes.
+  const speak = useCallback(async (text, langParam, onDone) => {
+    if (!text?.trim()) { onDone?.(); return; }
+    stopAll();
+    const session = sessionRef.current;
+    const dead = () => sessionRef.current !== session;
+
+    const langName = langParam
+      ? (TTS_CODE_TO_LANG[langParam] || langParam)
+      : defaultLanguage;
+
+    const chunks = splitForSpeech(text);
+    setFetching(true);
+
+    const fetchChunk = (chunkText) => {
+      const ctrl = new AbortController();
+      abortersRef.current.add(ctrl);
+      return fetch(`${API}/tts/speak`, {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ text: chunkText, language: langName, engine: 'sarvam' }),
+        signal: ctrl.signal,
+      })
+        .then(res => { if (!res.ok) throw new Error(`tts ${res.status}`); return res.blob(); })
+        .finally(() => abortersRef.current.delete(ctrl));
+    };
+
+    const playBlob = (blob) => new Promise((resolve) => {
+      if (dead()) { resolve(); return; }
+      const url = URL.createObjectURL(blob);
+      blobUrlsRef.current.add(url);
+      if (!audioRef.current) audioRef.current = new Audio();
+      const audio = audioRef.current;
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+        blobUrlsRef.current.delete(url);
+        resolve();
+      };
+      audio.onended = cleanup;
+      audio.onerror = cleanup;
+      audio.src = url;
+      audio.play()
+        .then(() => setFetching(false))
+        .catch(err => {
+          if (err?.name === 'NotAllowedError') {
+            // Autoplay blocked — audio is buffered, plays on first user gesture
+            setFetching(false);
+            installUnlock(() => audio.play().catch(cleanup));
+          } else {
+            cleanup();
+          }
+        });
+    });
+
+    try {
+      let nextFetch = fetchChunk(chunks[0]);
+      for (let i = 0; i < chunks.length; i++) {
+        const blob = await nextFetch;
+        if (dead()) return;
+        if (i + 1 < chunks.length) nextFetch = fetchChunk(chunks[i + 1]);  // prefetch
+        await playBlob(blob);
+        if (dead()) return;
+      }
+      setFetching(false);
+      onDone?.();
+    } catch (err) {
+      if (dead() || err?.name === 'AbortError') return;   // cancelled — no-op
+      setFetching(false);
+      onDone?.();
+    }
+  }, [defaultLanguage, stopAll, installUnlock]);
+
+  // Silence Sarvam while the mic listens (lesson audio can't seek-resume,
+  // so this is a hard stop under a softer name kept for API compatibility).
+  const pause = useCallback(() => { stopAll(); }, [stopAll]);
+
+  useEffect(() => () => stopAll(), [stopAll]);
+
+  return { speak, stopAll, pause, fetching, blocked };
+}
 
 // ── XP table ─────────────────────────────────────────────────────────────────
 const XP = { lesson: 20, checkpoint_correct: 5, assess_pass: 50, expert_bonus: 30, perfect_bonus: 50 };
@@ -96,8 +409,10 @@ function ProgressRing({ pct, size = 52, stroke = 5 }) {
   );
 }
 
-// ── View: Path + Mode Select ──────────────────────────────────────────────────
+// ── View: Path → Language Select (2-step setup, single unified learning mode) ─
 function PathSelect({ onSelect, progress }) {
+  // step: 'path' | 'lang'
+  const [step,         setStep]         = useState('path');
   const [selectedPath, setSelectedPath] = useState(null);
 
   const PATHS = [
@@ -105,35 +420,30 @@ function PathSelect({ onSelect, progress }) {
     { code: 'IPC', label: 'IPC 1860', sub: 'Indian Penal Code',        icon: '⚔️', desc: 'Original Indian criminal code (historical)', color: '#ef4444' },
   ];
 
-  const MODES = [
-    { code: 'citizen', icon: '👤', label: 'Citizen',   desc: 'Simple language, everyday examples. Perfect for everyone.' },
-    { code: 'student', icon: '🎓', label: 'Student',   desc: 'Detailed analysis, legal terminology, deep explanations.' },
-    { code: 'exam',    icon: '📝', label: 'Exam Prep', desc: 'Important sections, mock tests, revision-focused.' },
-  ];
-
   const bnsP = getLawProgress(progress, 'BNS');
   const ipcP = getLawProgress(progress, 'IPC');
 
-  if (selectedPath) {
+  /* ── Step 2: Language ── */
+  if (step === 'lang') {
     return (
       <div className="tutor-select-root">
-        <button className="tutor-back-link" onClick={() => setSelectedPath(null)}>← Back</button>
+        <button className="tutor-back-link" onClick={() => setStep('path')}>← Back</button>
         <div className="tutor-select-header">
-          <h2>How do you want to learn?</h2>
-          <p>Choose a mode that suits your goal</p>
+          <h2>Choose Your Language</h2>
+          <p>JD will greet you and respond in your preferred language</p>
         </div>
-        <div className="tutor-mode-grid">
-          {MODES.map(m => (
+        <div className="tutor-lang-grid">
+          {TUTOR_LANGS.map(l => (
             <motion.button
-              key={m.code}
-              className="tutor-mode-card"
-              whileHover={{ y: -4 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => onSelect(selectedPath, m.code)}
+              key={l.code}
+              className="tutor-lang-card"
+              whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(99,102,241,0.25)' }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => onSelect(selectedPath, 'general', l.code)}
             >
-              <span className="tutor-mode-icon">{m.icon}</span>
-              <span className="tutor-mode-label">{m.label}</span>
-              <span className="tutor-mode-desc">{m.desc}</span>
+              <span className="tutor-lang-flag">{l.flag}</span>
+              <span className="tutor-lang-native">{l.native}</span>
+              <span className="tutor-lang-label">{l.code}</span>
             </motion.button>
           ))}
         </div>
@@ -141,6 +451,7 @@ function PathSelect({ onSelect, progress }) {
     );
   }
 
+  /* ── Step 1: Path ── */
   return (
     <div className="tutor-select-root">
       <div className="tutor-select-header">
@@ -161,7 +472,7 @@ function PathSelect({ onSelect, progress }) {
               style={{ '--path-color': p.color }}
               whileHover={{ y: -6, boxShadow: `0 16px 40px ${p.color}33` }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => setSelectedPath(p.code)}
+              onClick={() => { setSelectedPath(p.code); setStep('lang'); }}
             >
               <span className="tutor-path-icon">{p.icon}</span>
               <span className="tutor-path-label">{p.label}</span>
@@ -173,7 +484,7 @@ function PathSelect({ onSelect, progress }) {
         })}
       </div>
 
-      <button className="tutor-achievements-btn" onClick={() => onSelect('__achievements__', 'any')}>
+      <button className="tutor-achievements-btn" onClick={() => onSelect('__achievements__', 'any', 'English')}>
         🏆 View My Achievements
       </button>
     </div>
@@ -187,7 +498,7 @@ function ChapterList({ lawCode, mode, lawProgress, onStartChapter, onBack, onSho
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${API}/tutor/chapters/${lawCode}`)
+    fetch(`${API}/tutor/chapters/${lawCode}`, { headers: authHeaders() })
       .then(r => r.ok ? r.json() : [])
       .then(d => { setChapters(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => { setChapters([]); setLoading(false); });
@@ -206,7 +517,6 @@ function ChapterList({ lawCode, mode, lawProgress, onStartChapter, onBack, onSho
         <div className="tutor-chapters-title-row">
           <h2>{lawCode === 'BNS' ? '⚖️ BNS 2023' : '⚔️ IPC 1860'} — Chapters</h2>
           <div className="tutor-chapters-meta">
-            <span className="tutor-mode-badge">{mode.toUpperCase()}</span>
             <XPBar xp={lawProgress.xp || 0} />
           </div>
         </div>
@@ -266,9 +576,73 @@ function ChapterList({ lawCode, mode, lawProgress, onStartChapter, onBack, onSho
   );
 }
 
+// ── Lesson preparing state — live checklist + real content so the user is
+//    never staring at empty skeleton bars while the AI writes the lesson ──────
+const PREP_STEPS = [
+  '📖 Reading the section text…',
+  '✍️ Rewriting it in plain language…',
+  '🌟 Finding a real-life example…',
+  '⚖️ Defining the legal terms…',
+  '🧠 Preparing your checkpoint question…',
+];
+
+function LessonPreparing({ sec }) {
+  const [stepIdx, setStepIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(
+      () => setStepIdx(i => Math.min(i + 1, PREP_STEPS.length - 1)),
+      2200,
+    );
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="tutor-prep-root">
+      {/* JD's live preparation checklist */}
+      <div className="tutor-prep-card">
+        <div className="tutor-prep-head">
+          <span className="tutor-prep-pulse" aria-hidden="true" />
+          JD is preparing your lesson
+        </div>
+        <div className="tutor-prep-steps">
+          {PREP_STEPS.map((s, i) => (
+            <div
+              key={s}
+              className={`tutor-prep-step${i < stepIdx ? ' tutor-prep-step--done' : i === stepIdx ? ' tutor-prep-step--active' : ''}`}
+            >
+              <span className="tutor-prep-tick">
+                {i < stepIdx ? '✓' : i === stepIdx ? '●' : '○'}
+              </span>
+              {s}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Real content the user can read RIGHT NOW — no AI needed */}
+      {sec?.text && (
+        <motion.div
+          className="tutor-law-text-box"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="tutor-law-text-label">📜 Legal Text — start reading while JD prepares</div>
+          <p className="tutor-law-text">{sec.text}</p>
+        </motion.div>
+      )}
+      {sec?.punishment && (
+        <div className="tutor-punishment-box">
+          <span className="tutor-punishment-label">⚖️ Punishment</span>
+          <span>{sec.punishment}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── View: Lesson ──────────────────────────────────────────────────────────────
 function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete, onBack, addXP }) {
-  const { speak, stopAll } = useJD();
+  const { speak, stopAll, pause: pauseLesson, fetching: ttsLoading, blocked: ttsBlocked } = useSarvamTTS(language);
 
   const [sections, setSections]             = useState([]);
   const [loading, setLoading]               = useState(true);
@@ -284,14 +658,14 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
   const [waitingConfirm, setWaitingConfirm] = useState(false);
   const [readyToTeach, setReadyToTeach]     = useState(false);
   const [listeningYN, setListeningYN]       = useState(false);
-  // JD Voice Lesson (Kokoro TTS) — alternate spoken lesson mode
-  const [kokoroMode, setKokoroMode]         = useState(false);
-  // Doubt feature
-  const [doubtOpen, setDoubtOpen]         = useState(false);
-  const [doubtText, setDoubtText]         = useState('');
-  const [doubtAnswer, setDoubtAnswer]     = useState('');
-  const [doubtLoading, setDoubtLoad]      = useState(false);
+  // Doubt / Q&A feature
+  const [doubtOpen, setDoubtOpen]           = useState(false);
+  const [doubtText, setDoubtText]           = useState('');
+  const [doubtAnswer, setDoubtAnswer]       = useState('');
+  const [doubtLoading, setDoubtLoad]        = useState(false);
   const [doubtListening, setDoubtListening] = useState(false);
+  const [doubtHistory, setDoubtHistory]     = useState([]); // [{q, a}]
+  const doubtThreadRef                      = useRef(null);
   const contentRef      = useRef(null);
   const mutedRef        = useRef(false);
   const recogRef        = useRef(null);      // yes/no recognition
@@ -301,9 +675,18 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
   const doubtInputRef     = useRef(null);
   const secIdxRef         = useRef(0);
   const submitDoubtRef    = useRef(null);  // always-fresh ref to handleSubmitDoubt
+  const goNextRef         = useRef(null);  // always-fresh ref to goNext (avoids TDZ in handleSubmitDoubt)
+  const stayHereRef       = useRef(null);  // always-fresh ref to stayHere
+  const doubtHistoryRef   = useRef([]);    // always-fresh doubt history for re-explain context
   const greetedChapterRef = useRef(null);  // chapter_num already welcomed (speak once)
 
+  // ── Voice interrupt state (mic button during lesson) ──────────────────────
+  const [interruptListening, setInterruptListening] = useState(false);
+  const [interruptText,      setInterruptText]      = useState('');
+  const interruptRecogRef = useRef(null);
+
   useEffect(() => { mutedRef.current = voiceMuted; }, [voiceMuted]);
+  useEffect(() => { doubtHistoryRef.current = doubtHistory; }, [doubtHistory]);
   useEffect(() => { sectionsRef.current = sections; }, [sections]);
   useEffect(() => { secIdxRef.current = secIdx; }, [secIdx]);
 
@@ -311,8 +694,9 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
   useEffect(() => () => {
     stopAll();
     clearTimeout(introTimerRef.current);
-    try { recogRef.current?.abort(); } catch (_) {}
-    try { doubtRecogRef.current?.abort(); } catch (_) {}
+    try { recogRef.current?.abort();       } catch (_) {}
+    try { doubtRecogRef.current?.abort();  } catch (_) {}
+    try { interruptRecogRef.current?.stop(); } catch (_) {}
   }, [stopAll]);
 
   // ── Voice yes/no listener ──────────────────────────────────────────────────
@@ -325,24 +709,24 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
     const recog = new SR();
-    recog.lang = 'en-IN';
+    recog.lang = LANG_TTS[language] || 'en-IN';   // use the student's language
     recog.continuous = false;
     recog.interimResults = false;
-    recog.maxAlternatives = 2;
+    recog.maxAlternatives = 3;
     recog.onstart = () => setListeningYN(true);
     recog.onend   = () => setListeningYN(false);
     recog.onresult = (e) => {
-      const text = (e.results[0]?.[0]?.transcript || '').toLowerCase().trim();
-      if (/\b(yes|yeah|yep|sure|okay|ok|next|go|continue|proceed|move on|haan|ha)\b/.test(text)) {
+      const text = Array.from(e.results[0]).map(r => r.transcript).join(' ').toLowerCase().trim();
+      if (/\b(yes|yeah|sure|ok|okay|next|go|continue|haan|ha|aage|chalte|chalein)\b/.test(text)) {
         onYes();
-      } else if (/\b(no|nope|wait|hold|not yet|later|stay|nahi)\b/.test(text)) {
+      } else if (/\b(no|nope|wait|hold|stay|nahi|na|ruko|dobara)\b/.test(text)) {
         onNo();
       }
     };
     recog.onerror = () => setListeningYN(false);
     recogRef.current = recog;
     try { recog.start(); } catch (_) {}
-  }, []);
+  }, [language]);
 
   // ── Doubt: voice & submit ──────────────────────────────────────────────────
   const stopDoubtVoice = useCallback(() => {
@@ -350,38 +734,111 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
     try { doubtRecogRef.current?.abort(); } catch (_) {}
   }, []);
 
+  // ── Interrupt mic: stop lesson + listen to student question ───────────────
+  const stopInterruptMic = useCallback(() => {
+    setInterruptListening(false);
+    setInterruptText('');
+    try { interruptRecogRef.current?.stop(); } catch (_) {}
+    interruptRecogRef.current = null;
+  }, []);
+
+  const handleInterruptMic = useCallback(() => {
+    if (interruptListening) { stopInterruptMic(); return; }
+
+    // 1. Silence Sarvam immediately
+    pauseLesson();
+    stopYNListen();
+    setWaitingConfirm(false);
+    setJdState('idle');
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      // No browser SR → open typed doubt panel
+      setDoubtOpen(true);
+      setTimeout(() => doubtInputRef.current?.focus(), 60);
+      return;
+    }
+
+    setInterruptText('');
+    setInterruptListening(true);
+
+    const recog = new SR();
+    recog.lang           = LANG_TTS[language] || 'en-IN';
+    recog.continuous     = false;
+    recog.interimResults = true;
+    recog.maxAlternatives = 2;
+
+    recog.onresult = (evt) => {
+      const last    = evt.results[evt.results.length - 1];
+      const txt     = last[0].transcript || '';
+      setInterruptText(txt);
+      if (last.isFinal && txt.trim()) {
+        stopInterruptMic();
+        setDoubtText(txt);
+        setDoubtOpen(true);     // open panel so user sees the answer text immediately
+        submitDoubtRef.current?.(txt);
+      }
+    };
+    recog.onerror = () => {
+      stopInterruptMic();
+      setDoubtOpen(true);   // fallback: let student type
+      setTimeout(() => doubtInputRef.current?.focus(), 60);
+    };
+    recog.onend = () => {
+      setInterruptListening(false);
+      interruptRecogRef.current = null;
+    };
+
+    interruptRecogRef.current = recog;
+    try { recog.start(); } catch (_) { stopInterruptMic(); }
+  }, [interruptListening, language, pauseLesson, stopYNListen, stopInterruptMic, setDoubtText]);
+
   const startDoubtVoice = useCallback(() => {
+    // Silence Sarvam immediately so mic doesn't pick up lesson audio
+    pauseLesson();
+    stopYNListen();
+    setWaitingConfirm(false);
+
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
     const r = new SR();
-    r.lang = 'en-IN';
+    r.lang = LANG_TTS[language] || 'en-IN';   // student's language
     r.continuous = false;
-    r.interimResults = false;
+    r.interimResults = true;
     r.onstart = () => setDoubtListening(true);
     r.onend   = () => setDoubtListening(false);
     r.onresult = (e) => {
-      const txt = e.results[0]?.[0]?.transcript || '';
+      const last     = e.results[e.results.length - 1];
+      const isFinal  = last.isFinal;
+      const txt      = last[0].transcript || '';
       setDoubtText(txt);
-      if (txt.trim()) submitDoubtRef.current?.(txt);  // always-fresh via ref
+      if (isFinal && txt.trim()) submitDoubtRef.current?.(txt);
     };
     r.onerror = () => setDoubtListening(false);
     doubtRecogRef.current = r;
     try { r.start(); } catch (_) {}
-  }, []);
+  }, [language, pauseLesson, stopYNListen]);
 
-  const handleSubmitDoubt = useCallback((question) => {
+  /* ── Live doubt loop ────────────────────────────────────────────────────
+     answer → JD asks "Did that clear your doubt?" (voice) →
+       YES → "any more doubts / continue?" flow (unchanged)
+       NO  → JD re-explains from a COMPLETELY new angle (up to 2 times),
+             then gracefully moves on. The student never types a word. */
+  const askDoubtClearRef = useRef(null);
+
+  const handleSubmitDoubt = useCallback((question, { reexplain = false, attempt = 0 } = {}) => {
     const q = question?.trim();
     if (!q) return;
     const currentSec = sectionsRef.current[secIdxRef.current];
     setDoubtLoad(true);
-    setDoubtAnswer('');
+    if (!reexplain) setDoubtAnswer('');
     stopAll();
     stopYNListen();
     setWaitingConfirm(false);
 
     fetch(`${API}/tutor/doubt`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         law_code: lawCode,
         section_number: currentSec?.section_number || '',
@@ -389,16 +846,30 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
         section_text:   currentSec?.text || currentSec?.summary || '',
         question: q,
         mode, language,
+        reexplain,
+        history: doubtHistoryRef.current.slice(-4),
       }),
     })
       .then(r => r.json())
       .then(d => {
         const ans = d.answer || 'Sorry, I could not answer that. Please try again.';
         setDoubtAnswer(ans);
+        setDoubtHistory(prev => [...prev, { q, a: ans }]);
         setDoubtLoad(false);
+        // scroll thread to bottom
+        setTimeout(() => {
+          if (doubtThreadRef.current) doubtThreadRef.current.scrollTop = doubtThreadRef.current.scrollHeight;
+        }, 80);
         if (!mutedRef.current) {
           setJdState('speaking');
-          speak(ans, null, () => setJdState('idle'));
+          // null → useSarvamTTS automatically uses the student's language
+          speak(ans, null, () => {
+            setJdState('idle');
+            if (mutedRef.current) { setWaitingConfirm(true); return; }
+            askDoubtClearRef.current?.(q, attempt);
+          });
+        } else {
+          setWaitingConfirm(true);
         }
       })
       .catch(() => {
@@ -408,6 +879,42 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
   }, [lawCode, mode, language, speak, stopAll, stopYNListen]); // eslint-disable-line
   submitDoubtRef.current = handleSubmitDoubt;  // keep ref always fresh
 
+  /* "Did that clear your doubt?" — spoken follow-up that closes the live loop. */
+  const askDoubtClear = useCallback((lastQuestion, attempt) => {
+    const moveOn = () => {
+      setJdState('speaking');
+      speak(jdPhrase(JD_PHRASES.nextTopicAsk, language), null, () => {
+        setJdState('idle');
+        setWaitingConfirm(true);
+        startYNListen(goNextRef.current, stayHereRef.current);
+      });
+    };
+    // After 2 re-explains, don't loop forever — reassure and move on.
+    if (attempt >= 2) {
+      setJdState('speaking');
+      speak(jdPhrase(JD_PHRASES.letsContinue, language), null, () => {
+        setJdState('idle');
+        moveOn();
+      });
+      return;
+    }
+    setTimeout(() => {
+      setJdState('speaking');
+      speak(jdPhrase(JD_PHRASES.doubtClearAsk, language), null, () => {
+        setJdState('idle');
+        setWaitingConfirm(true);
+        startYNListen(
+          () => { setWaitingConfirm(false); moveOn(); },                                     // yes → cleared
+          () => {                                                                            // no  → new angle
+            setWaitingConfirm(false);
+            submitDoubtRef.current?.(lastQuestion, { reexplain: true, attempt: attempt + 1 });
+          },
+        );
+      });
+    }, 300);
+  }, [language, speak, startYNListen]); // eslint-disable-line
+  askDoubtClearRef.current = askDoubtClear;
+
   // ── Advance to next section ────────────────────────────────────────────────
   const goNext = useCallback(() => {
     stopYNListen();
@@ -416,6 +923,7 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
     setDoubtOpen(false);
     setDoubtText('');
     setDoubtAnswer('');
+    setDoubtHistory([]);
     stopAll();
     setJdState('idle');
     setSecIdx(i => i + 1);
@@ -426,19 +934,31 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
     setWaitingConfirm(false);
     if (!mutedRef.current) {
       setJdState('speaking');
-      speak('No problem! Take your time. Click Next whenever you are ready.', null, () => setJdState('idle'));
+      speak(jdPhrase(JD_PHRASES.stayHere, language), null, () => setJdState('idle'));
     }
-  }, [speak, stopYNListen]);
+  }, [speak, stopYNListen, language]);
+
+  // Keep refs always fresh so callbacks defined before these can call them safely
+  goNextRef.current   = goNext;
+  stayHereRef.current = stayHere;
 
   // ── Speak lesson then ask "move to next?" ─────────────────────────────────
+  // speakRef keeps the closure fresh so the lesson useEffect always calls the
+  // latest version even when deps have changed between renders.
+  const speakLessonRef = useRef(null);
+
   const speakLesson = useCallback((lessonData, sec, isLastSec) => {
-    const parts = [
-      `Now teaching: ${lessonData.simple_title || sec.title}.`,
-      lessonData.why_it_exists     ? `Why this law exists. ${lessonData.why_it_exists}` : '',
-      lessonData.plain_explanation ? `In simple terms. ${lessonData.plain_explanation}` : '',
-      lessonData.real_example      ? `Here is a real life example. ${lessonData.real_example}` : '',
-      lessonData.remember          ? `Key takeaway. ${lessonData.remember}` : '',
-    ].filter(Boolean).join(' ');
+    // spoken_script is a pre-formatted teacher monologue generated by Groq —
+    // sounds like a real class, not a dry list.
+    // Fallback to assembling fields only if the new field is absent (old API response).
+    const parts = lessonData.spoken_script?.trim() || [
+      lessonData.simple_title      ? `Today we look at ${lessonData.simple_title}.`    : '',
+      lessonData.why_it_exists     ? `${lessonData.why_it_exists}`                     : '',
+      lessonData.plain_explanation ? `${lessonData.plain_explanation}`                 : '',
+      lessonData.analogy           ? `${lessonData.analogy}`                           : '',
+      lessonData.real_example      ? `Here is an example. ${lessonData.real_example}` : '',
+      lessonData.remember          ? `Remember this. ${lessonData.remember}`           : '',
+    ].filter(Boolean).join('  ');
 
     setJdState('speaking');
     speak(parts, null, () => {
@@ -447,7 +967,7 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
       setTimeout(() => {
         setJdState('speaking');
         speak(
-          `Great, that covers ${lessonData.simple_title || sec.title}. Shall I move to the next topic? You can say yes or click the button.`,
+          jdPhrase(JD_PHRASES.endOfSection, language, lessonData.simple_title || sec.title),
           null,
           () => {
             setJdState('idle');
@@ -455,9 +975,12 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
             startYNListen(goNext, stayHere);
           }
         );
-      }, 400);
+      }, 300);
     });
   }, [speak, startYNListen, goNext, stayHere]);
+
+  // Keep ref always fresh so the lesson-load effect gets the latest closure
+  speakLessonRef.current = speakLesson;
 
   // ── Load sections + speak chapter intro ───────────────────────────────────
   useEffect(() => {
@@ -472,7 +995,7 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
     setDoubtText('');
     setDoubtAnswer('');
 
-    fetch(`${API}/tutor/chapter/${lawCode}/${chapter.chapter_num}/sections`)
+    fetch(`${API}/tutor/chapter/${lawCode}/${chapter.chapter_num}/sections`, { headers: authHeaders() })
       .then(r => r.ok ? r.json() : { sections: [] })
       .then(d => {
         const secs = Array.isArray(d?.sections) ? d.sections : [];
@@ -488,14 +1011,44 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
         if (!secs.length || mutedRef.current || alreadyGreeted) { markReady(); return; }
         greetedChapterRef.current = chapter.chapter_num;
 
-        const names = secs.slice(0, 4).map(s => s.title).join(', ');
-        const more  = secs.length > 4 ? `, and ${secs.length - 4} more` : '';
-        const intro = `Welcome to Chapter ${chapter.chapter_num}: ${chapter.short_name}. In this chapter, we will cover ${secs.length} ${secs.length === 1 ? 'section' : 'sections'} — ${names}${more}. Let me begin with the first lesson!`;
+        const names   = secs.slice(0, 4).map(s => s.title).join(', ');
+        const more    = secs.length > 4 ? `, and ${secs.length - 4} more` : '';
+        const greet   = LANG_GREET[language] || '';
+        const ttsLang = LANG_TTS[language] || 'en-IN';
 
-        // Safety: if TTS onDone never fires (e.g. browser blocks autoplay), proceed after 10s
-        introTimerRef.current = setTimeout(markReady, 10000);
-        setJdState('speaking');
-        speak(intro, null, markReady);
+        // Romanised template — only a fallback if the backend greeting fails.
+        const templateIntro = {
+          English:   `${greet}Welcome to Chapter ${chapter.chapter_num}: ${chapter.short_name}. We have ${secs.length} sections to cover — ${names}${more}. Let us begin!`,
+          Hindi:     `${greet}Chapter ${chapter.chapter_num}: ${chapter.short_name} mein aapka swagat hai. Is chapter mein ${secs.length} sections hain — ${names}${more}. Chalo shuru karte hain!`,
+          Kannada:   `${greet}Chapter ${chapter.chapter_num}: ${chapter.short_name} ge swaagata. Ee chapteralli ${secs.length} sections ide — ${names}${more}. Shuru maadona!`,
+          Tamil:     `${greet}Chapter ${chapter.chapter_num}: ${chapter.short_name} ku varavergal. Idil ${secs.length} paakaangal — ${names}${more}. Aarambikkalaam!`,
+          Telugu:    `${greet}Chapter ${chapter.chapter_num}: ${chapter.short_name} ki swagatam. Ee chapterlo ${secs.length} sections unnaayi — ${names}${more}. Mana class moni moku!`,
+          Marathi:   `${greet}Chapter ${chapter.chapter_num}: ${chapter.short_name} madhe swagat aahe. Ya chapter mein ${secs.length} vibhaag aahet — ${names}${more}. Chalya suruvaaat karuyaa!`,
+          Malayalam: `${greet}Chapter ${chapter.chapter_num}: ${chapter.short_name} nte koodathe svaagataM. Idil ${secs.length} vibhaagangal und — ${names}${more}. Thudangaam!`,
+        }[language] || `${greet}Welcome to Chapter ${chapter.chapter_num}: ${chapter.short_name}. We have ${secs.length} sections — ${names}${more}. Let us begin!`;
+
+        const speakIntro = (text) => {
+          // Safety: if TTS onDone never fires (autoplay block etc.), proceed anyway.
+          introTimerRef.current = setTimeout(markReady, 12000);
+          setJdState('speaking');
+          speak(text, ttsLang, markReady);
+        };
+
+        // Fetch a proper NATIVE-SCRIPT greeting from the backend (works in every
+        // language); fall back to the romanised template only if it fails.
+        fetch(`${API}/tutor/chapter-intro`, {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({
+            law_code:       lawCode,
+            chapter_name:   chapter.short_name,
+            section_titles: secs.slice(0, 6).map(s => s.title),
+            language,
+          }),
+        })
+          .then(r => (r.ok ? r.json() : null))
+          .then(d => speakIntro((d && d.ok && d.intro) ? d.intro : templateIntro))
+          .catch(() => speakIntro(templateIntro));
       })
       .catch(() => { setSections([]); setLoading(false); setReadyToTeach(true); });
   }, [lawCode, chapter.chapter_num]); // eslint-disable-line
@@ -503,9 +1056,6 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
   // ── Load & auto-speak lesson when section changes (after intro done) ───────
   useEffect(() => {
     if (!readyToTeach || !sections.length) return;
-    // In JD Voice (Kokoro) mode the JDTeacherPlayer owns the lesson — skip the
-    // text-mode generation entirely so we don't double-call the backend.
-    if (kokoroMode) return;
     const sec = sections[secIdx];
     if (!sec) return;
 
@@ -525,7 +1075,7 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
 
     fetch(`${API}/tutor/lesson`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         law_code:       lawCode,
         section_number: sec.section_number,
@@ -553,13 +1103,15 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
 
         const isLastSec = secIdx >= sectionsRef.current.length - 1;
         if (!mutedRef.current) {
-          speakLesson(lessonData, sec, isLastSec);
+          // Use ref so we always call the freshest speakLesson closure,
+          // avoiding stale-closure bugs when speak/startYNListen refs change.
+          speakLessonRef.current(lessonData, sec, isLastSec);
         } else {
           setJdState('idle');
         }
       })
       .catch(() => { setLessonLoad(false); setJdState('idle'); });
-  }, [secIdx, sections.length, readyToTeach, kokoroMode]); // eslint-disable-line
+  }, [secIdx, sections.length, readyToTeach]); // eslint-disable-line
 
   const sec    = sections[secIdx];
   const isLast = secIdx >= sections.length - 1;
@@ -592,9 +1144,9 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
     setCpRevealed(true);
     if (checkpoint && opt.startsWith(checkpoint.correct)) {
       addXP(XP.checkpoint_correct);
-      speak('Correct! Well done.', null, () => {});
+      speak(jdPhrase(JD_PHRASES.correct, language), null, () => {});
     } else {
-      speak(`Incorrect. The correct answer is ${checkpoint?.correct}. ${checkpoint?.explanation || ''}`, null, () => {});
+      speak(jdPhrase(JD_PHRASES.incorrect, language, checkpoint?.correct, checkpoint?.explanation || ''), null, () => {});
     }
   };
 
@@ -611,18 +1163,6 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
           </div>
           <span className="tutor-lesson-progress-txt">{secIdx + 1} / {sections.length}</span>
         </div>
-        <button
-          className={`tutor-voice-btn${kokoroMode ? ' tutor-voice-btn--muted' : ''}`}
-          onClick={() => {
-            if (!kokoroMode) { stopAll(); setVoiceMuted(true); setWaitingConfirm(false); stopYNListen(); }
-            else { setVoiceMuted(false); }
-            setKokoroMode(k => !k);
-          }}
-          title={kokoroMode ? 'Switch back to text lesson' : 'Switch to JD Voice Lesson (local AI voice)'}
-        >
-          {kokoroMode ? '📖 Text Lesson' : '🎙️ JD Voice Lesson'}
-        </button>
-        <span className="tutor-mode-badge">{mode.toUpperCase()}</span>
       </div>
 
       {/* Chapter title */}
@@ -631,37 +1171,42 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
         <span>{chapter.short_name}</span>
       </div>
 
-      {kokoroMode && (
-        <JDTeacherPlayer
-          lawCode={lawCode}
-          chapterNum={chapter.chapter_num}
-          sectionIndex={secIdx}
-          mode={mode}
-          language={language}
-          onSectionChange={(idx) => setSecIdx(idx)}
-          onChapterComplete={() => { stopAll(); stopYNListen(); stopDoubtVoice(); onComplete(bookmarked, sections); }}
-          onClose={() => { setKokoroMode(false); setVoiceMuted(false); }}
-        />
-      )}
-
-      <div className="tutor-lesson-body" ref={contentRef} style={kokoroMode ? { display: 'none' } : undefined}>
+      <div className="tutor-lesson-body" ref={contentRef}>
         {/* JD intro row */}
         <div className="tutor-lesson-jd-row">
-          <JDAvatar state={jdState} />
+          <JDAvatar state={ttsBlocked ? 'idle' : ttsLoading ? 'thinking' : jdState} />
           <div className="tutor-lesson-jd-bubble">
             {!readyToTeach
               ? <span>📢 JD is introducing the chapter…</span>
               : lessonLoading
-                ? <span>Preparing lesson for Section {sec?.section_number}…</span>
-                : jdState === 'speaking'
-                  ? <span>🔊 JD is speaking: <strong>{lesson?.simple_title || sec?.title}</strong></span>
-                  : lesson?.simple_title
-                    ? <span>Now teaching: <strong>{lesson.simple_title}</strong></span>
-                    : <span>Section {sec?.section_number}: {sec?.title}</span>
+                ? <span>✍️ JD is writing your lesson — the legal text is below…</span>
+                : ttsLoading
+                  ? <span>🎵 JD is warming up his voice…</span>
+                  : ttsBlocked
+                    ? <span className="tutor-jd-tap-hint">🔊 JD is ready — <strong>tap anywhere to start voice</strong></span>
+                    : jdState === 'speaking'
+                      ? <span>🔊 JD is speaking: <strong>{lesson?.simple_title || sec?.title}</strong></span>
+                      : lesson?.simple_title
+                        ? <span>Now teaching: <strong>{lesson.simple_title}</strong></span>
+                        : <span>Section {sec?.section_number}: {sec?.title}</span>
             }
           </div>
           {/* Voice controls */}
           <div className="tutor-voice-controls">
+            {/* Interrupt mic — always visible; pauses lesson + listens to student */}
+            {!voiceMuted && (
+              <button
+                className={`tutor-interrupt-mic${interruptListening ? ' tutor-interrupt-mic--active' : ''}`}
+                onClick={handleInterruptMic}
+                title={interruptListening ? 'Stop — listening…' : 'Ask JD a question (interrupts lesson)'}
+              >
+                {interruptListening
+                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="#ef4444"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                }
+                {interruptListening ? 'Stop' : 'Ask'}
+              </button>
+            )}
             {!voiceMuted && lesson && (
               <button className="tutor-voice-btn" onClick={replayLesson} title="Replay lesson audio">
                 🔁
@@ -682,6 +1227,16 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
           </div>
         </div>
 
+        {/* Interrupt listening banner */}
+        {interruptListening && (
+          <div className="tutor-interrupt-banner">
+            <span className="tutor-interrupt-pulse" aria-hidden="true" />
+            <span>🎤 Listening… say your question</span>
+            {interruptText && <em className="tutor-interrupt-preview">"{interruptText}"</em>}
+            <button className="tutor-interrupt-cancel" onClick={stopInterruptMic}>✕ Cancel</button>
+          </div>
+        )}
+
         {/* Section header */}
         <div className="tutor-section-header">
           <div className="tutor-section-badge">{lawCode} {sec?.section_number}</div>
@@ -689,15 +1244,18 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
         </div>
 
         {(!readyToTeach || lessonLoading) ? (
-          <div className="tutor-lesson-skeleton">
-            <div className="tutor-skel" />
-            <div className="tutor-skel tutor-skel--sm" />
-            <div className="tutor-skel" />
-            <div className="tutor-skel tutor-skel--sm" />
-          </div>
+          <LessonPreparing sec={sec} />
         ) : lesson ? (
           <AnimatePresence mode="wait">
             <motion.div key={secIdx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              {/* One-line plain summary at top */}
+              {lesson.citizen_summary && (
+                <div className="tutor-citizen-summary">
+                  <span className="tutor-citizen-summary-icon">💬</span>
+                  <strong>{lesson.citizen_summary}</strong>
+                </div>
+              )}
+
               {/* Original text box */}
               {sec?.text && (
                 <div className="tutor-law-text-box">
@@ -722,8 +1280,57 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
                 <div className="tutor-lesson-card tutor-lesson-card--explain">
                   <div className="tutor-lesson-card-icon">📖</div>
                   <div>
-                    <div className="tutor-lesson-card-label">Simple Explanation</div>
+                    <div className="tutor-lesson-card-label">Plain Language Explanation</div>
                     <p>{lesson.plain_explanation}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Everyday analogy */}
+              {lesson.analogy && (
+                <div className="tutor-lesson-card tutor-lesson-card--analogy">
+                  <div className="tutor-lesson-card-icon">🌟</div>
+                  <div>
+                    <div className="tutor-lesson-card-label">Think of it this way…</div>
+                    <p>{lesson.analogy}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Practical action steps — the "so what do I DO?" answer */}
+              {lesson.action_steps?.length > 0 && (
+                <div className="tutor-lesson-card tutor-lesson-card--action">
+                  <div className="tutor-lesson-card-icon">🛡️</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="tutor-lesson-card-label">If This Happens To You</div>
+                    <ol className="tutor-action-steps">
+                      {lesson.action_steps.map((s, i) => <li key={i}>{s}</li>)}
+                    </ol>
+                    <Link to="/awareness" className="tutor-card-link">
+                      Know Your Rights →
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* Legal term callout — formal definition right after the plain language */}
+              {lesson.legal_definition && (
+                <div className="tutor-lesson-card tutor-lesson-card--legal">
+                  <div className="tutor-lesson-card-icon">⚖️</div>
+                  <div>
+                    <div className="tutor-lesson-card-label">Legal Term</div>
+                    <p>{lesson.legal_definition}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* One short court-application example */}
+              {lesson.court_application && (
+                <div className="tutor-lesson-card tutor-lesson-card--test">
+                  <div className="tutor-lesson-card-icon">🔍</div>
+                  <div>
+                    <div className="tutor-lesson-card-label">How Courts Apply It</div>
+                    <p>{lesson.court_application}</p>
                   </div>
                 </div>
               )}
@@ -845,71 +1452,139 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
         )}
       </div>
 
-      {/* ── Floating "Ask JD" doubt panel ──────────────────────────────── */}
+      {/* ── Q&A Panel — lesson-scoped questions only ── */}
       <div className="tutor-doubt-floater">
         <AnimatePresence>
           {doubtOpen && (
             <motion.div
               className="tutor-doubt-panel"
-              initial={{ opacity: 0, y: 16, scale: 0.97 }}
+              initial={{ opacity: 0, y: 20, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.97 }}
+              exit={{ opacity: 0, y: 14, scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 340, damping: 28 }}
             >
+              {/* Header */}
               <div className="tutor-doubt-header">
-                <JDAvatar state={doubtLoading ? 'thinking' : doubtAnswer ? 'speaking' : 'idle'} />
-                <span className="tutor-doubt-title">Ask JD a question</span>
-                <button className="tutor-doubt-close" onClick={() => { setDoubtOpen(false); stopDoubtVoice(); setDoubtText(''); setDoubtAnswer(''); }}>✕</button>
+                <JDAvatar state={doubtLoading ? 'thinking' : doubtHistory.length ? 'speaking' : 'idle'} />
+                <span className="tutor-doubt-title">Ask JD a Question</span>
+                <span className="tutor-doubt-scope-tag">Any Legal Doubt</span>
+                <button
+                  className="tutor-doubt-close"
+                  onClick={() => { setDoubtOpen(false); stopDoubtVoice(); setDoubtText(''); }}
+                  aria-label="Close"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
               </div>
 
-              {doubtAnswer && (
-                <div className="tutor-doubt-answer">
-                  <p>{doubtAnswer}</p>
+              {/* Friendly notice */}
+              {doubtHistory.length === 0 && !doubtLoading && (
+                <div className="tutor-doubt-notice">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round">
+                    <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  <span>Ask JD anything — about this section or any Indian law question. JD answers in your language.</span>
                 </div>
               )}
 
-              {doubtLoading && (
-                <div className="tutor-doubt-thinking">
-                  <div className="tutor-spinner tutor-spinner--sm" />
-                  <span>JD is thinking…</span>
+              {/* Chat thread */}
+              {(doubtHistory.length > 0 || doubtLoading) && (
+                <div className="tutor-doubt-thread" ref={doubtThreadRef}>
+                  {doubtHistory.map((item, i) => (
+                    <React.Fragment key={i}>
+                      <div className="tutor-doubt-msg--user">{item.q}</div>
+                      <div className="tutor-doubt-msg--ai">
+                        <div className="tutor-doubt-msg-avatar">⚖</div>
+                        <div className="tutor-doubt-msg-bubble">{item.a}</div>
+                      </div>
+                    </React.Fragment>
+                  ))}
+                  {doubtLoading && (
+                    <div className="tutor-doubt-thinking">
+                      <div className="tutor-spinner tutor-spinner--sm" />
+                      <span>JD is thinking…</span>
+                    </div>
+                  )}
                 </div>
               )}
 
+              {/* Suggestion chips */}
+              <div className="tutor-doubt-chips">
+                {[
+                  'What does this mean?',
+                  'Give a real-life example',
+                  'What is the punishment?',
+                  'When does this apply?',
+                ].map(chip => (
+                  <button
+                    key={chip}
+                    className="tutor-doubt-chip"
+                    onClick={() => { setDoubtText(chip); setTimeout(() => doubtInputRef.current?.focus(), 30); }}
+                    disabled={doubtLoading}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+
+              {/* Input */}
               <div className="tutor-doubt-input-row">
                 <input
                   ref={doubtInputRef}
                   className="tutor-doubt-input"
-                  placeholder="Type your doubt or click mic…"
+                  placeholder="Ask JD anything about law…"
                   value={doubtText}
                   onChange={e => setDoubtText(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSubmitDoubt(doubtText)}
+                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmitDoubt(doubtText)}
                   disabled={doubtLoading}
                 />
                 <button
                   className={`tutor-doubt-mic${doubtListening ? ' tutor-doubt-mic--on' : ''}`}
                   onClick={doubtListening ? stopDoubtVoice : startDoubtVoice}
-                  title={doubtListening ? 'Stop' : 'Speak your doubt'}
+                  title={doubtListening ? 'Stop' : 'Voice input'}
                   disabled={doubtLoading}
                 >
-                  {doubtListening ? '⏹' : '🎤'}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>
+                  </svg>
                 </button>
                 <button
                   className="tutor-doubt-send"
                   onClick={() => handleSubmitDoubt(doubtText)}
                   disabled={doubtLoading || !doubtText.trim()}
+                  aria-label="Send"
                 >
-                  Ask
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9l20-7z"/>
+                  </svg>
                 </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+
         <button
           className={`tutor-doubt-fab${doubtOpen ? ' tutor-doubt-fab--open' : ''}`}
-          onClick={() => { setDoubtOpen(o => !o); setTimeout(() => doubtInputRef.current?.focus(), 50); }}
-          title="Ask JD a doubt"
+          onClick={() => { setDoubtOpen(o => !o); setTimeout(() => doubtInputRef.current?.focus(), 60); }}
         >
-          {doubtOpen ? '✕ Close' : '💬 Ask JD'}
+          {doubtOpen ? (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+              Close
+            </>
+          ) : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              Ask a Question
+            </>
+          )}
         </button>
       </div>
 
@@ -946,13 +1621,22 @@ function Assessment({ lawCode, chapter, mode, language, sections, onComplete, on
   const [current,   setCurrent]   = useState(0);
   const [answers,   setAnswers]   = useState({});
   const [revealed,  setRevealed]  = useState({});
-  const [done,      setDone]      = useState(false);
+  const [done,       setDone]       = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [fetchError, setFetchError] = useState('');
 
   useEffect(() => {
+    // Guard: need at least one section to generate meaningful questions
+    if (!sections || sections.length === 0) {
+      setLoading(false);
+      setFetchError('No lesson sections available for this chapter. Please go back and reload the chapter.');
+      return;
+    }
     setLoading(true);
+    setFetchError('');
     fetch(`${API}/tutor/assess`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         law_code:     lawCode,
         chapter_num:  chapter.chapter_num,
@@ -963,9 +1647,19 @@ function Assessment({ lawCode, chapter, mode, language, sections, onComplete, on
       }),
     })
       .then(r => r.json())
-      .then(d => { setQuestions(d.questions || []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+      .then(d => {
+        if (d.questions && d.questions.length > 0) {
+          setQuestions(d.questions);
+        } else {
+          setFetchError(d.error || 'No questions returned from server.');
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        setFetchError('Network error — could not reach the server.');
+        setLoading(false);
+      });
+  }, [retryCount]); // retryCount in deps → re-runs on every retry click
 
   const q = questions[current];
 
@@ -1003,11 +1697,32 @@ function Assessment({ lawCode, chapter, mode, language, sections, onComplete, on
     return null;
   }
 
-  if (loading) return <div className="tutor-loading"><div className="tutor-spinner" /><p>Generating assessment…</p></div>;
-  if (!questions.length) return (
+  if (loading) return (
     <div className="tutor-loading">
-      <p>Could not generate assessment. Please try again.</p>
-      <button className="tutor-nav-btn tutor-nav-btn--secondary" onClick={onBack}>← Back</button>
+      <div className="tutor-spinner" />
+      <p>Generating assessment{retryCount > 0 ? ` (attempt ${retryCount + 1})` : ''}…</p>
+    </div>
+  );
+
+  if (!questions.length) return (
+    <div className="tutor-loading" style={{ gap: 16 }}>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <p style={{ color: '#94a3b8', textAlign: 'center', maxWidth: 360, lineHeight: 1.6 }}>
+        {fetchError || 'Could not generate the assessment.'}
+      </p>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button
+          className="tutor-nav-btn tutor-nav-btn--primary"
+          onClick={() => setRetryCount(c => c + 1)}
+        >
+          ↺ Try Again
+        </button>
+        <button className="tutor-nav-btn tutor-nav-btn--secondary" onClick={onBack}>
+          ← Back
+        </button>
+      </div>
     </div>
   );
 
@@ -1030,7 +1745,7 @@ function Assessment({ lawCode, chapter, mode, language, sections, onComplete, on
       </div>
 
       <div className="tutor-assess-chapter-label">
-        📝 Chapter {chapter.chapter_num} Test: {chapter.short_name}
+        📝 Chapter Test: {chapter.short_name}
       </div>
 
       <AnimatePresence mode="wait">
@@ -1091,7 +1806,7 @@ function Results({ lawCode, chapter, score, total, correctTopics, wrongTopics, x
   useEffect(() => {
     fetch(`${API}/tutor/analyze`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         law_code: lawCode,
         chapter_name: chapter.short_name,
@@ -1250,12 +1965,267 @@ function Achievements({ progress, onBack }) {
   );
 }
 
+// ── View: Session Complete ────────────────────────────────────────────────────
+// Shown after passing an assessment.
+// • JD speaks "Next topic padhna chahoge?" in Hinglish
+// • Haan / Nahi buttons + voice recognition
+// • Free-form query box so student can ask anything about the chapter
+function SessionComplete({ lawCode, chapter, score, total, xpEarned, badgeEarned, language, mode = 'student', onNextTopic, onGoodbye }) {
+  const { speak, stopAll, fetching: ttsLoading, blocked: ttsBlocked } = useSarvamTTS(language);
+
+  const [jdState,      setJdState]      = useState('idle');
+  const [listeningYN,  setListeningYN]  = useState(false);
+  const [greeted,      setGreeted]      = useState(false);
+  const [query,        setQuery]        = useState('');
+  const [queryLoading, setQueryLoading] = useState(false);
+  const [history,      setHistory]      = useState([]);
+  const recogRef  = useRef(null);
+  const threadRef = useRef(null);
+  const queryRef  = useRef(null);
+  const submitRef = useRef(null);   // always-fresh ref to handleSubmitQuery
+
+  const pct    = Math.round((score / total) * 100);
+  const passed = pct >= 70;
+
+  // ── Stop yes/no listener ──────────────────────────────────────────────────
+  const stopYNListen = useCallback(() => {
+    setListeningYN(false);
+    try { recogRef.current?.abort(); } catch (_) {}
+  }, []);
+
+  // ── Start yes/no listener ─────────────────────────────────────────────────
+  const startYNListen = useCallback(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    const r = new SR();
+    r.lang = 'hi-IN';                // catch both Hindi "haan/nahi" + English "yes/no"
+    r.continuous = false;
+    r.interimResults = false;
+    r.onstart  = () => setListeningYN(true);
+    r.onend    = () => setListeningYN(false);
+    r.onresult = (e) => {
+      const text = (e.results[0]?.[0]?.transcript || '').toLowerCase().trim();
+      if (/\b(haan|ha|yes|yeah|next|ok|aage|chaliye|sure)\b/.test(text)) {
+        stopYNListen(); onNextTopic();
+      } else if (/\b(nahi|na|no|nope|bas|stop|exit|bye)\b/.test(text)) {
+        stopYNListen(); handleGoodbye();
+      }
+    };
+    r.onerror = () => setListeningYN(false);
+    recogRef.current = r;
+    try { r.start(); } catch (_) {}
+  }, [onNextTopic, stopYNListen]); // eslint-disable-line
+
+  // ── Goodbye flow ──────────────────────────────────────────────────────────
+  const handleGoodbye = useCallback(() => {
+    stopYNListen(); stopAll();
+    setJdState('speaking');
+    speak(
+      jdPhrase(JD_PHRASES.goodbye, language),
+      null,                           // useSarvamTTS picks correct lang code
+      () => { setJdState('idle'); onGoodbye(); }
+    );
+  }, [speak, stopAll, stopYNListen, onGoodbye, language]);
+
+  // ── Ask JD about this chapter ─────────────────────────────────────────────
+  const handleSubmitQuery = useCallback(async (override) => {
+    const q = (override || query).trim();
+    if (!q) return;
+    stopYNListen(); stopAll();
+    setQuery('');
+    setQueryLoading(true);
+    setJdState('thinking');
+    try {
+      const r = await fetch(`${API}/tutor/doubt`, {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          law_code: lawCode, section_number: '',
+          section_title: chapter.short_name, section_text: '',
+          question: q, mode, language,
+        }),
+      });
+      const d = await r.json();
+      const ans = d.answer || 'Sorry, could not answer. Please try again.';
+      setHistory(prev => [...prev, { q, a: ans }]);
+      setQueryLoading(false);
+      setTimeout(() => { if (threadRef.current) threadRef.current.scrollTop = threadRef.current.scrollHeight; }, 80);
+      setJdState('speaking');
+      speak(ans, null, () => {       // null → useSarvamTTS routes to student's language
+        setJdState('idle');
+        setTimeout(() => {
+          setJdState('speaking');
+          speak(jdPhrase(JD_PHRASES.nextTopicAsk, language), null, () => { setJdState('idle'); startYNListen(); });
+        }, 400);
+      });
+    } catch {
+      setQueryLoading(false);
+      setJdState('idle');
+    }
+  }, [query, lawCode, chapter, language, mode, speak, stopAll, stopYNListen, startYNListen]); // eslint-disable-line
+  submitRef.current = handleSubmitQuery;
+
+  // ── JD speaks completion message on mount ─────────────────────────────────
+  useEffect(() => {
+    if (greeted) return;
+    setGreeted(true);
+    const timer = setTimeout(() => {
+      const msg = passed
+        ? jdPhrase(JD_PHRASES.sessionPassed,   language, chapter.short_name, pct)
+        : jdPhrase(JD_PHRASES.sessionTryAgain, language, chapter.short_name, pct);
+      setJdState('speaking');
+      speak(msg, null, () => {       // null → useSarvamTTS picks correct lang code
+        setJdState('idle');
+        startYNListen();
+      });
+    }, 700);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line
+
+  // Cleanup on unmount
+  useEffect(() => () => { stopAll(); stopYNListen(); }, [stopAll, stopYNListen]);
+
+  return (
+    <div className="tutor-sc-root">
+
+      {/* ── Trophy header ── */}
+      <motion.div className="tutor-sc-hero" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="tutor-sc-trophy-wrap">
+          <span className="tutor-sc-trophy">{passed ? '🏆' : '📚'}</span>
+        </div>
+        <h2 className="tutor-sc-title">{passed ? 'Session Complete!' : 'Good Effort!'}</h2>
+        <p className="tutor-sc-chapter">{chapter.short_name}</p>
+
+        <div className="tutor-sc-score-ring">
+          <ProgressRing pct={pct} size={100} stroke={7} />
+        </div>
+        <p className="tutor-sc-score-txt">{score} / {total} correct · {pct}%</p>
+
+        {xpEarned > 0 && (
+          <motion.div className="tutor-reward-xp" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3, type: 'spring', bounce: 0.5 }}>
+            +{xpEarned} XP earned
+          </motion.div>
+        )}
+        {badgeEarned && (
+          <motion.div className="tutor-reward-badge" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: 'spring', bounce: 0.5 }}>
+            <span className="tutor-reward-badge-icon">{badgeEarned.icon}</span>
+            <div>
+              <div className="tutor-reward-badge-name">{badgeEarned.name}</div>
+              <div className="tutor-reward-badge-sub">New Badge Earned!</div>
+            </div>
+          </motion.div>
+        )}
+      </motion.div>
+
+      {/* ── JD prompt ── */}
+      <div className="tutor-sc-jd-row">
+        <JDAvatar state={ttsLoading ? 'thinking' : ttsBlocked ? 'idle' : jdState} />
+        <div className="tutor-sc-jd-bubble">
+          {ttsLoading                          && '🎵 JD is warming up his voice…'}
+          {!ttsLoading && ttsBlocked           && <span className="tutor-jd-tap-hint">🔊 JD is ready — <strong>tap anywhere to hear</strong></span>}
+          {!ttsLoading && !ttsBlocked && jdState === 'speaking'  && '🔊 JD is speaking…'}
+          {!ttsLoading && !ttsBlocked && jdState === 'thinking'  && '⏳ JD is answering…'}
+          {!ttsLoading && !ttsBlocked && jdState === 'idle' && listeningYN  && '🎤 Bol do: "Haan" ya "Nahi"'}
+          {!ttsLoading && !ttsBlocked && jdState === 'idle' && !listeningYN && 'Next topic padhna chahoge?'}
+        </div>
+        {listeningYN && <span className="tutor-sc-listen-dot" />}
+      </div>
+
+      {/* ── Haan / Nahi ── */}
+      <div className="tutor-sc-yn-row">
+        <motion.button
+          className="tutor-sc-btn tutor-sc-btn--yes"
+          whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+          onClick={() => { stopYNListen(); onNextTopic(); }}
+        >
+          ✅ Haan, Next Topic
+        </motion.button>
+        <motion.button
+          className="tutor-sc-btn tutor-sc-btn--no"
+          whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+          onClick={handleGoodbye}
+        >
+          ❌ Nahi, Bas
+        </motion.button>
+      </div>
+
+      {/* ── Query box ── */}
+      <div className="tutor-sc-query-section">
+        <div className="tutor-sc-query-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          Kuch aur jaanna chahte ho?
+        </div>
+        <p className="tutor-sc-query-sub">Ask JD anything about {chapter.short_name}</p>
+
+        {/* Suggestion chips */}
+        <div className="tutor-doubt-chips">
+          {['What are the key points?', 'Give me an example', 'What is the punishment?', 'Summarise this chapter'].map(chip => (
+            <button
+              key={chip}
+              className="tutor-doubt-chip"
+              onClick={() => submitRef.current?.(chip)}
+              disabled={queryLoading}
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+
+        {/* Thread */}
+        {(history.length > 0 || queryLoading) && (
+          <div className="tutor-sc-thread" ref={threadRef}>
+            {history.map((item, i) => (
+              <React.Fragment key={i}>
+                <div className="tutor-doubt-msg--user">{item.q}</div>
+                <div className="tutor-doubt-msg--ai">
+                  <div className="tutor-doubt-msg-avatar">⚖</div>
+                  <div className="tutor-doubt-msg-bubble">{item.a}</div>
+                </div>
+              </React.Fragment>
+            ))}
+            {queryLoading && (
+              <div className="tutor-doubt-thinking">
+                <div className="tutor-spinner tutor-spinner--sm" /><span>JD is thinking…</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Input */}
+        <div className="tutor-sc-query-input-row">
+          <input
+            ref={queryRef}
+            className="tutor-sc-query-input"
+            placeholder="Ask anything about this chapter…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && submitRef.current?.(query)}
+            disabled={queryLoading}
+          />
+          <button
+            className="tutor-sc-query-send"
+            onClick={() => submitRef.current?.(query)}
+            disabled={queryLoading || !query.trim()}
+            aria-label="Send"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9l20-7z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main LawTutor Component ───────────────────────────────────────────────────
 export default function LawTutor() {
-  const [view,       setView]       = useState('path_select'); // path_select | chapters | lesson | assessment | results | achievements
+  const [view,       setView]       = useState('path_select'); // path_select | chapters | lesson | assessment | results | session_complete | achievements
   const [lawCode,    setLawCode]    = useState('BNS');
-  const [mode,       setMode]       = useState('student');
-  const [language]                  = useState('English'); // can expand later
+  const [mode,       setMode]       = useState('general');   // single unified learning mode
+  const [language,   setLanguage]   = useState('English');
   const [chapter,    setChapter]    = useState(null);
   const [sections,   setSections]   = useState([]);
   const [assessData, setAssessData] = useState(null);
@@ -1276,17 +2246,36 @@ export default function LawTutor() {
     saveProgress(next);
   }, [progress, lawCode]);
 
-  const handlePathSelect = (code, selectedMode) => {
+  // Intercept browser back button for every internal sub-view so the user
+  // never accidentally leaves the tutor page. Map each view to its logical
+  // parent so the back button feels native.
+  const VIEW_PARENT = {
+    achievements:     'path_select',
+    chapters:         'path_select',
+    lesson:           'chapters',
+    assessment:       'lesson',
+    results:          'chapters',
+    session_complete: 'chapters',
+  };
+  useEffect(() => {
+    if (view === 'path_select') return; // nothing to intercept at top level
+    window.history.pushState({ tutorView: view }, '');
+    const handlePop = () => setView(VIEW_PARENT[view] || 'path_select');
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handlePathSelect = (code, selectedMode, selectedLanguage) => {
     if (code === '__achievements__') { setView('achievements'); return; }
     setLawCode(code);
     setMode(selectedMode);
+    setLanguage(selectedLanguage || 'English');
     setView('chapters');
   };
 
   const handleStartChapter = (ch) => {
     setChapter(ch);
     setView('lesson');
-    // Save last chapter
     const lp = getLaw();
     setLaw({ ...lp, last_chapter: ch.chapter_num });
   };
@@ -1305,7 +2294,7 @@ export default function LawTutor() {
   };
 
   const handleResultsContinue = () => {
-    setView('chapters');
+    setView('session_complete');
   };
 
   const handleRetry = () => {
@@ -1427,6 +2416,23 @@ export default function LawTutor() {
                 onContinue={handleResultsContinue}
                 onRetry={handleRetry}
                 onBack={() => setView('chapters')}
+              />
+            </motion.div>
+          )}
+
+          {view === 'session_complete' && assessData && chapter && (
+            <motion.div key="session_complete" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <SessionComplete
+                lawCode      = {lawCode}
+                chapter      = {chapter}
+                score        = {assessData.score}
+                total        = {assessData.total}
+                xpEarned     = {resultsRewards.xpEarned}
+                badgeEarned  = {resultsRewards.badgeEarned}
+                language     = {language}
+                mode         = {mode}
+                onNextTopic  = {() => setView('chapters')}
+                onGoodbye    = {() => setView('path_select')}
               />
             </motion.div>
           )}

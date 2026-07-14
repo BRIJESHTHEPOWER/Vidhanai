@@ -591,14 +591,204 @@ function PlatformTab({ token, toast }) {
 
 // ── MAIN ADMIN PANEL ──────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'dashboard', label: '📊 Dashboard' },
-  { id: 'users',     label: '👥 Users' },
-  { id: 'bns',       label: '📗 BNS Laws' },
-  { id: 'ipc',       label: '📘 IPC Laws' },
-  { id: 'reviews',   label: '⭐ Reviews' },
-  { id: 'queries',   label: '💬 Queries' },
-  { id: 'platform',  label: '⚙️ Platform' },
+  { id: 'dashboard',     label: '📊 Dashboard'     },
+  { id: 'users',         label: '👥 Users'         },
+  { id: 'bns',           label: '📗 BNS Laws'      },
+  { id: 'ipc',           label: '📘 IPC Laws'      },
+  { id: 'reviews',       label: '⭐ Reviews'       },
+  { id: 'queries',       label: '💬 Queries'       },
+  { id: 'announcements', label: '📢 Announcements' },
+  { id: 'platform',      label: '⚙️ Platform'      },
 ];
+
+// ── ANNOUNCEMENTS TAB ─────────────────────────────────────────────────────────
+const ANN_API    = 'http://localhost:8000';
+const ADMIN_KEY  = 'VIDHAN_ADMIN_2024';
+const FEAT_TAGS  = ['New Feature', 'Improvement', 'Bug Fix', 'Coming Soon'];
+const ANN_PLANS  = [
+  { label: 'All users', value: 'all'  },
+  { label: 'Free only', value: 'free' },
+  { label: 'Pro only',  value: 'pro'  },
+  { label: 'Max only',  value: 'max'  },
+];
+const TAG_COLORS = {
+  'New Feature': { bg: '#EEEDFE', color: '#3C3489' },
+  'Improvement': { bg: '#E1F5EE', color: '#0F6E56' },
+  'Bug Fix':     { bg: '#FCEBEB', color: '#A32D2D' },
+  'Coming Soon': { bg: '#FAEEDA', color: '#854F0B' },
+};
+function annPlanLabel(v) {
+  return { all: 'All users', free: 'Free plan', pro: 'Pro plan', max: 'Max plan' }[v] || v;
+}
+
+function AnnouncementsTab({ toast }) {
+  const [tag,      setTag]      = useState('New Feature');
+  const [plan,     setPlan]     = useState('all');
+  const [title,    setTitle]    = useState('');
+  const [message,  setMessage]  = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [list,     setList]     = useState([]);
+  const [deleting, setDeleting] = useState(null);
+
+  const fetchList = useCallback(async () => {
+    try {
+      const d = await fetch(`${ANN_API}/api/announcements`).then(r => r.json());
+      if (Array.isArray(d)) setList(d);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchList(); }, [fetchList]);
+
+  const handlePublish = async () => {
+    if (!title.trim() || !message.trim()) {
+      toast('Title and message are required.', 'error'); return;
+    }
+    setLoading(true);
+    try {
+      const res  = await fetch(
+        `${ANN_API}/api/admin/announcements?admin_key=${ADMIN_KEY}`,
+        {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ title: title.trim(), message: message.trim(), plan, feature_tag: tag }),
+        }
+      );
+      const data = await res.json();
+      if (data.success) {
+        toast('📢 Announcement published! Users will see it in their bell.', 'success');
+        setTitle(''); setMessage(''); setTag('New Feature'); setPlan('all');
+        fetchList();
+      } else {
+        toast(data.detail || 'Publish failed.', 'error');
+      }
+    } catch { toast('Network error.', 'error'); }
+    setLoading(false);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this announcement?')) return;
+    setDeleting(id);
+    try {
+      await fetch(`${ANN_API}/api/admin/announcements/${id}?admin_key=${ADMIN_KEY}`, { method: 'DELETE' });
+      setList(prev => prev.filter(a => a._id !== id));
+      toast('Deleted.', 'success');
+    } catch { toast('Delete failed.', 'error'); }
+    setDeleting(null);
+  };
+
+  const todayStr = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const tagC = TAG_COLORS[tag] || TAG_COLORS['New Feature'];
+
+  return (
+    <div className="ap-tab-content">
+      <div className="ap-tab-header">
+        <div>
+          <h2 className="ap-tab-title">📢 Announcements</h2>
+          <p className="ap-tab-sub">Publish here → saved to MongoDB → users see in bell instantly</p>
+        </div>
+      </div>
+
+      {/* ── Publish Form ── */}
+      <div className="ap-ann-card">
+
+        {/* Feature tag */}
+        <div className="ap-ann-field">
+          <label className="ap-ann-label">Feature Tag</label>
+          <div className="ap-ann-btn-row">
+            {FEAT_TAGS.map(t => (
+              <button key={t}
+                className={`ap-ann-toggle${tag === t ? ' ap-ann-toggle--on' : ''}`}
+                onClick={() => setTag(t)}>{t}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Plan */}
+        <div className="ap-ann-field">
+          <label className="ap-ann-label">Target Plan</label>
+          <div className="ap-ann-btn-row">
+            {ANN_PLANS.map(p => (
+              <button key={p.value}
+                className={`ap-ann-toggle${plan === p.value ? ' ap-ann-toggle--on' : ''}`}
+                onClick={() => setPlan(p.value)}>{p.label}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Title */}
+        <div className="ap-ann-field">
+          <label className="ap-ann-label">Title</label>
+          <input className="ap-ann-input"
+            placeholder="e.g. New Quiz Categories are now live"
+            value={title} onChange={e => setTitle(e.target.value)} maxLength={120} />
+        </div>
+
+        {/* Message */}
+        <div className="ap-ann-field">
+          <label className="ap-ann-label">Message</label>
+          <textarea className="ap-ann-textarea" rows={3}
+            placeholder="What's new? Keep it short and clear."
+            value={message} onChange={e => setMessage(e.target.value)} maxLength={400} />
+        </div>
+
+        {/* Live preview */}
+        {title.trim() && (
+          <div className="ap-ann-preview">
+            <p className="ap-ann-preview-lbl">Preview — how users see it in the bell</p>
+            <div className="ap-ann-preview-card">
+              <div className="ap-ann-preview-row">
+                <span className="ap-ann-tag-pill" style={{ background: tagC.bg, color: tagC.color }}>{tag}</span>
+                <span className="ap-ann-new-badge">NEW</span>
+              </div>
+              <p className="ap-ann-preview-title">{title}</p>
+              {message.trim() && <p className="ap-ann-preview-msg">{message}</p>}
+              <p className="ap-ann-preview-meta">{todayStr} · {annPlanLabel(plan)}</p>
+            </div>
+          </div>
+        )}
+
+        <button className="ap-ann-publish-btn" onClick={handlePublish} disabled={loading}>
+          {loading ? 'Publishing…' : '🚀 Publish to all users'}
+        </button>
+      </div>
+
+      {/* ── Published list ── */}
+      <div className="ap-ann-list-wrap">
+        <h3 className="ap-ann-list-title">Published Announcements ({list.length})</h3>
+        {list.length === 0 ? (
+          <p className="ap-empty">No announcements yet.</p>
+        ) : (
+          <div className="ap-ann-list">
+            {list.map(ann => {
+              const c = TAG_COLORS[ann.feature_tag] || TAG_COLORS['New Feature'];
+              return (
+                <div key={ann._id} className="ap-ann-item">
+                  <div className="ap-ann-item-top">
+                    <div className="ap-ann-item-badges">
+                      <span className="ap-ann-tag-pill" style={{ background: c.bg, color: c.color }}>{ann.feature_tag}</span>
+                      <span className="ap-ann-plan-badge">{annPlanLabel(ann.plan)}</span>
+                      {ann.is_new && <span className="ap-ann-live-badge">LIVE</span>}
+                    </div>
+                    <div className="ap-ann-item-right">
+                      <span className="ap-ann-date">{ann.date}</span>
+                      <button className="ap-ann-del-btn"
+                        onClick={() => handleDelete(ann._id)}
+                        disabled={deleting === ann._id}>
+                        {deleting === ann._id ? '…' : '🗑 Delete'}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="ap-ann-item-title">{ann.title}</p>
+                  <p className="ap-ann-item-msg">{ann.message}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function AdminPanel() {
   const [token,  setToken]  = useState(() => localStorage.getItem('vidhan_admin_token') || '');
@@ -651,13 +841,14 @@ export default function AdminPanel() {
           <h1 className="ap-main-title">{TABS.find(t => t.id === tab)?.label}</h1>
         </div>
 
-        {tab === 'dashboard' && <DashboardTab  token={token} />}
-        {tab === 'users'     && <UsersTab      token={token} toast={showToast} />}
-        {tab === 'bns'       && <LawsTab       token={token} source="bns" toast={showToast} />}
-        {tab === 'ipc'       && <LawsTab       token={token} source="ipc" toast={showToast} />}
-        {tab === 'reviews'   && <ReviewsTab    token={token} toast={showToast} />}
-        {tab === 'queries'   && <QueriesTab    token={token} />}
-        {tab === 'platform'  && <PlatformTab   token={token} toast={showToast} />}
+        {tab === 'dashboard'     && <DashboardTab     token={token} />}
+        {tab === 'users'         && <UsersTab         token={token} toast={showToast} />}
+        {tab === 'bns'           && <LawsTab          token={token} source="bns" toast={showToast} />}
+        {tab === 'ipc'           && <LawsTab          token={token} source="ipc" toast={showToast} />}
+        {tab === 'reviews'       && <ReviewsTab       token={token} toast={showToast} />}
+        {tab === 'queries'       && <QueriesTab       token={token} />}
+        {tab === 'announcements' && <AnnouncementsTab toast={showToast} />}
+        {tab === 'platform'      && <PlatformTab      token={token} toast={showToast} />}
       </main>
     </div>
   );

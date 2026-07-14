@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()   # must run before app.main imports os.getenv()
+
 from app.main import app
 
 if __name__ == "__main__":

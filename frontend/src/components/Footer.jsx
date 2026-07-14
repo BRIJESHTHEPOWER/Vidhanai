@@ -1,5 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import VidhanLogo from './VidhanLogo';
 import './Footer.css';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const COLS = [
   {
@@ -16,7 +20,13 @@ const COLS = [
   },
   {
     title: 'Contact',
-    links: ['Help Center', 'Community', 'Report Bug', 'Partnerships', 'Press Kit'],
+    links: [
+      { label: 'Contact Us', to: '/contact' },
+      { label: 'Report a Bug', to: '/contact' },
+      { label: 'Raise a Complaint', to: '/contact' },
+      'Community',
+      'Press Kit',
+    ],
   },
 ];
 
@@ -51,6 +61,30 @@ const SOCIALS = [
 ];
 
 export default function Footer() {
+  const [email, setEmail]       = useState('');
+  const [subState, setSubState] = useState('idle');   // idle | loading | ok | error
+  const [subMsg, setSubMsg]     = useState('');
+
+  const handleSubscribe = async () => {
+    if (!email.trim()) { setSubState('error'); setSubMsg('Please enter your email.'); return; }
+    setSubState('loading');
+    try {
+      const res = await fetch(`${API_BASE}/api/newsletter/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Subscription failed.');
+      setSubState('ok');
+      setSubMsg(data.message || 'Subscribed!');
+      setEmail('');
+    } catch (err) {
+      setSubState('error');
+      setSubMsg(err.message);
+    }
+  };
+
   return (
     <footer className="footer" id="learn">
       {/* Gradient divider */}
@@ -62,17 +96,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="footer-brand">
             <div className="footer-logo">
-              <svg width="32" height="32" viewBox="0 0 28 28" fill="none">
-                <defs>
-                  <radialGradient id="ftLogo" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#22d3ee"/>
-                    <stop offset="100%" stopColor="#6366f1"/>
-                  </radialGradient>
-                </defs>
-                <circle cx="14" cy="14" r="13" fill="url(#ftLogo)" opacity="0.15"/>
-                <path d="M8 20L14 8L20 20M10.5 16h7" stroke="url(#ftLogo)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="14" cy="8" r="1.5" fill="#22d3ee"/>
-              </svg>
+              <VidhanLogo size={32} />
               <span className="footer-logo-text">Vidhan<span className="footer-logo-ai">AI</span></span>
             </div>
             <p className="footer-tagline">
@@ -85,10 +109,25 @@ export default function Footer() {
                 className="footer-newsletter-input"
                 placeholder="Enter your email"
                 id="footer-email"
+                value={email}
+                onChange={e => { setEmail(e.target.value); if (subState !== 'idle') { setSubState('idle'); setSubMsg(''); } }}
+                onKeyDown={e => e.key === 'Enter' && handleSubscribe()}
               />
-              <button className="footer-newsletter-btn" id="footer-subscribe">Subscribe</button>
+              <button
+                className="footer-newsletter-btn"
+                id="footer-subscribe"
+                onClick={handleSubscribe}
+                disabled={subState === 'loading'}
+              >
+                {subState === 'loading' ? 'Subscribing…' : 'Subscribe'}
+              </button>
             </div>
-            <p className="footer-newsletter-hint">Get weekly legal updates. No spam.</p>
+            <p
+              className="footer-newsletter-hint"
+              style={subState === 'ok' ? { color: '#4ade80' } : subState === 'error' ? { color: '#f87171' } : undefined}
+            >
+              {subMsg || 'Get weekly legal updates. No spam.'}
+            </p>
           </div>
 
           {/* Links */}
@@ -97,11 +136,18 @@ export default function Footer() {
               <div key={col.title} className="footer-col">
                 <h4 className="footer-col-title">{col.title}</h4>
                 <ul className="footer-col-links">
-                  {col.links.map(link => (
-                    <li key={link}>
-                      <a href="#" className="footer-link">{link}</a>
-                    </li>
-                  ))}
+                  {col.links.map(link => {
+                    const label = typeof link === 'string' ? link : link.label;
+                    return (
+                      <li key={label}>
+                        {typeof link === 'object' && link.to ? (
+                          <Link to={link.to} className="footer-link">{label}</Link>
+                        ) : (
+                          <a href="#" className="footer-link">{label}</a>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ))}
@@ -112,18 +158,8 @@ export default function Footer() {
         <div className="footer-bottom">
           <div className="footer-bottom-left">
             <p className="footer-copy">
-              © 2024 Vidhan.ai. Built with ❤ for legal awareness in India.
+              © 2026 Vidhan.ai. Built with ❤ for legal awareness in India.
             </p>
-            <div className="footer-badges">
-              <span className="footer-badge">
-                <span className="footer-badge-dot footer-badge-dot--green" />
-                All systems operational
-              </span>
-              <span className="footer-badge">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                256-bit SSL
-              </span>
-            </div>
           </div>
           <div className="footer-socials">
             {SOCIALS.map(s => (

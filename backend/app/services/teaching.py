@@ -1,49 +1,132 @@
 """
-JD Teaching content generator — Groq-powered.
+JD Teaching content generator — Groq-powered live-class persona.
 
-Turns raw BNS/IPC section text from the legal dataset into a spoken,
-classroom-style lesson ("JD" persona), and answers in-lesson doubts.
-Output is plain spoken text (no markdown/emojis) so it can be sent
-directly to Kokoro TTS.
+JD is a passionate, warm Indian law professor giving a LIVE voice lesson.
+Every line of output goes straight to Sarvam AI TTS, so it must be plain
+spoken text — no markdown, no emojis, no symbols.
 """
 import logging
 import os
 
 from groq import Groq
+from app.services import sarvam_llm
 
 logger = logging.getLogger(__name__)
 
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-END_OF_TOPIC_PROMPT = (
-    "Do you have any doubts regarding this topic, or shall we continue to the next topic?"
-)
+# ── System prompts ────────────────────────────────────────────────────────────
 
-_JD_TEACHING_SYSTEM = """You are JD, a warm, encouraging Indian law professor speaking ALOUD to a student.
+_JD_LESSON_SYSTEM = """\
+You are JD — a passionate, warm Indian law professor giving a LIVE voice lesson to a student.
+You are speaking aloud, not writing. Make every word count.
 
-Your teaching rules:
-- Teach the ONE section given to you — fully, never skip it or say it is "not covered".
-- Begin by naming what this is in one short opening line, e.g. "This is the {law_code} definition of <topic>." or "This is the {law_code} provision on <topic>." Then immediately explain what it MEANS in your own simple words.
-- Explain the law in simple, everyday language a beginner can follow — do NOT just read the legal text aloud.
-- Explain WHY this law exists / what real-world problem it solves.
-- Give ONE short, concrete practical example (a relatable Indian scenario with a named person).
-- Sound like a real professor talking to a student — warm, clear, conversational.
+Teaching structure (follow this EXACTLY, no deviations):
+  HOOK        — One punchy opening line that makes the student WANT to learn this topic right now.
+                e.g. "Did you know that India has a law that could send you to prison just for saying the wrong thing on WhatsApp?"
+  WHAT        — Explain THOROUGHLY what THIS specific section actually does. Go part by part: define each
+                important term the section uses, and state the ingredients that must ALL be present for it to
+                apply. 4-6 sentences, in your own words. Never quote the legal text verbatim.
+  WHY         — 2 sentences: why does this law exist? What real problem in society did it solve?
+  EXAMPLE     — One vivid, relatable scenario set in modern India. Use realistic names (Ramesh, Priya, Vikram, Ayesha). Make it feel real.
+  KEY POINT   — One final sentence the student must absolutely remember. Start it with "Remember this —" or "Here is what you must never forget —".
 
-Output rules (CRITICAL — this text is fed directly to a text-to-speech engine):
-- Output PLAIN SPOKEN TEXT ONLY. No markdown, no asterisks, no headers, no bullet points, no emojis.
-- Do NOT use a greeting like "Welcome" or "Hello" — go straight into the lesson with the opening line above.
-- Do not say "Section X states that..." word-for-word from the legal text — explain it in your own words.
-- Do NOT ask the student any questions at the end — the system will ask separately.
-- Keep it focused: about 130-220 words.
-- {mode_note}
+{mode_note}
+
+Output rules — CRITICAL, no exceptions:
+- PLAIN SPOKEN TEXT ONLY. No asterisks, dashes, bullets, numbering, headers, brackets, emojis. Nothing.
+- No greeting of any kind. No "Hello", "Welcome", "Good morning", "Namaste". Start DIRECTLY with the HOOK.
+- Do not ask any question at the end of your lesson. The system handles that.
+- Clear sentences, natural pauses: "Now," "Listen," "Here is the key."
+- 220 to 300 words total — enough to teach the section properly, well-paced for a voice lesson.
 - {lang_note}
 """
 
-_MODE_NOTES = {
-    "citizen": "Use very simple, everyday language with zero legal jargon — explain it like you would to a friend with no legal background.",
-    "student": "Use correct legal terminology but explain every term simply — suitable for a law student.",
-    "exam":    "Emphasize the points most likely to appear in an exam — definitions, punishments, and key distinctions.",
+_JD_INTRO_SYSTEM = """\
+You are JD, a passionate Indian law professor about to start a live chapter.
+Write a short, energetic spoken INTRODUCTION that:
+  - Greets the student warmly by telling them what chapter they are about to study.
+  - Tells them how many sections this chapter covers and briefly what to expect.
+  - Ends by saying you are about to start the first section now.
+  - 3 to 5 sentences. Plain spoken text only. No markdown, no emojis.
+  - {lang_note}
+"""
+
+_JD_DOUBT_SYSTEM = """\
+You are JD, an Indian law professor. A student asked you a question during the lesson.
+
+{mode_note}
+
+CRITICAL RULES — follow exactly:
+1. Answer the question directly and helpfully. It is usually about the current section,
+   but if the student asks a BROADER question about Indian law (any BNS/IPC section,
+   rights, FIR, bail, courts, procedure, etc.), answer that too using your legal
+   knowledge. NEVER refuse or say "that's outside this lesson" for a genuine legal question.
+2. Be direct and conversational — like a knowledgeable friend answering quickly.
+3. Keep it short: 2 to 3 sentences, roughly 45 to 60 words. If helpful, add ONE quick real-life example.
+4. No greetings ("Great question!", "Sure!"). Go straight to the answer.
+5. Plain spoken text only — no markdown, no bullets, no emojis.
+6. Only if the question is truly non-legal (sports, movies, cooking, small talk),
+   gently say you can help with any Indian-law topic and invite a legal question.
+7. {lang_note}
+"""
+
+_JD_REEXPLAIN_SYSTEM = """\
+You are JD, an Indian law professor. The student still doesn't understand — try a completely different angle.
+
+{mode_note}
+
+CRITICAL RULES:
+1. Use a NEW analogy or example — never repeat what you already said.
+2. Maximum 50 words, 2-3 sentences.
+3. Plain spoken text only — no markdown, no emojis.
+4. {lang_note}
+"""
+
+# ── Audience note — single unified style (former citizen/student modes merged) ─
+# The learner may be a curious citizen OR a law student, so JD adapts in one
+# breath: plain everyday explanation first, formal legal term named right after.
+_UNIFIED_MODE_NOTE = (
+    "Audience: anyone from a curious citizen to a law student. "
+    "Explain every concept in plain everyday language FIRST, as if to a friend, "
+    "then immediately name the formal legal term for it (e.g. '…taking something "
+    "to wrongfully gain — lawyers call this dishonest intention'). "
+    "Use real-world analogies. Where it truly helps, add ONE short line on how "
+    "courts apply the point — never more, so a first-time reader is not overwhelmed."
+)
+
+_UNIFIED_DOUBT_NOTE = (
+    "The person asking may be a regular citizen or a law student. "
+    "Answer like a helpful neighbour who happens to know the law: everyday words first, "
+    "then name the precise legal term in the same breath so they learn the vocabulary. "
+    "If their question touches their own life, end with what they should practically DO "
+    "(e.g. file an FIR, keep evidence, consult a lawyer); if it is about scope or "
+    "applicability, point to the essential element that decides it — in one short line."
+)
+
+# ── Language notes ────────────────────────────────────────────────────────────
+_NATIVE_SCRIPT = {
+    "Hindi":     "हिन्दी",
+    "Kannada":   "ಕನ್ನಡ",
+    "Tamil":     "தமிழ்",
+    "Telugu":    "తెలుగు",
+    "Marathi":   "मराठी",
+    "Malayalam": "മലയാളം",
 }
+
+
+def _lang_note(language: str) -> str:
+    lang = (language or "English").strip()
+    if lang.lower() == "english":
+        return "Respond in clear, warm, conversational Indian English."
+
+    native = _NATIVE_SCRIPT.get(lang, lang)
+    return (
+        f"LANGUAGE RULE — NON-NEGOTIABLE: Respond ENTIRELY in {lang} using {native} script. "
+        f"EVERY sentence must be in {lang} ({native}). "
+        f"Do NOT write anything in English except section numbers, law codes (BNS, IPC), and people's names. "
+        f"Use simple, everyday spoken {lang} — not formal or literary vocabulary."
+    )
 
 
 def _client() -> Groq:
@@ -53,40 +136,76 @@ def _client() -> Groq:
     return Groq(api_key=api_key)
 
 
-def _lang_note(language: str) -> str:
-    if language and language.lower() != "english":
-        return f"Respond entirely in {language}."
-    return "Respond in English."
+def _is_indian(language: str) -> bool:
+    return bool(language) and (language or "").strip().lower() != "english"
 
 
-def generate_chapter_intro(law_code: str, chapter_name: str, section_titles: list, language: str = "English") -> str:
-    """Short spoken intro when a chapter/lesson session starts."""
-    titles = ", ".join(section_titles[:6])
-    more = f", and {len(section_titles) - 6} more" if len(section_titles) > 6 else ""
-
-    system = (
-        "You are JD, a warm Indian law professor giving a short spoken introduction "
-        "to a new chapter, before teaching section by section. "
-        "Output PLAIN SPOKEN TEXT only — no markdown, no emojis, 2-4 sentences. "
-        f"{_lang_note(language)}"
+def _generate(system: str, user: str, temperature: float, max_tokens: int, language: str) -> str:
+    """Language-routed text generation:
+      • Indian languages → Sarvam AI (Sarvam-105b) — native-script quality
+      • English          → Groq (Llama) — fast
+    Sarvam failures fall back to Groq so the lesson never breaks."""
+    return _generate_chat(
+        [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        temperature, max_tokens, language,
     )
+
+
+def _generate_chat(msgs: list, temperature: float, max_tokens: int, language: str) -> str:
+    """Same routing as _generate but takes a full messages list (for doubts
+    that carry conversation history)."""
+    if _is_indian(language) and sarvam_llm.is_available():
+        try:
+            out = sarvam_llm.chat(msgs, temperature=temperature, max_tokens=max_tokens).strip()
+            if out:
+                return out
+            # Sarvam sometimes returns an empty 200 — treat as failure, not content.
+            logger.warning("[Teaching] Sarvam returned empty — falling back to Groq")
+        except Exception as exc:
+            logger.warning("[Teaching] Sarvam failed (%s) — falling back to Groq", exc)
+    # English, or Sarvam unavailable/empty → Groq (fast; its plain-text mode
+    # still handles native Indian scripts — only its JSON mode reverts to English).
+    resp = _client().chat.completions.create(
+        model=GROQ_MODEL, messages=msgs, temperature=temperature, max_tokens=max_tokens,
+    )
+    return (resp.choices[0].message.content or "").strip()
+
+
+# ── Public API ─────────────────────────────────────────────────────────────────
+
+def generate_chapter_intro(
+    law_code: str,
+    chapter_name: str,
+    section_titles: list,
+    language: str = "English",
+) -> str:
+    """
+    Short spoken chapter introduction JD delivers before the first section.
+    Warm, energetic, sets expectations.
+    """
+    titles_preview = ", ".join(section_titles[:5])
+    if len(section_titles) > 5:
+        titles_preview += f", and {len(section_titles) - 5} more topics"
+
+    system = _JD_INTRO_SYSTEM.format(lang_note=_lang_note(language))
     user = (
-        f"Law: {law_code}\nChapter: {chapter_name}\n"
-        f"Sections to be covered: {titles}{more}\n\n"
-        "Write a short, friendly spoken introduction to this chapter."
+        f"Law: {law_code}\n"
+        f"Chapter: {chapter_name}\n"
+        f"Number of sections: {len(section_titles)}\n"
+        f"Topics at a glance: {titles_preview}\n\n"
+        "Write the chapter introduction now."
     )
 
     try:
-        completion = _client().chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-            temperature=0.6,
-            max_tokens=200,
+        # Indian languages → Sarvam (native script); English → Groq (fast).
+        return _generate(system, user, temperature=0.7, max_tokens=220, language=language)
+    except Exception as exc:
+        logger.error("[Teaching] Chapter intro failed: %s", exc)
+        return (
+            f"Welcome to {chapter_name}. "
+            f"We have {len(section_titles)} sections ahead of us. "
+            "Let us begin right away with the first topic."
         )
-        return (completion.choices[0].message.content or "").strip()
-    except Exception as e:
-        logger.error("[Teaching] Chapter intro failed: %s", e)
-        return f"Welcome to {chapter_name}. Let's begin with the first section."
 
 
 def generate_teaching_script(
@@ -99,36 +218,39 @@ def generate_teaching_script(
     language: str = "English",
     append_end_prompt: bool = True,
 ) -> str:
-    """Generate the spoken lesson for one law section."""
-    mode_note = _MODE_NOTES.get(mode, _MODE_NOTES["student"])
-    system = _JD_TEACHING_SYSTEM.format(
-        law_code=law_code, mode_note=mode_note, lang_note=_lang_note(language)
+    """
+    Full spoken lesson for ONE law section.
+    Structure: Hook → What → Why → Example → Key Point.
+    Optionally appends the end-of-topic prompt.
+    """
+    mode_note = _UNIFIED_MODE_NOTE
+    system = _JD_LESSON_SYSTEM.format(
+        mode_note=mode_note,
+        lang_note=_lang_note(language),
     )
 
+    pun_line = f"\nPunishment: {punishment}" if punishment and punishment.strip() else ""
     user = (
-        f"Law: {law_code} | Section {section_number}: {section_title}\n"
-        f"Legal text: {section_text[:1000]}\n"
-        f"Punishment: {punishment or 'N/A'}\n\n"
-        "Teach this section now."
+        f"Law: {law_code}\n"
+        f"Section {section_number}: {section_title}\n"
+        f"Full legal text (teach THIS section in depth, part by part): {section_text[:2200]}"
+        f"{pun_line}\n\n"
+        "Teach this section now using the HOOK → WHAT → WHY → EXAMPLE → KEY POINT structure."
     )
 
     try:
-        completion = _client().chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-            temperature=0.5,
-            max_tokens=500,
-        )
-        lesson = (completion.choices[0].message.content or "").strip()
-    except Exception as e:
-        logger.error("[Teaching] Lesson generation failed: %s", e)
+        # Indian languages → Sarvam (native script); English → Groq (fast).
+        lesson = _generate(system, user, temperature=0.55, max_tokens=900, language=language)
+    except Exception as exc:
+        logger.error("[Teaching] Lesson generation failed: %s", exc)
         lesson = (
-            f"Let's look at {law_code} Section {section_number}, {section_title}. "
+            f"Let us look at {law_code} Section {section_number}, {section_title}. "
             f"{section_text[:400]}"
         )
 
     if append_end_prompt:
-        lesson = f"{lesson}\n\n{END_OF_TOPIC_PROMPT}"
+        end = _end_of_topic_prompt(language)
+        lesson = f"{lesson}\n\n{end}"
 
     return lesson
 
@@ -142,14 +264,19 @@ def generate_doubt_answer(
     history: list = None,
     language: str = "English",
     ask_clear: bool = True,
+    reexplain: bool = False,
+    mode: str = "student",
 ) -> str:
-    """Answer a student's interruption/doubt about the section currently being taught."""
-    system = (
-        "You are JD, a friendly Indian law professor. The student just interrupted your lesson "
-        "with a question. Answer it clearly in 2-4 spoken sentences, relate it back to the "
-        "section being taught when possible. "
-        "Output PLAIN SPOKEN TEXT only — no markdown, no emojis. "
-        f"{_lang_note(language)}"
+    """
+    Answer a student's in-lesson doubt.
+    `reexplain=True` uses a different approach when the student says "not clear".
+    `mode` shapes the answer's register: citizen (plain + practical), student
+    (elements + terminology), exam (precise + exam-focused).
+    """
+    system_template = _JD_REEXPLAIN_SYSTEM if reexplain else _JD_DOUBT_SYSTEM
+    system = system_template.format(
+        mode_note=_UNIFIED_DOUBT_NOTE,
+        lang_note=_lang_note(language),
     )
 
     msgs = [{"role": "system", "content": system}]
@@ -158,24 +285,36 @@ def generate_doubt_answer(
 
     context = (
         f"[Currently teaching: {law_code} Section {section_number} — {section_title}]\n"
-        f"[Section text: {section_text[:500]}]\n\n"
-        f"Student's question: {question}"
+        f"[Section text (excerpt): {section_text[:600]}]\n\n"
+        f"Student question: {question}"
     )
     msgs.append({"role": "user", "content": context})
 
     try:
-        completion = _client().chat.completions.create(
-            model=GROQ_MODEL,
-            messages=msgs,
-            temperature=0.5,
-            max_tokens=350,
-        )
-        answer = (completion.choices[0].message.content or "").strip()
-    except Exception as e:
-        logger.error("[Teaching] Doubt answer failed: %s", e)
-        answer = "I'm having a little trouble answering that right now. Could you try asking again?"
+        # Indian languages → Sarvam (native script); English → Groq (fast).
+        answer = _generate_chat(msgs, temperature=0.45, max_tokens=220, language=language)
+    except Exception as exc:
+        logger.error("[Teaching] Doubt answer failed: %s", exc)
+        answer = "I am having a small technical issue. Could you please repeat your question?"
 
-    if ask_clear:
-        answer = f"{answer}\n\nIs your doubt clear now?"
+    # Ensure "Is your doubt clear now?" is always present
+    clarity_check = "Is your doubt clear now?"
+    if ask_clear and clarity_check not in answer:
+        answer = f"{answer}\n\n{clarity_check}"
 
     return answer
+
+
+def _end_of_topic_prompt(language: str) -> str:
+    """Language-aware prompt JD speaks after finishing a section."""
+    lang = (language or "English").strip()
+    prompts = {
+        "English":   "Do you have any doubts about this topic, or shall we move to the next section?",
+        "Hindi":     "Kya is topic par koi doubt hai, ya hum next section par chalein?",
+        "Kannada":   "Ee vishayada bagge yenavadu sandehagaliveyaa, illa mundina vibhagakke hogalama?",
+        "Tamil":     "Inthath thalaippatril enna santhegam irukkirathaa, illa aduttha paakathirkku selvomaa?",
+        "Telugu":    "Ee vishayamlo meeku ela sandehalu unnaya, lekapote tarvata vibhagaaniki velthaamaaa?",
+        "Marathi":   "Ya vishayavar kahi shanka aahe ka, kinkva aapalyala pudhachya vibhaagat jaayacha aahe ka?",
+        "Malayalam": "Ee vishayatthil valla sandeham unDo, athallengil aduttha vibhaagatthilekku pokaamo?",
+    }
+    return prompts.get(lang, prompts["English"])

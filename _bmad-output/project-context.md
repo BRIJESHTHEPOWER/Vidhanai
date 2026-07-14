@@ -46,7 +46,7 @@ Focus is on non-obvious details that agents commonly miss._
 - **Pydantic** 2.5.0 — v2 API (use `model_validator`, `field_validator`, not v1 validators)
 - **Groq SDK** (unpinned) — primary AI provider; model: `llama-3.3-70b-versatile`
 - **FAISS-CPU** 1.7.4 — vector index stored at `backend/vector/`
-- **LangChain** 0.1.3 + **langchain-community** 0.0.8 — used in RAG pipeline only
+- **sentence-transformers** (`all-MiniLM-L6-v2`) — embeddings for the RAG pipeline (`backend/vector/`, `app/services/rag.py`)
 - **SlowAPI** — rate limiting middleware already wired to `app.state.limiter`
 - **JWT** (HS256, 7-day expiry) + **bcrypt** — authentication
 - **python-dotenv** 1.0.0 — env loaded via `load_dotenv()` at module top

@@ -7,18 +7,105 @@ import re
 import json
 import logging
 from typing import Optional, List
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+from concurrent.futures import ThreadPoolExecutor
+
 from app.db.connection import bns_collection, ipc_collection
-from app.services.ai import _call_gemini, _PRIMARY_MODEL, generate_groq_json_response
-from app.services.teaching import generate_doubt_answer
+from app.services.ai import generate_groq_json_response, generate_groq_text, generate_json_response
+from app.services.teaching import generate_doubt_answer, generate_teaching_script, generate_chapter_intro
+from app.services import sarvam_llm
+
+
+def _is_indian(language: str) -> bool:
+    return bool(language) and (language or "").strip().lower() != "english"
+
+
+def _parse_json_object(raw: str) -> dict | None:
+    """Best-effort parse of a JSON object from a model's raw text output.
+    Handles markdown fences and trailing/leading junk."""
+    if not raw:
+        return None
+    cleaned = re.sub(r"^```(?:json)?\s*", "", raw.strip())
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        m = re.search(r"\{.*\}", cleaned, re.DOTALL)
+        if m:
+            try:
+                return json.loads(m.group())
+            except Exception:
+                pass
+    return None
+
+
+def _groq_lesson_json(system: str, user_text: str, max_tokens: int = 1800) -> dict | None:
+    """Generate lesson JSON via Groq (plain-text mode, manual parse)."""
+    return _parse_json_object(generate_groq_text(system, user_text, temperature=0.45, max_tokens=max_tokens))
+
+
+# South Indian scripts (Tamil/Kannada/Telugu/Malayalam) use 3-4× more tokens per
+# character than Latin/Devanagari, so the full lesson JSON needs a generous output
+# budget or Gemini truncates it mid-object → invalid JSON. Malayalam is the most
+# token-dense, so we keep plenty of headroom (this is a cap, not a fixed cost).
+_GEMINI_JSON_TOKENS = 7000
+
+
+def _gemini_lesson_json(system: str, user_text: str, max_tokens: int = _GEMINI_JSON_TOKENS) -> dict | None:
+    """Generate lesson JSON via Gemini (application/json mode). Used as a
+    fallback when Sarvam is unavailable — also strong at Indian-language JSON."""
+    try:
+        return _parse_json_object(generate_json_response(system, user_text, temperature=0.45, max_tokens=max_tokens))
+    except Exception as exc:
+        logger.warning("[Tutor] Gemini lesson JSON failed: %s", exc)
+        return None
+
+
+def _sarvam_lesson_json(system: str, user_text: str, max_tokens: int = 4200) -> dict | None:
+    """Generate lesson JSON via Sarvam-105b — Sarvam's own LLM, purpose-built
+    for Indian languages, so it writes correct native script inside valid JSON
+    for Tamil/Kannada/Telugu/Malayalam/Marathi/Hindi as well as English."""
+    try:
+        return _parse_json_object(sarvam_llm.generate_text(system, user_text, temperature=0.45, max_tokens=max_tokens))
+    except Exception as exc:
+        logger.warning("[Tutor] Sarvam lesson JSON failed: %s", exc)
+        return None
+
+
+def _lesson_display_json(system: str, user_text: str, language: str, max_tokens: int = 1800) -> dict | None:
+    """Generate the on-screen lesson JSON, routed by language:
+      • Indian languages → Sarvam AI (Sarvam-105b): native-script quality
+                           (slower, but correct where Llama fails). Gemini is
+                           the automatic fallback.
+      • English          → Groq (Llama): fast. Gemini is the fallback.
+    Groq is intentionally NOT used for Indian languages — it silently reverts
+    South Indian scripts (Tamil/Kannada/Telugu/Malayalam) to English."""
+    def _usable(d):
+        return isinstance(d, dict) and bool(d.get("plain_explanation"))
+
+    if _is_indian(language):
+        data = _sarvam_lesson_json(system, user_text)
+        if _usable(data):
+            return data
+        logger.warning("[Tutor] Sarvam JSON unusable for %s — falling back to Gemini", language)
+        return _gemini_lesson_json(system, user_text)
+
+    # English → Groq (fast); Gemini fallback.
+    data = _groq_lesson_json(system, user_text, max_tokens)
+    if _usable(data):
+        return data
+    return _gemini_lesson_json(system, user_text)
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["Tutor"])
+from app.services.plan_gate import require_pro
+
+# The AI Law Tutor is a Pro-plan feature — every endpoint requires Pro.
+router = APIRouter(tags=["Tutor"], dependencies=[Depends(require_pro)])
 limiter = Limiter(key_func=get_remote_address)
 
 # ── Chapter badges ─────────────────────────────────────────────────────────────
@@ -66,6 +153,43 @@ def _pun_to_str(p) -> str:
     return (p or "").strip()
 
 
+def _section_sort_key(s: dict):
+    """Natural sort for section numbers so they appear in real legislative order.
+    Splits into (numeric, letter-suffix): 12 → (12,''), 108A → (108,'A'),
+    120A → (120,'A'), 120B → (120,'B'). Without this, string sort scrambles them
+    (e.g. '12' after '108A', '10' before '2')."""
+    num = str(s.get("section_number", "")).strip()
+    m = re.match(r"^(\d+)\s*([A-Za-z]*)", num)
+    if m:
+        return (int(m.group(1)), m.group(2).upper())
+    return (10**9, num)   # non-standard numbers sink to the end, stable
+
+
+_ROMAN = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
+
+
+def _roman_to_int(r: str) -> int:
+    total, prev = 0, 0
+    for ch in reversed(r.upper()):
+        v = _ROMAN.get(ch, 0)
+        total += -v if v < prev else v
+        prev = v
+    return total
+
+
+def _chapter_sort_key(chapter_name: str):
+    """Order chapters by their real numeral: 'Chapter IV - …' → (4, 0),
+    'Chapter VA - …' → (5, 1) (a sub-chapter after V). Chapters without a
+    recognisable numeral sort to the end alphabetically."""
+    m = re.match(r"\s*chapter\s+([IVXLCDM]+)([A-Za-z]*)\b", chapter_name.strip(), re.IGNORECASE)
+    if m:
+        base = _roman_to_int(m.group(1))
+        suffix = m.group(2).upper()
+        sub = (ord(suffix[0]) - ord("A") + 1) if suffix else 0
+        return (0, base, sub, chapter_name.lower())
+    return (1, 10**9, 0, chapter_name.lower())
+
+
 def _fetch_bns_chapters():
     docs = list(bns_collection.find({}, {"_id": 0, "section_number": 1, "chapter": 1,
                                           "title": 1, "description": 1, "ai_summary": 1,
@@ -77,15 +201,17 @@ def _fetch_bns_chapters():
             chapters[ch] = []
         chapters[ch].append(d)
 
+    # Chapters in real legislative order (Chapter I, II, … XX), sections in
+    # real numeric order within each chapter.
+    ordered = sorted(chapters.items(), key=lambda kv: _chapter_sort_key(kv[0]))
     result = []
-    for i, (ch_name, sections) in enumerate(chapters.items()):
-        sec_nums = [s.get("section_number", "") for s in sections if s.get("section_number")]
+    for i, (ch_name, sections) in enumerate(ordered):
         result.append({
             "chapter_num":   i + 1,
             "chapter_name":  ch_name,
             "short_name":    ch_name.split(" - ")[-1].strip() if " - " in ch_name else ch_name,
             "section_count": len(sections),
-            "sections":      sorted(sections, key=lambda s: str(s.get("section_number", ""))),
+            "sections":      sorted(sections, key=_section_sort_key),
             "badge":         CHAPTER_BADGES[i % len(CHAPTER_BADGES)],
         })
     return result
@@ -103,14 +229,15 @@ def _fetch_ipc_chapters():
             chapters[ch] = []
         chapters[ch].append(d)
 
+    ordered = sorted(chapters.items(), key=lambda kv: _chapter_sort_key(kv[0]))
     result = []
-    for i, (ch_name, sections) in enumerate(chapters.items()):
+    for i, (ch_name, sections) in enumerate(ordered):
         result.append({
             "chapter_num":   i + 1,
             "chapter_name":  ch_name,
             "short_name":    ch_name.split(" - ")[-1].strip() if " - " in ch_name else ch_name,
             "section_count": len(sections),
-            "sections":      sorted(sections, key=lambda s: str(s.get("section_number", ""))),
+            "sections":      sorted(sections, key=_section_sort_key),
             "badge":         CHAPTER_BADGES[i % len(CHAPTER_BADGES)],
         })
     return result
@@ -197,7 +324,7 @@ class LessonRequest(BaseModel):
     section_title:  str
     section_text:   str
     punishment:     Optional[str] = ""
-    mode:           Optional[str] = "student"   # citizen | student | exam
+    mode:           Optional[str] = "general"   # single unified mode (legacy values accepted, ignored)
     language:       Optional[str] = "English"
     context:        Optional[str] = ""          # surrounding sections for continuity
 
@@ -206,86 +333,189 @@ class LessonRequest(BaseModel):
 @limiter.limit("30/minute")
 def generate_lesson(request: Request, body: LessonRequest):
     """Generate a structured AI lesson for one section — JD teaching style (Groq, fast)."""
-    mode_desc = {
-        "citizen": "Use very simple everyday language. No legal jargon. Give relatable real-life examples.",
-        "student": "Use proper legal terminology but explain every term simply. Detailed analysis for law students.",
-        "exam":    "Focus on key points for exam preparation. Highlight important definitions, case scenarios, and common exam questions.",
-    }.get(body.mode, "Use clear, accessible language.")
 
-    lang_note = f"Write the entire lesson in {body.language}." if body.language != "English" else "Write in English."
+    # ── Native script names — critical for model to use the right script ────────
+    NATIVE_SCRIPT = {
+        "Hindi":     "हिन्दी",
+        "Kannada":   "ಕನ್ನಡ",
+        "Tamil":     "தமிழ்",
+        "Telugu":    "తెలుగు",
+        "Marathi":   "मराठी",
+        "Malayalam": "മലയാളം",
+    }
+
+    lang   = (body.language or "English").strip()
+    native = NATIVE_SCRIPT.get(lang, lang)   # e.g. "Kannada" → "ಕನ್ನಡ"
+
+    # ── Language block — placed FIRST in system prompt so model obeys it ────────
+    if lang != "English":
+        lang_block = (
+            f"═══════════════════════════════════════════\n"
+            f"OUTPUT LANGUAGE: {lang} — {native}\n"
+            f"YOU MUST WRITE EVERY JSON TEXT VALUE IN {lang.upper()} USING {native} SCRIPT.\n"
+            f"Do NOT write any field value in English.\n"
+            f"Section numbers, law codes (BNS, IPC), and JSON keys stay in English.\n"
+            f"═══════════════════════════════════════════"
+        )
+        user_lang_prefix = (
+            f"[MANDATORY: Write ALL text field values in {lang} ({native} script). "
+            f"Zero English in values.]\n\n"
+        )
+    else:
+        lang_block       = ""
+        user_lang_prefix = ""
+
+    # ── Unified teaching style (former citizen + student modes merged) ──────────
+    mode_desc = (
+        "The learner may be a curious citizen OR a law student. Explain every concept in plain, "
+        "everyday language FIRST, then immediately give the formal legal term in brackets or as a "
+        "'Legal term:' callout so terminology is learned as they go. Use real-world analogies, and "
+        "keep any court-application detail short so a first-time reader is never overwhelmed."
+    )
+
+    # Extra fields — plain-language aids AND terminology, always present
+    mode_extra_fields = """,
+  "analogy": "A relatable everyday Indian analogy comparing this law to something from daily life — 1-2 sentences.",
+  "citizen_summary": "One plain sentence any non-lawyer can repeat to explain what this law means.",
+  "action_steps": ["2-4 short practical steps a person should take if this situation happens to them or around them — e.g. 'Do not sign anything before reading it', 'File an FIR at the nearest police station'. Each step one sentence, everyday words."],
+  "legal_definition": "Formal legal definition as interpreted by Indian courts or the statute — 1-2 sentences, prefixed naturally so it reads as a 'Legal term' callout.",
+  "court_application": "ONE short court-application example: how a court applies this section's key element in practice — 2 sentences maximum, kept simple." """
+
+    # Checkpoint question style — real-life scenario, plain wording, one element decides
+    checkpoint_style = (
+        "a real-life situation asking what the person should do or which legal element decides the "
+        "outcome (e.g. 'Ravi's landlord locks his belongings inside the flat. What should Ravi do?'). "
+        "Plain everyday language in the question; the explanation may name the formal legal term"
+    )
 
     law_full = "BNS 2023 (Bharatiya Nyaya Sanhita)" if body.law_code.upper() == "BNS" else "IPC 1860 (Indian Penal Code)"
 
-    system = f"""You are JD, an expert Indian law tutor teaching {law_full} like a real classroom professor.
-Your job is to TEACH and EXPLAIN — never just repeat or rephrase the legal text.
-Teaching mode: {body.mode.upper()}. {mode_desc}
-{lang_note}
+    system = f"""{lang_block}
 
-HOW TO TEACH (very important):
-1. The "plain_explanation" MUST begin by naming what this is, e.g. "This is the {body.law_code} definition of {body.section_title}." or "This is the {body.law_code} provision on {body.section_title}." — then explain in your OWN simple words what it actually MEANS and how it works. NEVER copy the legal text verbatim. If the legal text is short or vague, expand it using your legal knowledge so the student truly understands the concept.
-2. "why_it_exists" — explain WHY this law was made and what real problem it solves.
-3. "real_example" is MANDATORY — a vivid 3-5 sentence story with named Indian characters (e.g. "Ravi was walking home when...") showing exactly when this applies. Never leave it empty.
+You are JD, a passionate Indian law professor teaching {law_full} in a live voice classroom.
+{mode_desc}
 
-Always return JSON with these exact keys:
+TEACHING RULES:
+1. Understand the English legal text, then write ALL explanations in {lang} ({native}).
+2. Teach the ACTUAL section given below — never a generic summary. Break down what THIS
+   specific section really says, clause by clause, and define each important term it uses.
+3. NEVER copy the legal text verbatim. Explain it thoroughly in your own words.
+4. "real_example" is MANDATORY — a vivid 2-3 sentence story with a named Indian character showing when this law applies.
+5. "spoken_script" is what JD says aloud — a warm, flowing monologue that genuinely teaches the section, NOT a list.
+
+Return ONLY a valid JSON object with these exact keys (ALL text values in {lang} — {native}):
 {{
-  "simple_title": "one-line friendly title for this section",
-  "why_it_exists": "2-3 sentences on why this law was created, what real-world problem it solves",
-  "plain_explanation": "Starts with 'This is the {body.law_code} definition/provision of ...' then 3-5 sentences explaining what it means in simple words — your own words, NOT the legal text",
-  "key_concepts": ["concept 1", "concept 2", "concept 3"],
-  "real_example": "REQUIRED vivid 3-5 sentence story with named Indian characters showing when this law applies",
-  "when_applies": "Clear conditions when this law applies (2-3 short sentences)",
-  "when_not_applies": "Key exceptions — when this law does NOT apply",
-  "remember": "One memorable, quotable takeaway sentence",
+  "simple_title": "({lang}) short friendly title for this section",
+  "why_it_exists": "({lang}) 3-4 sentences: why this law was made, the real-world problem it solves, and what would go wrong without it",
+  "plain_explanation": "({lang}) A THOROUGH explanation — 6 to 9 sentences. Walk through THIS section part by part: what each important term means, what exactly it requires (the ingredients that must all be present), and how the parts fit together. Ground every point in the real legal text above. Simple own words, never a verbatim copy.",
+  "key_concepts": ["({lang}) each item names one key legal term or ingredient FROM THIS SECTION and defines it in a short sentence, e.g. 'Dishonest intention — taking something to wrongfully gain or cause loss'. Give 3 to 5."],
+  "real_example": "({lang}) REQUIRED: vivid 2-3 sentence story with named Indian character",
+  "when_applies": "({lang}) 3-4 sentences on the exact situations where this section applies — tie each to an ingredient of the section",
+  "when_not_applies": "({lang}) 2-3 sentences on key exceptions and borderline cases where this section does NOT apply",
+  "remember": "({lang}) one memorable takeaway sentence",
+  "spoken_script": "({lang} — {native} SCRIPT ONLY) 130-170 word spoken lesson JD reads aloud that TRULY teaches this section: a hook, then a clear part-by-part explanation of what the section means and its key terms, then the real-life story, then the key takeaway. Warm teacher voice, flowing sentences, no lists.",
   "checkpoint_question": {{
-    "question": "A conceptual scenario-based MCQ testing real understanding (not section-number memorization)",
+    "question": "({lang}) MCQ — must be {checkpoint_style}",
     "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
     "correct": "A",
-    "explanation": "Why this is correct and why the others are wrong"
-  }}
+    "explanation": "({lang}) why correct and why others are wrong"
+  }}{mode_extra_fields}
 }}
-Output ONLY the JSON object. No markdown, no commentary."""
+Output ONLY the JSON object. No markdown. No text outside the JSON braces."""
 
-    user_text = f"""Teach this legal section now:
+    user_text = (
+        f"{user_lang_prefix}"
+        f"Teach this legal section in depth. Remember: write ALL text values in {lang} ({native}).\n\n"
+        f"Law: {body.law_code} | Section {body.section_number}: {body.section_title}\n"
+        f"FULL Legal Text (English — understand it fully, then teach THIS exact section in {lang}, "
+        f"breaking down each part and term):\n{body.section_text[:2200] or 'Use your knowledge of this section.'}\n\n"
+        f"Punishment: {body.punishment or 'N/A'}\n"
+        f"Context (nearby sections): {body.context[:200] if body.context else 'None'}"
+    )
 
-Law: {body.law_code} | Section {body.section_number}: {body.section_title}
-Legal Text: {body.section_text[:800] or 'Not provided — use your legal knowledge of this section.'}
-Punishment: {body.punishment or 'N/A'}
-Nearby sections (context only): {body.context[:300] if body.context else 'None'}"""
-
-    def _fallback():
+    def _fallback(spoken: str = ""):
         title = body.section_title or f"Section {body.section_number}"
         return {
             "ok": False,
             "lesson": {
                 "simple_title": title,
-                "why_it_exists": "This section sets out an important rule in Indian criminal law that the courts rely on.",
-                "plain_explanation": (
-                    f"This is the {body.law_code} provision on {title}. "
-                    f"In simple terms, it explains the following: {body.section_text[:300]}".strip()
-                ),
+                "why_it_exists": "",
+                "plain_explanation": f"{body.section_text[:300]}".strip(),
                 "key_concepts": [],
                 "real_example": "",
                 "when_applies": "",
                 "when_not_applies": "",
                 "remember": title,
+                "spoken_script": spoken or title,
                 "checkpoint_question": None,
             },
         }
 
+    # ── Single content call ───────────────────────────────────────────────────
+    # Sarvam AI (Sarvam-105b) allows only ~1 concurrent request per key, so the
+    # old two-parallel-calls design starved one of them (empty spoken script).
+    # Instead we make ONE Sarvam call that returns BOTH the display fields AND
+    # the spoken_script — half the latency, no concurrency conflict.
     try:
-        raw = (generate_groq_json_response(system, user_text, temperature=0.5, max_tokens=1200) or "").strip()
-        if raw.startswith("```"):
-            raw = re.sub(r"^```(?:json)?\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw)
-        data = json.loads(raw)
-        if not isinstance(data, dict) or not data.get("plain_explanation"):
-            return _fallback()
-        return {"ok": True, "lesson": data}
-    except (json.JSONDecodeError, ValueError):
+        # Deeper lessons need more output headroom (English/Groq path).
+        data = _lesson_display_json(system, user_text, lang, max_tokens=2600)
+    except Exception as exc:
+        logger.error("[Tutor] Lesson generation failed: %s", exc)
         return _fallback()
-    except Exception as e:
-        logger.error("[Tutor] Lesson generation failed: %s", e)
+
+    if not isinstance(data, dict) or not data.get("plain_explanation"):
+        logger.warning("[Tutor] JSON parse failed for section %s — using fallback", body.section_number)
         return _fallback()
+
+    # spoken_script now comes from the same JSON. If the model omitted it,
+    # assemble a spoken lesson from the fields we already have (no extra call),
+    # and only as a last resort make one dedicated call.
+    spoken = (data.get("spoken_script") or "").strip()
+    if not spoken:
+        parts = [data.get("simple_title"), data.get("plain_explanation"),
+                 data.get("real_example"), data.get("remember")]
+        spoken = " ".join(p.strip() for p in parts if p and p.strip())
+    if not spoken:
+        try:
+            spoken = generate_teaching_script(
+                law_code=body.law_code, section_number=body.section_number,
+                section_title=body.section_title, section_text=body.section_text or "",
+                punishment=body.punishment or "", mode="general",
+                language=lang, append_end_prompt=False,
+            )
+        except Exception:
+            spoken = data.get("plain_explanation", "")
+    data["spoken_script"] = spoken
+
+    return {"ok": True, "lesson": data}
+
+
+# ── Chapter intro / greeting ────────────────────────────────────────────────────
+
+class ChapterIntroRequest(BaseModel):
+    law_code:       str
+    chapter_name:   str
+    section_titles: List[str] = []
+    language:       Optional[str] = "English"
+
+
+@router.post("/tutor/chapter-intro")
+@limiter.limit("30/minute")
+def chapter_intro(request: Request, body: ChapterIntroRequest):
+    """A warm spoken greeting JD delivers when a chapter opens — generated in the
+    learner's language in NATIVE SCRIPT (Groq plain-text, reliable in every
+    supported language, unlike the romanised frontend templates)."""
+    try:
+        text = generate_chapter_intro(
+            law_code       = body.law_code,
+            chapter_name   = body.chapter_name,
+            section_titles = body.section_titles or [],
+            language       = body.language or "English",
+        )
+        return {"ok": True, "intro": text}
+    except Exception as exc:
+        logger.error("[Tutor] Chapter intro failed: %s", exc)
+        return {"ok": False, "intro": ""}
 
 
 # ── Assessment generation ──────────────────────────────────────────────────────
@@ -295,7 +525,7 @@ class AssessRequest(BaseModel):
     chapter_num:  int
     chapter_name: str
     sections:     List[dict]          # [{section_number, title, text, punishment}]
-    mode:         Optional[str] = "student"
+    mode:         Optional[str] = "general"   # legacy values accepted, ignored
     language:     Optional[str] = "English"
 
 
@@ -304,10 +534,11 @@ class AssessRequest(BaseModel):
 def generate_assessment(request: Request, body: AssessRequest):
     """Generate a 10-question chapter-end assessment."""
     lang_note = f"Write questions in {body.language}." if body.language != "English" else ""
+    q_count = 10
 
     # Build context from sections
     context_lines = []
-    for s in body.sections[:15]:  # cap at 15 sections for prompt size
+    for s in body.sections[:15]:
         pun = _pun_to_str(s.get("punishment", ""))
         context_lines.append(
             f"Section {s.get('section_number')}: {s.get('title')}\n"
@@ -316,22 +547,24 @@ def generate_assessment(request: Request, body: AssessRequest):
         )
     context_str = "\n---\n".join(context_lines)
 
-    mode_instructions = {
-        "citizen": "Make questions conceptual and relatable. Use everyday scenarios.",
-        "student": "Include definition-based, scenario-based, and application questions.",
-        "exam":    "Focus on frequently tested points. Include tricky questions. Mix MCQ, True/False, and scenario.",
-    }.get(body.mode, "")
+    mode_instructions = (
+        "Write questions in plain everyday language with real-life scenarios, but test genuine "
+        "understanding: mix conceptual, definition-based, and application questions. When a formal "
+        "legal term matters, use it and let the explanation define it simply."
+    )
+
+    mix_instructions = (
+        f"- 5 Multiple Choice (4 options A/B/C/D)\n- 3 True/False\n- 2 Scenario-based (short case, pick the correct law application)"
+    )
 
     system = f"""You are an expert Indian law exam setter creating a chapter-end assessment.
 {mode_instructions}
 {lang_note}
 
-Generate EXACTLY 10 questions. Mix these types:
-- 5 Multiple Choice (4 options A/B/C/D)
-- 3 True/False
-- 2 Scenario-based (short case, pick the correct law application)
+Generate EXACTLY {q_count} questions. Mix these types:
+{mix_instructions}
 
-Output ONLY valid JSON array with exactly 10 objects:
+Output ONLY valid JSON array with exactly {q_count} objects:
 [
   {{
     "type": "mcq",
@@ -348,33 +581,33 @@ Output ONLY valid JSON array with exactly 10 objects:
     "correct": "A",
     "explanation": "...",
     "topic": "..."
-  }},
-  ...
+  }}
 ]
 No markdown fences. Only the JSON array."""
 
-    user_text = f"""Create a 10-question assessment for:
+    user_text = f"""Create a {q_count}-question assessment for:
 Law: {body.law_code} | {body.chapter_name}
 
 Chapter Content:
 {context_str}"""
 
-    try:
-        raw = _call_gemini(
-            model_name=_PRIMARY_MODEL,
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": user_text}],
-            temperature=0.3,
-            max_tokens=2000,
-        ).strip()
+    def _parse_questions(raw: str) -> list:
+        """Strip markdown fences, parse JSON, return list or raise."""
+        raw = raw.strip()
         if raw.startswith("```"):
             raw = re.sub(r"^```(?:json)?\s*", "", raw)
             raw = re.sub(r"\s*```$", "", raw)
-        questions = json.loads(raw)
-        if not isinstance(questions, list):
-            raise ValueError("Not a list")
-        # Ensure all have required fields
+        # Sometimes the model wraps in {"questions": [...]}
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict) and "questions" in parsed:
+            parsed = parsed["questions"]
+        if not isinstance(parsed, list):
+            raise ValueError("Response is not a JSON array")
+        return parsed
+
+    def _validate(questions: list) -> list:
         validated = []
-        for i, q in enumerate(questions[:10]):
+        for i, q in enumerate(questions[:q_count]):
             validated.append({
                 "id":          i,
                 "type":        q.get("type", "mcq"),
@@ -384,9 +617,48 @@ Chapter Content:
                 "explanation": q.get("explanation", ""),
                 "topic":       q.get("topic", "General"),
             })
-        return {"ok": True, "questions": validated, "total": len(validated)}
-    except Exception as e:
-        return {"ok": False, "error": str(e), "questions": [], "total": 0}
+        return validated
+
+    # ── Groq (primary for all tutor functions) ────────────────────────────────
+    try:
+        raw_groq = generate_groq_json_response(
+            system, user_text,
+            temperature=0.3,
+            max_tokens=2000,
+        )
+        validated = _validate(_parse_questions(raw_groq))
+        if validated:
+            return {"ok": True, "questions": validated, "total": len(validated)}
+        raise ValueError("Empty question list from Groq")
+    except Exception as groq_err:
+        logger.error(f"[Tutor/Assess] Groq failed ({groq_err}); generating basic fallback questions")
+
+    # ── Hardcoded fallback using section titles ────────────────────────────────
+    try:
+        fallback_qs = []
+        for i, s in enumerate(body.sections[:q_count]):
+            title = s.get("title") or s.get("section_title", f"Section {i+1}")
+            sec_num = s.get("section_number", "")
+            fallback_qs.append({
+                "id":          i,
+                "type":        "mcq",
+                "question":    f"Which of the following best describes {body.law_code} Section {sec_num} — {title}?",
+                "options":     [
+                    f"A) It deals with {title}",
+                    "B) It defines a civil dispute between parties",
+                    "C) It is not part of Indian criminal law",
+                    "D) It was introduced before 1860",
+                ],
+                "correct":     "A",
+                "explanation": f"{body.law_code} Section {sec_num} covers {title}.",
+                "topic":       title,
+            })
+        if fallback_qs:
+            return {"ok": True, "questions": fallback_qs, "total": len(fallback_qs)}
+    except Exception:
+        pass
+
+    return {"ok": False, "error": "All generation methods failed", "questions": [], "total": 0}
 
 
 # ── Performance analysis ───────────────────────────────────────────────────────
@@ -398,7 +670,7 @@ class AnalyzeRequest(BaseModel):
     total:          int
     correct_topics: List[str]
     wrong_topics:   List[str]
-    mode:           Optional[str] = "student"
+    mode:           Optional[str] = "general"   # legacy values accepted, ignored
     language:       Optional[str] = "English"
 
 
@@ -425,16 +697,10 @@ Output ONLY valid JSON:
     user_text = f"""Student completed {body.chapter_name} ({body.law_code})
 Score: {body.score}/{body.total} ({pct}%) — {grade}
 Strong topics: {', '.join(body.correct_topics[:5]) or 'None identified'}
-Weak topics:   {', '.join(body.wrong_topics[:5]) or 'None identified'}
-Mode: {body.mode}"""
+Weak topics:   {', '.join(body.wrong_topics[:5]) or 'None identified'}"""
 
     try:
-        raw = _call_gemini(
-            model_name=_PRIMARY_MODEL,
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": user_text}],
-            temperature=0.5,
-            max_tokens=400,
-        ).strip()
+        raw = (generate_groq_json_response(system, user_text, temperature=0.5, max_tokens=400) or "").strip()
         if raw.startswith("```"):
             raw = re.sub(r"^```(?:json)?\s*", "", raw)
             raw = re.sub(r"\s*```$", "", raw)
@@ -474,14 +740,26 @@ class DoubtRequest(BaseModel):
     section_title:  str
     section_text:   Optional[str] = ""
     question:       str
-    mode:           Optional[str] = "student"
+    mode:           Optional[str] = "general"     # legacy values accepted, ignored
     language:       Optional[str] = "English"
+    reexplain:      Optional[bool] = False        # learner said "still not clear" → new angle
+    history:        Optional[list] = None         # [{q, a}] previous doubt turns this section
 
 
 @router.post("/tutor/doubt")
 @limiter.limit("30/minute")
 def answer_doubt(request: Request, body: DoubtRequest):
-    """Answer a student's in-lesson doubt about the current section using Groq (fast)."""
+    """Answer a learner's in-lesson doubt about the current section using Groq (fast).
+    Unified style: plain words first, formal legal term called out as it's used."""
+    # Convert frontend {q, a} history into (role, text) turns so re-explains
+    # never repeat an analogy JD already used.
+    history_turns = []
+    for h in (body.history or [])[-4:]:
+        if isinstance(h, dict):
+            if h.get("q"):
+                history_turns.append(("user", str(h["q"])[:300]))
+            if h.get("a"):
+                history_turns.append(("assistant", str(h["a"])[:400]))
     try:
         answer = generate_doubt_answer(
             law_code=body.law_code,
@@ -489,8 +767,11 @@ def answer_doubt(request: Request, body: DoubtRequest):
             section_title=body.section_title,
             section_text=body.section_text or "",
             question=body.question,
+            history=history_turns,
             language=body.language or "English",
             ask_clear=False,
+            reexplain=bool(body.reexplain),
+            mode="general",
         )
         return {"ok": True, "answer": answer}
     except Exception as e:

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Profile.css';
 
@@ -15,6 +15,10 @@ export default function Profile() {
   const [saving,    setSaving]    = useState(false);
   const [msg,       setMsg]       = useState({ type: '', text: '' });
   const fileRef = useRef(null);
+
+  // GestureFlow AI (touchless hand control) — state mirrors the global engine
+  const [gestureOn, setGestureOn] = useState(() => window.GestureFlow?.isRunning() || false);
+  useEffect(() => window.GestureFlow?.subscribe(setGestureOn), []);
 
   const toast = (type, text) => {
     setMsg({ type, text });
@@ -182,6 +186,38 @@ export default function Profile() {
         <div className="prof-section">
           <div className="prof-section-label">Email Address</div>
           <div className="prof-email">{email || 'Not set'}</div>
+        </div>
+
+        {/* GestureFlow AI — touchless control */}
+        <div className="prof-section">
+          <div className="prof-section-label">🖐 GestureFlow AI — Touchless Control</div>
+          <div className="prof-gesture-row">
+            <p className="prof-gesture-desc">
+              Control the whole site with hand gestures through your webcam.
+              A small monitor panel (bottom-right) shows your live hand skeleton
+              so you always know tracking is working — no camera video is shown.
+            </p>
+            <button
+              className={`prof-gesture-switch${gestureOn ? ' prof-gesture-switch--on' : ''}`}
+              onClick={() => window.GestureFlow?.toggle()}
+              disabled={!window.GestureFlow}
+              aria-pressed={gestureOn}
+              title={gestureOn ? 'Turn gesture control off' : 'Turn gesture control on'}
+            >
+              <span className="prof-gesture-knob" />
+              <span className="prof-gesture-state">{gestureOn ? 'ON' : 'OFF'}</span>
+            </button>
+          </div>
+          {gestureOn && (
+            <div className="prof-gesture-hints">
+              <span>☝️ point up / 👇 down = scroll</span>
+              <span>⬅️ point left = previous page</span>
+              <span>🤏 pinch = click (CURSOR mode)</span>
+              <button className="prof-gesture-guide-btn" onClick={() => window.GestureFlow?.showGuide()}>
+                📖 Show full guide
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="prof-divider" />

@@ -109,12 +109,12 @@ def seed_default_admin():
     if admin_users_collection.count_documents({}) == 0:
         admin_users_collection.insert_one({
             "name": "Admin",
-            "email": "admin@vidhan.ai",
-            "password": _hash("admin@123"),
+            "email": "admin@vidhanai.com",
+            "password": _hash("admin@#123"),
             "role": "admin",
             "created_at": _utcnow(),
         })
-        print("[Admin] Default admin created: admin@vidhan.ai / admin@123")
+        print("[Admin] Default admin created: admin@vidhanai.com / admin@#123")
 
 try:
     seed_default_admin()

@@ -342,6 +342,9 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Bias the crop slightly upward so characters' faces (framed in the upper-
+     centre of the generated panel) stay visible instead of being cut off. */
+  object-position: center 32%;
   position: absolute;
   top: 0;
   left: 0;

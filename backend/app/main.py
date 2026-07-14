@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()   # load backend/.env into os.environ before any other import reads it
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -20,14 +23,15 @@ from app.routers.explore   import router as explore_router
 from app.routers.history   import router as history_router
 from app.routers.awareness import router as awareness_router
 from app.routers.voice     import router as voice_router
-from app.routers.detective import router as detective_router
 from app.routers.reviews   import router as reviews_router
 from app.routers.admin     import router as admin_router
 from app.routers.comic     import router as comic_router
 from app.routers.tutor     import router as tutor_router
-from app.routers.jd        import router as jd_router
 from app.routers.jd_teach  import router as jd_teach_router
 from app.routers.tts       import router as tts_router
+from app.routers.announcements import router as announcements_router
+from app.routers.subscriptions import router as subscriptions_router
+from app.routers.contact    import router as contact_router
 from app.auth              import router as auth_router
 
 # ── Vector search ─────────────────────────────────────────────────────────────
@@ -36,7 +40,9 @@ from vector.search import search
 # ── RAG + AI services ─────────────────────────────────────────────────────────
 from app.services.rag import find_relevant_law
 from app.services.ai  import generate_ai_response
-from app.routers      import sanitize_input, get_all_laws
+from app.routers      import sanitize_input, get_all_laws, get_current_user_email_optional
+from app.services.plan_gate import enforce_question_quota, require_language_allowed
+from fastapi import Depends
 
 # ── Rate limiter (M3) ─────────────────────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
@@ -145,14 +151,15 @@ app.include_router(explore_router)
 app.include_router(history_router)
 app.include_router(awareness_router)
 app.include_router(voice_router)
-app.include_router(detective_router)
 app.include_router(reviews_router)
 app.include_router(admin_router)
 app.include_router(comic_router)   # handles POST /comic-story
 app.include_router(tutor_router)   # handles /tutor/*
-app.include_router(jd_router)      # handles /jd/chat
-app.include_router(jd_teach_router)  # handles /jd/teach/* (Kokoro voice lessons)
-app.include_router(tts_router)       # handles /tts/* (Kokoro TTS)
+app.include_router(jd_teach_router)  # handles /jd/teach/* (Sarvam voice lessons)
+app.include_router(tts_router)       # handles /tts/* (Sarvam TTS)
+app.include_router(announcements_router)  # bell feed, newsletter, admin updates
+app.include_router(subscriptions_router)  # handles /subscriptions/* (Razorpay)
+app.include_router(contact_router)        # handles POST /contact
 app.include_router(auth_router)
 
 
@@ -192,7 +199,11 @@ class AskRequest(BaseModel):
 
 @app.post("/ask")
 @limiter.limit("30/minute")
-def ask_question(request: Request, body: AskRequest):
+def ask_question(
+    request: Request,
+    body: AskRequest,
+    user_email: Optional[str] = Depends(get_current_user_email_optional),
+):
     """
     Non-streaming /ask endpoint for RAG.
     Used as fallback when streaming is unavailable or fails.
@@ -200,8 +211,13 @@ def ask_question(request: Request, body: AskRequest):
     question = sanitize_input(body.question, max_len=1500)
     if not question:
         raise HTTPException(status_code=400, detail="Question cannot be empty")
-        
+
     language = body.language or "English"
+
+    # Plan gate: Free = 5 questions/day + English only; Pro = unlimited.
+    usage = enforce_question_quota(
+        user_email, language, request.client.host if request.client else None
+    )
 
     # Try FAISS search first
     context = find_relevant_law(question)
@@ -211,11 +227,13 @@ def ask_question(request: Request, body: AskRequest):
 
     if not context:
         no_info = "I couldn't find specific legal information for this question in my database. Please try rephrasing."
-        return {"answer": no_info, "context_found": False, "language": language}
+        return {"answer": no_info, "context_found": False, "language": language,
+                "questions_remaining": usage["remaining"], "plan": usage["plan"]}
 
     try:
         answer = generate_ai_response(question, context, language)
-        return {"answer": answer, "context_found": True, "language": language}
+        return {"answer": answer, "context_found": True, "language": language,
+                "questions_remaining": usage["remaining"], "plan": usage["plan"]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -228,7 +246,11 @@ from app.services.ai import generate_ai_response_stream
 
 @app.post("/ask-stream")
 @limiter.limit("30/minute")
-async def ask_question_stream(request: Request, body: AskRequest):
+async def ask_question_stream(
+    request: Request,
+    body: AskRequest,
+    user_email: Optional[str] = Depends(get_current_user_email_optional),
+):
     """
     Streaming version of /ask. Returns Server-Sent Events (SSE) so the
     frontend can render tokens as they arrive from Gemini.
@@ -240,6 +262,12 @@ async def ask_question_stream(request: Request, body: AskRequest):
         raise HTTPException(status_code=400, detail="Question cannot be empty")
 
     language = body.language or "English"
+
+    # Plan gate (raises 403/429 before the stream starts): Free = 5/day, English only.
+    usage = await asyncio.to_thread(
+        enforce_question_quota,
+        user_email, language, request.client.host if request.client else None,
+    )
 
     async def event_stream():
         yield f"data: {_json.dumps({'type': 'status', 'message': 'Searching legal database...'})}\n\n"
@@ -253,7 +281,7 @@ async def ask_question_stream(request: Request, body: AskRequest):
         if not context:
             no_info = "I couldn't find specific legal information for this question in my database. Please try rephrasing."
             yield f"data: {_json.dumps({'type': 'chunk', 'content': no_info})}\n\n"
-            yield f"data: {_json.dumps({'type': 'done', 'context_found': False, 'language': language})}\n\n"
+            yield f"data: {_json.dumps({'type': 'done', 'context_found': False, 'language': language, 'questions_remaining': usage['remaining'], 'plan': usage['plan']})}\n\n"
             return
 
         yield f"data: {_json.dumps({'type': 'status', 'message': 'Generating answer...'})}\n\n"
@@ -297,7 +325,7 @@ async def ask_question_stream(request: Request, body: AskRequest):
             yield f"data: {_json.dumps({'type': 'error', 'message': str(e)})}\n\n"
             return
 
-        yield f"data: {_json.dumps({'type': 'done', 'context_found': True, 'language': language})}\n\n"
+        yield f"data: {_json.dumps({'type': 'done', 'context_found': True, 'language': language, 'questions_remaining': usage['remaining'], 'plan': usage['plan']})}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -312,7 +340,11 @@ class SimplifyRequest(BaseModel):
 
 @app.post("/simplify")
 @limiter.limit("30/minute")
-def simplify_answer(request: Request, body: SimplifyRequest):
+def simplify_answer(
+    request: Request,
+    body: SimplifyRequest,
+    user_email: Optional[str] = Depends(get_current_user_email_optional),
+):
     """
     Takes a legal AI answer and rewrites it in super-simple,
     youth-friendly language. No jargon, short sentences, relatable.
@@ -323,6 +355,9 @@ def simplify_answer(request: Request, body: SimplifyRequest):
     ans = sanitize_input(body.answer, max_len=3000)
     if not ans:
         raise HTTPException(status_code=400, detail="Answer cannot be empty")
+
+    # Free plan is English-only — non-English output is a Pro feature.
+    require_language_allowed(user_email, body.language)
 
     system_instruction = f"""You are a legal educator making law super simple for students and teenagers.
 Rewrite the provided legal answer in the SIMPLEST possible way.

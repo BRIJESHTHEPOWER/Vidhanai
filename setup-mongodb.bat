@@ -20,10 +20,7 @@ if %ERRORLEVEL% NEQ 0 (
     echo 2. Download Installer:
     echo    https://www.mongodb.com/try/download/community
     echo.
-    echo 3. Using Docker (Easiest):
-    echo    docker run -d -p 27017:27017 --name mongodb-legal mongo:latest
-    echo.
-    echo 4. Download and Extract:
+    echo 3. Download and Extract:
     echo    https://www.mongodb.com/try/download/community
     echo    Extract to C:\Program Files\MongoDB
     echo.

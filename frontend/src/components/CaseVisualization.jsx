@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import CinematicSectionBackground from './CinematicSectionBackground';
 import './CaseVisualization.css';
 
 /* ── Icons ─────────────────────────────────────────────────── */
@@ -12,16 +11,19 @@ const icons = {
 };
 
 /* ── All Case Scenarios ─────────────────────────────────────── */
+/* Each step has:
+   bns — BNS 2023 / BNSS sections (current law)
+   ipc — IPC 1860 / CrPC equivalents (old law, shown for comparison) */
 const ALL_CASES = [
   {
     id: 'theft',
     label: '🔓 Theft',
     color: '#f59e0b',
     steps: [
-      { id: 'incident', label: 'Incident', icon: icons.alert, color: '#f59e0b', title: 'The Incident', desc: 'A person reported their mobile phone worth ₹35,000 was stolen from their pocket in a crowded market. A complaint was filed at the local police station.', ipc: ['303 BNS — Theft'], meta: ['Location: Public Market', 'Value: ₹35,000', 'Reported: Immediately'] },
-      { id: 'action', label: 'Police Action', icon: icons.shield, color: '#3b82f6', title: 'Police Investigation', desc: 'FIR registered under BNS 303. CCTV footage analyzed, witnesses recorded. Accused identified within 48 hours using surveillance and informant network.', ipc: ['173 BNSS — FIR', '180 BNSS — Witness Statement'], meta: ['FIR No: 421/2024', 'Time: 48 hrs', 'Evidence: CCTV + Witnesses'] },
-      { id: 'law', label: 'Applicable Law', icon: icons.book, color: '#8b5cf6', title: 'Laws Applied', desc: 'BNS 303 (Theft) — punishment up to 3 years. Bail application filed under BNSS (new CrPC equivalent).', ipc: ['303 BNS — Theft (3 yrs)', '480 BNSS — Bail'], meta: ['Max: 3 years', 'Bail: Bailable', 'Court: Magistrate'] },
-      { id: 'outcome', label: 'Outcome', icon: icons.send, color: '#22c55e', title: 'Court Verdict', desc: 'Accused convicted under 303 BNS. Sentenced to 1 year imprisonment with fine of ₹5,000. Property recovered and returned to victim.', ipc: ['303 BNS — Convicted'], meta: ['Verdict: Guilty', 'Sentence: 1 Year + ₹5,000', 'Property: Recovered'] },
+      { id: 'incident', label: 'Incident', icon: icons.alert, color: '#f59e0b', title: 'The Incident', desc: 'A person reported their mobile phone worth ₹35,000 was stolen from their pocket in a crowded market. A complaint was filed at the local police station.', bns: ['BNS 303 — Theft'], ipc: ['IPC 379 — Theft'], meta: ['Location: Public Market', 'Value: ₹35,000', 'Reported: Immediately'] },
+      { id: 'action', label: 'Police Action', icon: icons.shield, color: '#3b82f6', title: 'Police Investigation', desc: 'FIR registered under BNS 303. CCTV footage analyzed, witnesses recorded. Accused identified within 48 hours using surveillance and informant network.', bns: ['BNSS 173 — FIR Registration', 'BNSS 180 — Witness Statement'], ipc: ['CrPC 154 — FIR', 'CrPC 161 — Witness Statement'], meta: ['FIR No: 421/2024', 'Time: 48 hrs', 'Evidence: CCTV + Witnesses'] },
+      { id: 'law', label: 'Applicable Law', icon: icons.book, color: '#8b5cf6', title: 'Laws Applied', desc: 'BNS 303 (Theft) replaces IPC 379 — punishment up to 3 years or fine or both. Bail filed under BNSS 480 (equivalent to CrPC 437).', bns: ['BNS 303 — Theft (3 yrs)', 'BNSS 480 — Bail'], ipc: ['IPC 379 — Theft (3 yrs)', 'CrPC 437 — Bail (Bailable)'], meta: ['Max: 3 years', 'Bail: Bailable', 'Court: Magistrate'] },
+      { id: 'outcome', label: 'Outcome', icon: icons.send, color: '#22c55e', title: 'Court Verdict', desc: 'Accused convicted under BNS 303 (equivalent of IPC 379). Sentenced to 1 year imprisonment with fine of ₹5,000. Property recovered and returned to victim.', bns: ['BNS 303 — Convicted'], ipc: ['IPC 379 — Equivalent Provision'], meta: ['Verdict: Guilty', 'Sentence: 1 Year + ₹5,000', 'Property: Recovered'] },
     ],
   },
   {
@@ -29,10 +31,10 @@ const ALL_CASES = [
     label: '💸 Fraud',
     color: '#ef4444',
     steps: [
-      { id: 'incident', label: 'Incident', icon: icons.alert, color: '#ef4444', title: 'Online Fraud Reported', desc: 'Victim received a fake KYC call. Scammer posed as bank official and obtained OTP, transferring ₹1.8 lakh from victim\'s savings account within minutes.', ipc: ['318 BNS — Cheating'], meta: ['Platform: Phone Call', 'Loss: ₹1.8 Lakh', 'Method: OTP Phishing'] },
-      { id: 'action', label: 'Police Action', icon: icons.shield, color: '#3b82f6', title: 'Cyber Cell Investigation', desc: 'Cyber Crime Cell registered FIR. Call records, IP logs and bank transaction trail obtained. Account freeze request raised with RBI Lok Adalat within 24 hours.', ipc: ['63 BSA — Electronic Evidence', '66C IT Act — Identity Theft'], meta: ['Cell: Cyber Crime', 'Account: Frozen', 'Trail: Call Records'] },
-      { id: 'law', label: 'Applicable Law', icon: icons.book, color: '#8b5cf6', title: 'Laws Applied', desc: 'BNS 318 (Cheating — up to 7 years). IT Act 66C (Identity theft — up to 3 yrs). Victim can also approach Banking Ombudsman for refund.', ipc: ['318 BNS — Cheating (7 yrs)', '66C IT Act — Identity Theft'], meta: ['Max: 7 years', 'Non-Bailable', 'Court: Sessions'] },
-      { id: 'outcome', label: 'Outcome', icon: icons.send, color: '#22c55e', title: 'Court Verdict', desc: 'Accused traced and arrested. Convicted under 318 BNS and 66C IT Act. Sentenced to 3 years and ordered to repay ₹1.8 lakh. Partial amount recovered.', ipc: ['318 BNS — Convicted', '66C IT Act — Convicted'], meta: ['Verdict: Guilty', 'Sentence: 3 Years', 'Compensation: ₹1.8L'] },
+      { id: 'incident', label: 'Incident', icon: icons.alert, color: '#ef4444', title: 'Online Fraud Reported', desc: 'Victim received a fake KYC call. Scammer posed as bank official and obtained OTP, transferring ₹1.8 lakh from savings account within minutes.', bns: ['BNS 318 — Cheating'], ipc: ['IPC 420 — Cheating', 'IT Act 66C — Identity Theft'], meta: ['Platform: Phone Call', 'Loss: ₹1.8 Lakh', 'Method: OTP Phishing'] },
+      { id: 'action', label: 'Police Action', icon: icons.shield, color: '#3b82f6', title: 'Cyber Cell Investigation', desc: 'Cyber Crime Cell registered FIR. Call records, IP logs and bank transaction trail obtained. Account freeze raised with RBI Lok Adalat within 24 hours.', bns: ['BSA 63 — Electronic Evidence', 'IT Act 66C — Identity Theft'], ipc: ['IPC 420 — Cheating FIR', 'CrPC 154 — FIR Registration'], meta: ['Cell: Cyber Crime', 'Account: Frozen', 'Trail: Call Records'] },
+      { id: 'law', label: 'Applicable Law', icon: icons.book, color: '#8b5cf6', title: 'Laws Applied', desc: 'BNS 318 replaces IPC 420 (Cheating — up to 7 years). IT Act 66C (Identity theft — up to 3 yrs) remains unchanged. Victim can also approach Banking Ombudsman.', bns: ['BNS 318 — Cheating (7 yrs)', 'IT Act 66C — Identity Theft (3 yrs)'], ipc: ['IPC 420 — Cheating (7 yrs)', 'IT Act 66C — Identity Theft'], meta: ['Max: 7 years', 'Non-Bailable', 'Court: Sessions'] },
+      { id: 'outcome', label: 'Outcome', icon: icons.send, color: '#22c55e', title: 'Court Verdict', desc: 'Accused convicted under BNS 318 (replaces IPC 420) and IT Act 66C. Sentenced to 3 years and ordered to repay ₹1.8 lakh. Partial amount recovered.', bns: ['BNS 318 — Convicted', 'IT Act 66C — Convicted'], ipc: ['IPC 420 — Equivalent Provision', 'IT Act 66C — Convicted'], meta: ['Verdict: Guilty', 'Sentence: 3 Years', 'Compensation: ₹1.8L'] },
     ],
   },
   {
@@ -40,10 +42,10 @@ const ALL_CASES = [
     label: '🤜 Assault',
     color: '#f97316',
     steps: [
-      { id: 'incident', label: 'Incident', icon: icons.alert, color: '#f97316', title: 'Physical Assault', desc: 'Victim was attacked by neighbor during a property dispute. Sustained grievous hurt — two rib fractures. Incident occurred inside residential colony at night.', ipc: ['117 BNS — Grievous Hurt'], meta: ['Location: Residential Area', 'Injury: Rib Fractures', 'Time: Night'] },
-      { id: 'action', label: 'Police Action', icon: icons.shield, color: '#3b82f6', title: 'Police & Medical', desc: 'FIR registered under 117 BNS. Victim taken to government hospital. Medico-Legal Certificate (MLC) obtained. Accused arrested same night from residence.', ipc: ['117 BNS — FIR Filed', '180 BNSS — Witness Statements'], meta: ['MLC: Obtained', 'Arrest: Same Night', 'Witnesses: 3'] },
-      { id: 'law', label: 'Applicable Law', icon: icons.book, color: '#8b5cf6', title: 'Laws Applied', desc: 'BNS 117 — Voluntarily causing grievous hurt, punishment up to 7 years. Bail denied given nature of injury.', ipc: ['117 BNS — Grievous Hurt (7 yrs)', '126 BNS — Wrongful Restraint'], meta: ['Max: 7 years', 'Non-Bailable', 'Court: Sessions'] },
-      { id: 'outcome', label: 'Outcome', icon: icons.send, color: '#22c55e', title: 'Court Verdict', desc: 'Accused convicted under 117 BNS. Sentenced to 2 years rigorous imprisonment. Ordered to pay ₹25,000 compensation to victim.', ipc: ['117 BNS — Convicted'], meta: ['Verdict: Guilty', 'Sentence: 2 Years RI', 'Compensation: ₹25,000'] },
+      { id: 'incident', label: 'Incident', icon: icons.alert, color: '#f97316', title: 'Physical Assault', desc: 'Victim was attacked by neighbor during a property dispute. Sustained grievous hurt — two rib fractures. Incident occurred inside residential colony at night.', bns: ['BNS 117 — Voluntarily Causing Grievous Hurt'], ipc: ['IPC 325 — Voluntarily Causing Grievous Hurt'], meta: ['Location: Residential Area', 'Injury: Rib Fractures', 'Time: Night'] },
+      { id: 'action', label: 'Police Action', icon: icons.shield, color: '#3b82f6', title: 'Police & Medical', desc: 'FIR registered under BNS 117. Victim taken to government hospital. Medico-Legal Certificate (MLC) obtained. Accused arrested same night from residence.', bns: ['BNSS 173 — FIR Registration', 'BNSS 180 — Witness Statements'], ipc: ['IPC 325 — FIR Filed', 'CrPC 154 — FIR', 'CrPC 161 — Witness'], meta: ['MLC: Obtained', 'Arrest: Same Night', 'Witnesses: 3'] },
+      { id: 'law', label: 'Applicable Law', icon: icons.book, color: '#8b5cf6', title: 'Laws Applied', desc: 'BNS 117 replaces IPC 325 — voluntarily causing grievous hurt, punishment up to 7 years. Wrongful confinement: BNS 126 replaces IPC 342.', bns: ['BNS 117 — Grievous Hurt (7 yrs)', 'BNS 126 — Wrongful Confinement'], ipc: ['IPC 325 — Grievous Hurt (7 yrs)', 'IPC 342 — Wrongful Confinement'], meta: ['Max: 7 years', 'Non-Bailable', 'Court: Sessions'] },
+      { id: 'outcome', label: 'Outcome', icon: icons.send, color: '#22c55e', title: 'Court Verdict', desc: 'Accused convicted under BNS 117 (equivalent of IPC 325). Sentenced to 2 years rigorous imprisonment. Ordered to pay ₹25,000 compensation to victim.', bns: ['BNS 117 — Convicted'], ipc: ['IPC 325 — Equivalent Provision'], meta: ['Verdict: Guilty', 'Sentence: 2 Years RI', 'Compensation: ₹25,000'] },
     ],
   },
   {
@@ -51,10 +53,10 @@ const ALL_CASES = [
     label: '🏠 Domestic Violence',
     color: '#ec4899',
     steps: [
-      { id: 'incident', label: 'Incident', icon: icons.alert, color: '#ec4899', title: 'Domestic Cruelty', desc: 'Married woman subjected to continuous mental and physical cruelty by husband and in-laws for dowry. Approached police after hospitalization due to physical abuse.', ipc: ['85 BNS — Cruelty'], meta: ['Relation: Husband + In-Laws', 'Duration: 2 Years', 'Trigger: Dowry Demand'] },
-      { id: 'action', label: 'Police Action', icon: icons.shield, color: '#3b82f6', title: 'Women Cell Action', desc: 'Women Helpline (181) involved. FIR registered under 85 BNS and Dowry Prohibition Act. Protection order obtained. All accused arrested under non-bailable warrant.', ipc: ['85 BNS — FIR', '3 Dowry Prohibition Act'], meta: ['Helpline: 181 (Women)', 'Order: Protection', 'Arrested: 3 Accused'] },
-      { id: 'law', label: 'Applicable Law', icon: icons.book, color: '#8b5cf6', title: 'Laws Applied', desc: 'BNS 85 — Cruelty by husband or relatives (up to 3 years). Dowry Prohibition Act 4 — demanding dowry (up to 5 years). DV Act for protection orders.', ipc: ['85 BNS — Cruelty (3 yrs)', '4 Dowry Act — Demanding Dowry'], meta: ['Max: 5 years', 'Non-Bailable', 'Protection: DV Act'] },
-      { id: 'outcome', label: 'Outcome', icon: icons.send, color: '#22c55e', title: 'Court Verdict', desc: 'Husband convicted under 85 BNS. In-laws convicted under Dowry Act 4. Victim granted permanent protection order, maintenance, and custody of children.', ipc: ['85 BNS — Convicted', '4 Dowry Act — Convicted'], meta: ['Verdict: Guilty', 'Maintenance: Granted', 'Custody: Victim'] },
+      { id: 'incident', label: 'Incident', icon: icons.alert, color: '#ec4899', title: 'Domestic Cruelty', desc: 'Married woman subjected to continuous mental and physical cruelty by husband and in-laws for dowry. Approached police after hospitalization due to physical abuse.', bns: ['BNS 85 — Cruelty by Husband'], ipc: ['IPC 498A — Cruelty by Husband'], meta: ['Relation: Husband + In-Laws', 'Duration: 2 Years', 'Trigger: Dowry Demand'] },
+      { id: 'action', label: 'Police Action', icon: icons.shield, color: '#3b82f6', title: 'Women Cell Action', desc: 'Women Helpline (181) involved. FIR registered under BNS 85 and Dowry Prohibition Act. Protection order obtained. All accused arrested under non-bailable warrant.', bns: ['BNS 85 — FIR Registered', 'Dowry Act S.3 — Giving/Taking Dowry'], ipc: ['IPC 498A — FIR Filed', 'Dowry Act S.3 — Prohibition'], meta: ['Helpline: 181 (Women)', 'Order: Protection', 'Arrested: 3 Accused'] },
+      { id: 'law', label: 'Applicable Law', icon: icons.book, color: '#8b5cf6', title: 'Laws Applied', desc: 'BNS 85 replaces IPC 498A — Cruelty by husband/relatives, up to 3 years. Dowry Act S.4 — demanding dowry, up to 5 years. DV Act for protection orders.', bns: ['BNS 85 — Cruelty (3 yrs)', 'Dowry Act S.4 — Demanding Dowry (5 yrs)'], ipc: ['IPC 498A — Cruelty (3 yrs)', 'Dowry Act S.4 — Demanding Dowry'], meta: ['Max: 5 years', 'Non-Bailable', 'Protection: DV Act'] },
+      { id: 'outcome', label: 'Outcome', icon: icons.send, color: '#22c55e', title: 'Court Verdict', desc: 'Husband convicted under BNS 85 (replaces IPC 498A). In-laws convicted under Dowry Act S.4. Victim granted permanent protection order, maintenance, and custody of children.', bns: ['BNS 85 — Convicted'], ipc: ['IPC 498A — Equivalent Provision', 'Dowry Act S.4 — Convicted'], meta: ['Verdict: Guilty', 'Maintenance: Granted', 'Custody: Victim'] },
     ],
   },
   {
@@ -62,10 +64,10 @@ const ALL_CASES = [
     label: '⚖️ Murder',
     color: '#dc2626',
     steps: [
-      { id: 'incident', label: 'Incident', icon: icons.alert, color: '#dc2626', title: 'Murder Reported', desc: 'Body of a 35-year-old man discovered near a railway track. Post-mortem confirmed death due to blunt force trauma. Family filed complaint suspecting foul play.', ipc: ['101 BNS — Murder'], meta: ['Location: Railway Track', 'Cause: Blunt Force', 'Reported: Family'] },
-      { id: 'action', label: 'Police Action', icon: icons.shield, color: '#3b82f6', title: 'Homicide Investigation', desc: 'CID team formed. Post-mortem report analyzed. Mobile location data traced. Key suspect — business rival — identified from call records and CCTV near scene.', ipc: ['101 BNS — Murder FIR', '194 BNSS — Inquest'], meta: ['Team: CID / Homicide', 'Evidence: CCTV + CDR', 'Suspect: Identified'] },
-      { id: 'law', label: 'Applicable Law', icon: icons.book, color: '#8b5cf6', title: 'Laws Applied', desc: 'BNS 101 — Murder: Death penalty or life imprisonment. BNS 238 — Causing disappearance of evidence. Sessions Court has jurisdiction.', ipc: ['101 BNS — Murder (Death/Life)', '238 BNS — Evidence Destruction'], meta: ['Punishment: Death/Life', 'Non-Bailable', 'Court: Sessions'] },
-      { id: 'outcome', label: 'Outcome', icon: icons.send, color: '#22c55e', title: 'Court Verdict', desc: 'Accused convicted under 101 BNS after 18-month trial. Sentenced to life imprisonment. High Court upheld the conviction on appeal.', ipc: ['101 BNS — Convicted', '238 BNS — Convicted'], meta: ['Verdict: Guilty', 'Sentence: Life Imprisonment', 'Appeal: HC Upheld'] },
+      { id: 'incident', label: 'Incident', icon: icons.alert, color: '#dc2626', title: 'Murder Reported', desc: 'Body of a 35-year-old man discovered near a railway track. Post-mortem confirmed death due to blunt force trauma. Family filed complaint suspecting foul play.', bns: ['BNS 101 — Murder (Definition)', 'BNS 103 — Punishment for Murder'], ipc: ['IPC 300 — Murder (Definition)', 'IPC 302 — Punishment for Murder'], meta: ['Location: Railway Track', 'Cause: Blunt Force', 'Reported: Family'] },
+      { id: 'action', label: 'Police Action', icon: icons.shield, color: '#3b82f6', title: 'Homicide Investigation', desc: 'CID team formed. Post-mortem report analyzed. Mobile location data traced. Key suspect — business rival — identified from call records and CCTV near scene.', bns: ['BNSS 194 — Inquest Proceedings', 'BNS 103 — Murder FIR'], ipc: ['CrPC 174 — Police Inquest', 'IPC 302 — Murder FIR'], meta: ['Team: CID / Homicide', 'Evidence: CCTV + CDR', 'Suspect: Identified'] },
+      { id: 'law', label: 'Applicable Law', icon: icons.book, color: '#8b5cf6', title: 'Laws Applied', desc: 'BNS 103 replaces IPC 302 — Murder: Death penalty or life imprisonment. BNS 238 replaces IPC 201 — disappearance of evidence. Sessions Court has exclusive jurisdiction.', bns: ['BNS 103 — Murder (Death/Life)', 'BNS 238 — Evidence Destruction'], ipc: ['IPC 302 — Murder (Death/Life)', 'IPC 201 — Causing Disappearance of Evidence'], meta: ['Punishment: Death/Life', 'Non-Bailable', 'Court: Sessions'] },
+      { id: 'outcome', label: 'Outcome', icon: icons.send, color: '#22c55e', title: 'Court Verdict', desc: 'Accused convicted under BNS 103 (equivalent of IPC 302) after 18-month trial. Sentenced to life imprisonment. High Court upheld the conviction on appeal.', bns: ['BNS 103 — Convicted', 'BNS 238 — Convicted'], ipc: ['IPC 302 — Equivalent Provision', 'IPC 201 — Evidence Destruction'], meta: ['Verdict: Guilty', 'Sentence: Life Imprisonment', 'Appeal: HC Upheld'] },
     ],
   },
   {
@@ -73,10 +75,10 @@ const ALL_CASES = [
     label: '💻 Cybercrime',
     color: '#06b6d4',
     steps: [
-      { id: 'incident', label: 'Incident', icon: icons.alert, color: '#06b6d4', title: 'Hacking & Data Theft', desc: 'A startup\'s database was hacked. Customer personal data of 50,000 users stolen and sold on dark web. Company detected breach after unusual server activity alerts.', ipc: ['66 IT Act — Hacking', '43 IT Act — Damage to Computer'], meta: ['Scale: 50,000 Records', 'Method: SQL Injection', 'Detected: Server Alert'] },
-      { id: 'action', label: 'Police Action', icon: icons.shield, color: '#3b82f6', title: 'Cyber Cell & CERT-In', desc: 'CERT-In notified. Cyber Crime Cell seized servers. Digital forensics team extracted logs. Suspect traced to IP address registered in another state.', ipc: ['65 IT Act — Tampering Source Code', '66B IT Act — Stolen Computer Resource'], meta: ['CERT-In: Notified', 'Forensics: Server Logs', 'IP: Traced'] },
-      { id: 'law', label: 'Applicable Law', icon: icons.book, color: '#8b5cf6', title: 'Laws Applied', desc: 'IT Act 66 — Hacking (up to 3 years). 43 — Damage/unauthorized access (compensation). BNS 111 — Organized crime may apply if data sold systematically.', ipc: ['66 IT Act — Hacking (3 yrs)', '43 IT Act — Compensation', '66E IT Act — Privacy Violation'], meta: ['Max: 3 years + Fine', 'Non-Bailable', 'Court: Cyber Court'] },
-      { id: 'outcome', label: 'Outcome', icon: icons.send, color: '#22c55e', title: 'Court Verdict', desc: 'Accused arrested from another state via transit remand. Convicted under 66 & 66E IT Act. Sentenced to 2 years + ₹5 lakh fine. Company awarded civil damages.', ipc: ['66 IT Act — Convicted', '66E IT Act — Convicted'], meta: ['Verdict: Guilty', 'Sentence: 2 Yrs + ₹5L', 'Civil Damages: Awarded'] },
+      { id: 'incident', label: 'Incident', icon: icons.alert, color: '#06b6d4', title: 'Hacking & Data Theft', desc: 'A startup\'s database was hacked. Customer personal data of 50,000 users stolen and sold on dark web. Company detected breach after unusual server activity alerts.', bns: ['IT Act 66 — Computer Hacking', 'BNS 111 — Organised Crime (if syndicate)'], ipc: ['IT Act 66 — Hacking (unchanged)', 'IPC 379 — Theft of Data (read with IT Act)'], meta: ['Scale: 50,000 Records', 'Method: SQL Injection', 'Detected: Server Alert'] },
+      { id: 'action', label: 'Police Action', icon: icons.shield, color: '#3b82f6', title: 'Cyber Cell & CERT-In', desc: 'CERT-In notified. Cyber Crime Cell seized servers. Digital forensics team extracted logs. Suspect traced to IP address registered in another state.', bns: ['IT Act 65 — Tampering Source Code', 'IT Act 66B — Stolen Computer Resource'], ipc: ['IT Act 65 — Source Code (unchanged)', 'IPC 411 — Receiving Stolen Property'], meta: ['CERT-In: Notified', 'Forensics: Server Logs', 'IP: Traced'] },
+      { id: 'law', label: 'Applicable Law', icon: icons.book, color: '#8b5cf6', title: 'Laws Applied', desc: 'IT Act 66 — Hacking (up to 3 years, unchanged from IPC era). IT Act 43 — unauthorized access compensation. BNS 111 may apply for organised cybercrime syndicates.', bns: ['IT Act 66 — Hacking (3 yrs)', 'BNS 111 — Organised Crime', 'IT Act 66E — Privacy Violation'], ipc: ['IT Act 66 — Hacking (3 yrs)', 'IT Act 43 — Compensation', 'IT Act 66E — Privacy Violation'], meta: ['Max: 3 years + Fine', 'Non-Bailable', 'Court: Cyber Court'] },
+      { id: 'outcome', label: 'Outcome', icon: icons.send, color: '#22c55e', title: 'Court Verdict', desc: 'Accused arrested via transit remand. Convicted under IT Act 66 & 66E. Sentenced to 2 years + ₹5 lakh fine. Company awarded civil damages under IT Act 43.', bns: ['IT Act 66 — Convicted', 'IT Act 66E — Convicted'], ipc: ['IT Act 66 — Convicted (same)', 'IT Act 43 — Civil Damages Awarded'], meta: ['Verdict: Guilty', 'Sentence: 2 Yrs + ₹5L', 'Civil Damages: Awarded'] },
     ],
   },
 ];
@@ -89,10 +91,8 @@ const DYN_COLORS = ['#f59e0b', '#3b82f6', '#8b5cf6', '#22c55e'];
 
 function buildDynamicCase(resp) {
   const law = resp.law || {};
-  const refList = [
-    law.bns_section ? `${law.bns_section} BNS` : '',
-    law.ipc_section ? `${law.ipc_section} IPC` : '',
-  ].filter(Boolean);
+  const bnsList = law.bns_section ? [`${law.bns_section} BNS`] : [];
+  const ipcList = law.ipc_section ? [`${law.ipc_section} IPC`] : [];
   const punishment = law.bns_punishment || law.punishment || '';
 
   const steps = (resp.steps || []).map((s, i) => {
@@ -109,7 +109,8 @@ function buildDynamicCase(resp) {
       color: DYN_COLORS[i % DYN_COLORS.length],
       title: s.title || s.phase || `Step ${i + 1}`,
       desc: s.story || s.text || '',
-      ipc: refList.length ? refList : (s.ipc_ref ? [String(s.ipc_ref)] : ['Applicable section']),
+      bns: bnsList.length ? bnsList : (s.ipc_ref ? [String(s.ipc_ref)] : ['Applicable BNS section']),
+      ipc: ipcList,
       meta,
     };
   });
@@ -212,8 +213,6 @@ export default function CaseVisualization() {
       id="cases"
       className={`section case-section cinematic-section-wrapper${highlight ? ' case-section--highlight' : ''}`}
     >
-      <CinematicSectionBackground type="documents" color1="#f59e0b" color2="#8b5cf6" />
-
       <div className="container" style={{ position: 'relative', zIndex: 10 }}>
         <div className="section-header">
           <motion.div className="section-label" initial={{ opacity: 0, y: -20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
@@ -224,7 +223,7 @@ export default function CaseVisualization() {
             See How <span className="gradient-text">Cases Unfold</span>
           </motion.h2>
           <motion.p className="section-subtitle" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.2 }}>
-            Step-by-step breakdown of real legal scenarios with applied BNS sections.
+            Step-by-step breakdown of real legal scenarios with applied <strong style={{ color: '#a78bfa' }}>BNS 2023</strong> &amp; <strong style={{ color: '#f59e0b' }}>IPC 1860</strong> sections.
           </motion.p>
         </div>
 
@@ -362,20 +361,42 @@ export default function CaseVisualization() {
               </AnimatePresence>
             </div>
 
-            {/* Side IPC panel */}
+            {/* Side sections panel — BNS + IPC */}
             <aside className="case-ipc-panel">
               <div className="case-ipc-panel-title">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
                 Applied Sections
               </div>
-              <div className="case-ipc-list">
-                {step.ipc.map((ipc, ii) => (
-                  <motion.div key={ipc} className="case-ipc-entry" style={{ '--step-color': step.color }} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: ii * 0.12 }}>
-                    <div className="case-ipc-bar" style={{ background: step.color, boxShadow: `0 0 8px ${step.color}66` }} />
-                    <span className="case-ipc-text">{ipc}</span>
-                  </motion.div>
-                ))}
-              </div>
+
+              {/* BNS 2023 (current law) */}
+              {step.bns && step.bns.length > 0 && (
+                <>
+                  <div className="case-law-group-label case-law-group-label--bns">BNS 2023 (Current Law)</div>
+                  <div className="case-ipc-list">
+                    {step.bns.map((ref, ii) => (
+                      <motion.div key={ref} className="case-ipc-entry case-ipc-entry--bns" style={{ '--step-color': '#a78bfa' }} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: ii * 0.1 }}>
+                        <div className="case-ipc-bar" style={{ background: '#a78bfa', boxShadow: '0 0 8px #a78bfa66' }} />
+                        <span className="case-ipc-text">{ref}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* IPC 1860 equivalent */}
+              {step.ipc && step.ipc.length > 0 && (
+                <>
+                  <div className="case-law-group-label case-law-group-label--ipc">IPC 1860 (Old Law)</div>
+                  <div className="case-ipc-list">
+                    {step.ipc.map((ref, ii) => (
+                      <motion.div key={ref} className="case-ipc-entry case-ipc-entry--ipc" style={{ '--step-color': '#f59e0b' }} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: (step.bns?.length || 0) * 0.1 + ii * 0.1 }}>
+                        <div className="case-ipc-bar" style={{ background: '#f59e0b', boxShadow: '0 0 8px #f59e0b66' }} />
+                        <span className="case-ipc-text">{ref}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
 
               <div className="case-ipc-panel-title" style={{ marginTop: 20 }}>Case Timeline</div>
               <div className="case-timeline">

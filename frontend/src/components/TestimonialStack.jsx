@@ -106,52 +106,31 @@ export default function TestimonialStack() {
   const navigate = useNavigate();
   const [activeIndex, setActiveIndex] = useState(0);
   const [testimonials, setTestimonials] = useState([]);
+  const [loaded, setLoaded] = useState(false);
 
   const fetchReviews = async () => {
     try {
+      // Only admin-approved ("featured") reviews are shown in this homepage
+      // showcase. Every other submitted review still shows on /reviews.
       const res = await fetch('http://localhost:8000/reviews');
       if (res.ok) {
         const data = await res.json();
-        // Map backend reviews to testimonial format if they aren't already
         const formatted = data.map((d, i) => ({
           ...d,
           quote: d.text,
           id: d.id || i,
           badge: i === 0 ? 'Newest' : 'Community'
         }));
-        if (formatted.length > 0) {
-          setTestimonials(formatted);
-        }
+        setTestimonials(formatted);
       }
     } catch (err) {
       console.error("Failed to fetch reviews:", err);
+    } finally {
+      setLoaded(true);
     }
   };
 
   useEffect(() => {
-    // Initial fallback data
-    setTestimonials([
-      {
-        id: 1,
-        name: 'Arjun Mehta',
-        role: 'Small Business Owner',
-        badge: 'Verified User',
-        rating: 5,
-        quote: 'Vidhan.ai decoded a complex GST dispute in minutes. What would have cost me ₹15,000 in legal fees was resolved with a single query. Absolutely indispensable.',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=96&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 2,
-        name: 'Priya Sharma',
-        role: 'HR Manager, TechCorp India',
-        badge: 'Pro Plan',
-        rating: 5,
-        quote: 'Our entire legal compliance workflow changed after adopting Vidhan.ai. Labor law summaries, POSH guidelines, contract reviews — all done in seconds, not days.',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=96&auto=format&fit=crop&q=80',
-      }
-    ]);
-    
-    // Fetch live from backend
     fetchReviews();
   }, []);
 
@@ -176,6 +155,10 @@ export default function TestimonialStack() {
     const diff = cardIndex - activeIndex;
     return diff < 0 ? -1 : diff;
   };
+
+  // Wait for the fetch, and skip the showcase entirely if there are no
+  // admin-approved reviews yet — never fall back to fake testimonials.
+  if (!loaded || testimonials.length === 0) return null;
 
   return (
     <section className="ts-section" ref={sectionRef} id="testimonials">

@@ -56,8 +56,8 @@ export default function Signup() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Signup failed');
 
-      setSuccess('Account created! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 1500);
+      setSuccess('Account created! Redirecting to verification...');
+      setTimeout(() => navigate('/verify-otp', { state: { email, justSignedUp: true } }), 1200);
     } catch (err) {
       setError(err.message);
     }
@@ -102,7 +102,6 @@ export default function Signup() {
             <li><span className="auth-feat-icon">⚖️</span> IPC 1860 &amp; BNS 2023 side-by-side</li>
             <li><span className="auth-feat-icon">🤖</span> AI legal assistant in your language</li>
             <li><span className="auth-feat-icon">📚</span> Interactive quizzes &amp; law comics</li>
-            <li><span className="auth-feat-icon">🔍</span> Detective case simulator</li>
           </ul>
         </div>
         <div className="auth-orb auth-orb--1" />

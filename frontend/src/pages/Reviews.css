@@ -629,6 +629,13 @@
 .rv-field input::placeholder,
 .rv-field textarea::placeholder { color: #475569; }
 
+.rv-field input:disabled {
+  background: rgba(255,255,255,0.02);
+  border-color: rgba(255,255,255,0.06);
+  color: rgba(241,245,249,0.6);
+  cursor: not-allowed;
+}
+
 .rv-field textarea {
   resize: vertical;
   min-height: 120px;
@@ -741,19 +748,16 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
+  opacity: 1;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
 }
 
-/* ── Lanyard warm-up (invisible, primes WebGL/physics before it's needed) ── */
-.rv-lanyard-warmup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 2px;
-  height: 2px;
-  overflow: hidden;
+/* Kept mounted but hidden — the 3D lanyard inside stays initialised so it
+   appears instantly (no WebGL/physics re-init) when the overlay is revealed. */
+.rv-thank-you-overlay--hidden {
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  z-index: -1;
 }
 
 .rv-thankyou-banner {

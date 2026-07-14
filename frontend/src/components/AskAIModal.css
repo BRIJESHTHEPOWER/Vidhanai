@@ -22,7 +22,7 @@
 .am-lang { position: relative; }
 .am-lang-btn { display: flex; align-items: center; gap: 5px; padding: 5px 9px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; font-size: 0.75rem; color: #94a3b8; cursor: pointer; transition: all 0.2s; }
 .am-lang-btn:hover { background: rgba(99,102,241,0.1); color: #a5b4fc; }
-.am-lang-dropdown { position: absolute; top: calc(100% + 6px); right: 0; z-index: 400; background: rgba(8,12,24,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 5px; min-width: 160px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); animation: fadeInUp 0.15s ease both; }
+.am-lang-dropdown { position: absolute; top: calc(100% + 6px); right: 0; z-index: 400; background: rgba(8,12,24,0.97); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 5px; min-width: 160px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); animation: fadeInUp 0.15s ease both; max-height: min(60vh, 420px); overflow-y: auto; }
 .am-lang-option { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border-radius: 8px; font-size: 0.8rem; color: #94a3b8; background: none; border: none; cursor: pointer; transition: all 0.15s; }
 .am-lang-option:hover { background: rgba(255,255,255,0.05); color: #f1f5f9; }
 .am-lang-option--active { background: rgba(99,102,241,0.1); color: #a5b4fc; }

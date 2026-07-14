@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, X, MessageSquarePlus, Quote, Award, Users, TrendingUp, Filter } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -110,26 +111,45 @@ function StatsBanner({ reviews }) {
 
 /* ── Submit modal ── */
 function SubmitModal({ onClose, onSuccess }) {
-  const [name, setName] = useState('');
+  const navigate = useNavigate();
+  const accountName = localStorage.getItem('vidhan_user') || '';
+  // Real login state = a token AND a name are both present. A stale name alone
+  // (from an expired/cleared session) must not look "logged in".
+  const isLoggedIn = !!(localStorage.getItem('vidhan_token') && accountName);
   const [role, setRole] = useState('');
   const [rating, setRating] = useState(5);
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const goLogin = () => { onClose(); navigate('/login'); };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim() || !text.trim()) { setError('Name and review are required.'); return; }
+    if (!text.trim()) { setError('Review text is required.'); return; }
     if (text.trim().length < 10) { setError('Review must be at least 10 characters.'); return; }
+
+    const token = localStorage.getItem('vidhan_token');
+    if (!token) { setError('Please log in to submit a review.'); return; }
 
     setSubmitting(true);
     setError('');
     try {
       const res = await fetch('http://localhost:8000/reviews', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), role: role.trim(), rating, text: text.trim() }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ role: role.trim(), rating, text: text.trim() }),
       });
+      if (res.status === 401) {
+        // Token missing/expired/invalid — clear the stale session so the UI stops
+        // pretending we're logged in, and prompt a fresh login.
+        localStorage.removeItem('vidhan_token');
+        localStorage.removeItem('vidhan_user');
+        throw new Error('Your session has expired. Please log in again.');
+      }
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.detail || 'Failed to submit');
@@ -170,19 +190,23 @@ function SubmitModal({ onClose, onSuccess }) {
             </div>
           </div>
 
+          {!isLoggedIn ? (
+            <div className="rv-login-required" style={{ textAlign: 'center', padding: '8px 4px 4px' }}>
+              {error && <div className="rv-modal-error" style={{ marginBottom: 16 }}><X size={14} /> {error}</div>}
+              <p style={{ color: 'var(--clr-text-muted, #94a3b8)', fontSize: 15, lineHeight: 1.6, margin: '0 0 20px' }}>
+                You need to be logged in to post a review — this keeps every review
+                tied to a real account and shown under your real name.
+              </p>
+              <button type="button" className="rv-modal-submit" onClick={goLogin} style={{ width: '100%' }}>
+                <MessageSquarePlus size={18} /> Log In to Continue
+              </button>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="rv-modal-form">
             <div className="rv-modal-row">
               <div className="rv-field">
-                <label>Your Name *</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="e.g. Priya Sharma"
-                  maxLength={50}
-                  required
-                  autoFocus
-                />
+                <label>Posting As</label>
+                <input type="text" value={accountName} disabled readOnly />
               </div>
               <div className="rv-field">
                 <label>Your Role <span>(optional)</span></label>
@@ -192,6 +216,7 @@ function SubmitModal({ onClose, onSuccess }) {
                   onChange={e => setRole(e.target.value)}
                   placeholder="e.g. Student, Business Owner"
                   maxLength={50}
+                  autoFocus
                 />
               </div>
             </div>
@@ -238,6 +263,7 @@ function SubmitModal({ onClose, onSuccess }) {
               )}
             </button>
           </form>
+          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>,
@@ -245,19 +271,26 @@ function SubmitModal({ onClose, onSuccess }) {
   );
 }
 
-/* ── Thank You Card Modal ── */
-function ThankYouCard({ review, onClose, onAnother }) {
+/* ── Thank You Card Modal ──
+   Stays MOUNTED at all times (hidden via CSS) so the Lanyard's WebGL canvas,
+   physics world and environment lighting are fully initialised on page load.
+   Toggling `visible` is then instant — no re-mount, no loading delay. */
+function ThankYouCard({ review, visible, onClose, onAnother }) {
   useEffect(() => {
-    // Trigger confetti on mount
+    if (!visible) return;
+    // Trigger confetti when the card is revealed
     const duration = 2500;
     const end = Date.now() + duration;
+    let cancelled = false;
 
     const frame = () => {
+      if (cancelled) return;
       confetti({
         particleCount: 5,
         angle: 60,
         spread: 55,
         origin: { x: 0 },
+        zIndex: 10001,   // above the thank-you overlay (z 10000)
         colors: ['#6366f1', '#06b6d4', '#10b981', '#f59e0b']
       });
       confetti({
@@ -265,6 +298,7 @@ function ThankYouCard({ review, onClose, onAnother }) {
         angle: 120,
         spread: 55,
         origin: { x: 1 },
+        zIndex: 10001,
         colors: ['#6366f1', '#06b6d4', '#10b981', '#f59e0b']
       });
 
@@ -273,15 +307,13 @@ function ThankYouCard({ review, onClose, onAnother }) {
       }
     };
     frame();
-  }, []);
+    return () => { cancelled = true; };
+  }, [visible]);
 
   return createPortal(
-    <AnimatePresence>
-      <motion.div
-        className="rv-thank-you-overlay"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+      <div
+        className={`rv-thank-you-overlay${visible ? '' : ' rv-thank-you-overlay--hidden'}`}
+        aria-hidden={!visible}
         onClick={(e) => e.target === e.currentTarget && onClose()}
         style={{ padding: 0, alignItems: 'stretch' }}
       >
@@ -313,7 +345,7 @@ function ThankYouCard({ review, onClose, onAnother }) {
         </div>
 
         <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'auto' }}>
-          <Lanyard position={[0, 0, 24]} gravity={[0, -40, 0]} transparent={true} name={review?.name?.split(' ')[0]} />
+          <Lanyard position={[0, 0, 24]} gravity={[0, -40, 0]} transparent={true} name={review?.name?.split(' ')[0]} replay={visible} />
         </div>
         
         <div style={{ position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', gap: 16 }}>
@@ -324,8 +356,7 @@ function ThankYouCard({ review, onClose, onAnother }) {
             Submit Another Review
           </button>
         </div>
-      </motion.div>
-    </AnimatePresence>,
+      </div>,
     document.body
   );
 }
@@ -341,7 +372,7 @@ export default function Reviews() {
 
   const fetchReviews = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:8000/reviews?limit=100');
+      const res = await fetch('http://localhost:8000/reviews?limit=100&featured_only=false');
       if (res.ok) {
         const data = await res.json();
         setReviews(data);
@@ -374,14 +405,6 @@ export default function Reviews() {
 
   return (
     <div className="rv-page">
-      {/* Warm up the Lanyard 3D card (WebGL/physics/model) in the background so it
-          appears instantly in the Thank You card once a review is submitted. */}
-      {!submittedReview && (
-        <div className="rv-lanyard-warmup" aria-hidden="true">
-          <Lanyard position={[0, 0, 24]} gravity={[0, -40, 0]} transparent={true} />
-        </div>
-      )}
-
       <Navbar />
 
       {/* ── Hero ── */}
@@ -490,16 +513,17 @@ export default function Reviews() {
         />
       )}
 
-      {submittedReview && (
-        <ThankYouCard
-          review={submittedReview}
-          onClose={() => setSubmittedReview(null)}
-          onAnother={() => {
-            setSubmittedReview(null);
-            setShowModal(true);
-          }}
-        />
-      )}
+      {/* Always mounted (hidden until a review is submitted) so the 3D lanyard
+          is pre-initialised and appears instantly — see ThankYouCard note. */}
+      <ThankYouCard
+        review={submittedReview}
+        visible={Boolean(submittedReview)}
+        onClose={() => setSubmittedReview(null)}
+        onAnother={() => {
+          setSubmittedReview(null);
+          setShowModal(true);
+        }}
+      />
     </div>
   );
 }

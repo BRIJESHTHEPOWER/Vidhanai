@@ -1,0 +1,48 @@
+/* ══════════════════════════════════════════════════════
+   BorderBeam — Magic UI component
+   Imported by BorderBeam.jsx so the styles load on every
+   page that uses the component, not just the hero page.
+══════════════════════════════════════════════════════ */
+
+/* @property needed to animate --border-angle inside conic-gradient */
+@property --border-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0turn;
+}
+
+.border-beam {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  /* padding creates the "border" area; mask cuts the interior */
+  padding: var(--beam-w, 1.5px);
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent          0deg,
+    transparent        305deg,
+    var(--beam-from, #D4A017) 340deg,
+    var(--beam-to,   #818cf8) 355deg,
+    transparent        360deg
+  );
+  /* XOR mask: keeps only the padding strip = the border ring */
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: border-beam-rotate var(--beam-dur, 6s) linear
+             var(--beam-delay, 0s) infinite;
+}
+
+@keyframes border-beam-rotate {
+  to { --border-angle: 1turn; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .border-beam { animation: none; }
+}
