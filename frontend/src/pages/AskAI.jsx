@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { useLanguage, LANGUAGES } from '../LanguageContext';
 import { useTheme } from '../context/ThemeContext';
@@ -160,7 +160,6 @@ export default function AskAI() {
   const recogRef   = useRef(null);
   const synthRef   = useRef(window.speechSynthesis);
   const langRef    = useRef(null);
-  const navigate   = useNavigate();
   const [searchParams] = useSearchParams();
 
   /* auto-send from URL query param */
@@ -433,20 +432,6 @@ export default function AskAI() {
     setStreamingIdx(-1);
     setStatusText('');
   }, [input, loading, language]);
-
-  // Visualize Case — hand the actual question + answer to the home "See How
-  // Cases Unfold" page, which builds a dynamic step-by-step scenario for the
-  // exact BNS/IPC section discussed (works for any section, e.g. 358, 511).
-  const handleVisualize = (msg) => {
-    try {
-      sessionStorage.setItem('vidhan_visualize', JSON.stringify({
-        question: msg.question || '',
-        answer: msg.text || '',
-        ts: Date.now(),
-      }));
-    } catch { /* ignore storage errors */ }
-    navigate('/?visualize=dynamic#cases');
-  };
 
   // Copy answer text to clipboard
   const copyText = (text) => {
@@ -761,14 +746,6 @@ export default function AskAI() {
                     >
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
                       {msg.simplifyLoading ? 'Simplifying…' : msg.showSimplified ? 'Hide Simple' : 'Explain Simply'}
-                    </button>
-                    <button
-                      className="askai-action-btn askai-action-btn--visualize"
-                      onClick={() => handleVisualize(msg)}
-                      title="See this case unfold step-by-step"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 9 5 12 1.774-5.226L21 14 9 9z"/></svg>
-                      Visualize Case
                     </button>
                     <button
                       className="askai-action-btn askai-action-btn--copy"

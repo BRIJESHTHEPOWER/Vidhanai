@@ -61,6 +61,84 @@
 }
 
 /* ── Dynamic case status banner ── */
+/* ── Search: scenario or section number ── */
+.case-search {
+  display: flex;
+  gap: 10px;
+  max-width: 640px;
+  margin: 0 auto 8px;
+}
+.case-search-field {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.case-search-icon {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+.case-search-input {
+  width: 100%;
+  padding: 12px 36px 12px 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(167, 139, 250, 0.28);
+  background: rgba(15, 23, 42, 0.55);
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.case-search-input::placeholder { color: #64748b; }
+.case-search-input:focus {
+  border-color: rgba(167, 139, 250, 0.75);
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
+}
+/* The native search clear button would sit under ours. */
+.case-search-input::-webkit-search-cancel-button { display: none; }
+.case-search-clear {
+  position: absolute;
+  right: 10px;
+  border: none;
+  background: none;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 4px;
+  cursor: pointer;
+}
+.case-search-clear:hover { color: #e2e8f0; }
+.case-search-btn {
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #7c3aed, #a78bfa);
+  color: #fff;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.18s, transform 0.18s;
+}
+.case-search-btn:hover:not(:disabled) { transform: translateY(-1px); }
+.case-search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.case-search-hint {
+  max-width: 640px;
+  margin: 0 auto 20px;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: #64748b;
+  text-align: center;
+}
+@media (max-width: 560px) {
+  .case-search { flex-direction: column; }
+  .case-search-btn { width: 100%; }
+}
+
 .case-dyn-status {
   display: flex;
   align-items: center;

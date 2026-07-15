@@ -1,21 +1,32 @@
 import json
 import re
-from app.services.ai import generate_json_response
+from app.services.ai import generate_groq_json_response
 
-# ── In-memory cache: ipc_section → list of steps ──
+# ── In-memory cache: cache key → list of steps ──
 _scenario_cache: dict = {}
 
 
 def generate_scenario(law: dict) -> list:
     """
-    Generate 4-step legal scenario for a given law dict via Gemini.
+    Generate a 4-step legal scenario for a given law dict via Groq.
     Returns list of step dicts with keys: step, phase, title, story, ipc_ref, icon.
-    """
-    ipc = law.get("ipc_section", "")
-    if ipc in _scenario_cache:
-        return _scenario_cache[ipc]
 
-    system_prompt = "You are a legal storytelling assistant for Indian law education. Return ONLY valid JSON array."
+    The law dict comes from our own BNS/IPC dataset, so the model only ever
+    narrates a section we selected — it never picks the section itself.
+
+    Note: Groq's JSON mode can only return an OBJECT, so we ask for
+    {"steps": [...]} and unwrap it, rather than a bare array.
+    """
+    # Key on both sections: a BNS-only law would otherwise collide on ipc="".
+    cache_key = f"{law.get('bns_section', '')}|{law.get('ipc_section', '')}"
+    ipc = law.get("ipc_section", "")
+    if cache_key in _scenario_cache:
+        return _scenario_cache[cache_key]
+
+    system_prompt = (
+        "You are a legal storytelling assistant for Indian law education. "
+        "Return ONLY a valid JSON object of the form {\"steps\": [...]}."
+    )
     user_prompt = f"""Given this law, create a 4-step real-life story scenario showing how this law works.
 
 Law: {law.get('title')}
@@ -38,49 +49,60 @@ Rules:
 - Keep it factual, not dramatic
 - The IPC section MUST be mentioned in step 3
 
-Return ONLY valid JSON:
-[
-  {{
-    "step": 1,
-    "phase": "Incident",
-    "title": "short title",
-    "story": "2-3 sentence story",
-    "ipc_ref": "{law.get('ipc_section')}",
-    "icon": "🔍"
-  }},
-  {{
-    "step": 2,
-    "phase": "Police Action",
-    "title": "short title",
-    "story": "2-3 sentence story",
-    "ipc_ref": "{law.get('ipc_section')}",
-    "icon": "👮"
-  }},
-  {{
-    "step": 3,
-    "phase": "Law Applied",
-    "title": "short title",
-    "story": "2-3 sentence story mentioning IPC {law.get('ipc_section')}",
-    "ipc_ref": "{law.get('ipc_section')}",
-    "icon": "⚖️"
-  }},
-  {{
-    "step": 4,
-    "phase": "Outcome",
-    "title": "short title",
-    "story": "2-3 sentence story",
-    "ipc_ref": "{law.get('ipc_section')}",
-    "icon": "🏛️"
-  }}
-]"""
+Return ONLY a valid JSON object with a "steps" array:
+{{
+  "steps": [
+    {{
+      "step": 1,
+      "phase": "Incident",
+      "title": "short title",
+      "story": "2-3 sentence story",
+      "ipc_ref": "{law.get('ipc_section')}",
+      "icon": "🔍"
+    }},
+    {{
+      "step": 2,
+      "phase": "Police Action",
+      "title": "short title",
+      "story": "2-3 sentence story",
+      "ipc_ref": "{law.get('ipc_section')}",
+      "icon": "👮"
+    }},
+    {{
+      "step": 3,
+      "phase": "Law Applied",
+      "title": "short title",
+      "story": "2-3 sentence story mentioning IPC {law.get('ipc_section')}",
+      "ipc_ref": "{law.get('ipc_section')}",
+      "icon": "⚖️"
+    }},
+    {{
+      "step": 4,
+      "phase": "Outcome",
+      "title": "short title",
+      "story": "2-3 sentence story",
+      "ipc_ref": "{law.get('ipc_section')}",
+      "icon": "🏛️"
+    }}
+  ]
+}}"""
 
     try:
-        content = generate_json_response(system_prompt, user_prompt, temperature=0.7)
+        content = generate_groq_json_response(system_prompt, user_prompt, temperature=0.7)
         content = content.strip()
         content = re.sub(r"^```(?:json)?\s*", "", content)
         content = re.sub(r"\s*```$", "", content)
-        steps = json.loads(content)
-        _scenario_cache[ipc] = steps
+        parsed = json.loads(content)
+        # Expect {"steps": [...]}, but tolerate a bare array or another wrapper key.
+        if isinstance(parsed, dict):
+            steps = parsed.get("steps")
+            if steps is None:
+                steps = next((v for v in parsed.values() if isinstance(v, list)), None)
+        else:
+            steps = parsed
+        if not isinstance(steps, list) or not steps:
+            raise ValueError("Groq returned no usable steps")
+        _scenario_cache[cache_key] = steps
         return steps
     except Exception:
         fallback = [
@@ -109,5 +131,5 @@ Return ONLY valid JSON:
                 "ipc_ref": ipc, "icon": "🏛️"
             }
         ]
-        _scenario_cache[ipc] = fallback
+        _scenario_cache[cache_key] = fallback
         return fallback

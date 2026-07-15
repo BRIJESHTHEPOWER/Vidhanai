@@ -99,13 +99,20 @@ def _is_new_format(id_entry) -> bool:
     return isinstance(id_entry, dict) and "id" in id_entry and "source" in id_entry
 
 
-def search(query: str, k: int = 3) -> List[dict]:
+def search(query: str, k: int = 3, max_distance: float = None) -> List[dict]:
     """
     Return up to k law documents relevant to the query string.
     Each result is normalized to the enriched schema (bns_section, ipc_section, etc.)
     Supports both old id_mapping format (list of ObjectId strings) and
     new format (list of {"id": str, "source": "bns"|"ipc"} dicts).
     Returns an empty list if FAISS is unavailable — never raises.
+
+    max_distance: optional L2 cutoff. FAISS always returns the nearest vectors
+    however far away they are, so without this an off-topic query still gets a
+    confident-looking law back. Measured on all-MiniLM-L6-v2 against this
+    dataset: real legal queries land <= ~1.50, off-topic text >= ~1.56.
+    Callers that want a "no match" answer should pass ~1.52. Left as None
+    (no filtering) by default so existing RAG behaviour is unchanged.
     """
     if not _lazy_init():
         return []
@@ -118,11 +125,13 @@ def search(query: str, k: int = 3) -> List[dict]:
         from bson import ObjectId
 
         q_vec = np.array(_model.encode([query]), dtype=np.float32)
-        _, I  = _index.search(q_vec, k)
+        D, I  = _index.search(q_vec, k)
 
         results = []
-        for i in I[0]:
+        for dist, i in zip(D[0], I[0]):
             if i < 0 or i >= len(_ids):
+                continue
+            if max_distance is not None and float(dist) > max_distance:
                 continue
 
             entry = _ids[i]

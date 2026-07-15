@@ -542,24 +542,6 @@
   50%       { opacity: 0.9; }
 }
 
-/* Visualize Case â€” amber accent */
-.askai-action-btn--visualize {
-  color: #f59e0b;
-  background: rgba(245,158,11,0.07);
-  border-color: rgba(245,158,11,0.22);
-}
-.askai-action-btn--visualize:hover {
-  color: #fbbf24;
-  background: rgba(245,158,11,0.14);
-  border-color: rgba(245,158,11,0.4);
-  box-shadow: 0 0 14px rgba(245,158,11,0.2);
-}
-.askai-action-btn--visualize-active {
-  color: #fbbf24;
-  background: rgba(245,158,11,0.16);
-  border-color: rgba(245,158,11,0.45);
-  box-shadow: 0 0 10px rgba(245,158,11,0.18);
-}
 
 /* Comic button â€” pink/purple accent */
 .askai-action-btn--comic {

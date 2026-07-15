@@ -132,6 +132,7 @@ export default function CaseVisualization() {
   const [dynamicCase, setDynamicCase] = useState(null);
   const [dynLoading, setDynLoading] = useState(false);
   const [dynError, setDynError] = useState('');
+  const [query, setQuery] = useState('');
 
   // Dynamic case (if present) is prepended as the first tab.
   const cases = dynamicCase ? [dynamicCase, ...ALL_CASES] : ALL_CASES;
@@ -160,12 +161,11 @@ export default function CaseVisualization() {
     flashCases();
   };
 
-  // Build a dynamic case from the question/answer handed over by Ask AI.
-  const activateDynamic = async () => {
-    let payload = null;
-    try { payload = JSON.parse(sessionStorage.getItem('vidhan_visualize') || 'null'); } catch { payload = null; }
-    if (!payload || (!payload.question && !payload.answer)) { activateCase('theft'); return; }
-
+  /* Ask the backend to pick the matching section from our BNS/IPC dataset and
+     have Groq narrate it as a 4-step case. Shared by the search box and the
+     Ask AI hand-off. `question` carries either a scenario ("phone stolen in a
+     market") or a section ("BNS 303", "303"). */
+  const buildCase = async ({ question, answer = '', notFoundMsg }) => {
     setDynLoading(true);
     setDynError('');
     flashCases();
@@ -173,7 +173,7 @@ export default function CaseVisualization() {
       const res = await fetch(`${API}/unfold-case`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: payload.question || '', answer: payload.answer || '' }),
+        body: JSON.stringify({ question, answer }),
       });
       const d = await res.json();
       const dyn = d.found ? buildDynamicCase(d) : null;
@@ -181,13 +181,48 @@ export default function CaseVisualization() {
         setDynamicCase(dyn);
         setCaseIdx(0);
         setStepIdx(0);
-      } else {
-        setDynError('Could not build a case for that section. Showing sample cases instead.');
+        return true;
       }
+      setDynError(notFoundMsg);
+      return false;
     } catch {
       setDynError('Could not build the case. Showing sample cases instead.');
+      return false;
     } finally {
       setDynLoading(false);
+    }
+  };
+
+  const handleSearch = async (e) => {
+    e?.preventDefault?.();
+    const q = query.trim();
+    if (!q || dynLoading) return;
+    await buildCase({
+      question: q,
+      notFoundMsg: `No section matched “${q}”. Try a scenario like “phone stolen in a market”, or a section like “BNS 303”.`,
+    });
+  };
+
+  const clearSearch = () => {
+    setQuery('');
+    setDynamicCase(null);
+    setDynError('');
+    setCaseIdx(0);
+    setStepIdx(0);
+  };
+
+  // Build a dynamic case from the question/answer handed over by Ask AI.
+  const activateDynamic = async () => {
+    let payload = null;
+    try { payload = JSON.parse(sessionStorage.getItem('vidhan_visualize') || 'null'); } catch { payload = null; }
+    if (!payload || (!payload.question && !payload.answer)) { activateCase('theft'); return; }
+    try {
+      await buildCase({
+        question: payload.question || '',
+        answer: payload.answer || '',
+        notFoundMsg: 'Could not build a case for that section. Showing sample cases instead.',
+      });
+    } finally {
       try { sessionStorage.removeItem('vidhan_visualize'); } catch {}
     }
   };
@@ -226,6 +261,37 @@ export default function CaseVisualization() {
             Step-by-step breakdown of real legal scenarios with applied <strong style={{ color: '#a78bfa' }}>BNS 2023</strong> &amp; <strong style={{ color: '#f59e0b' }}>IPC 1860</strong> sections.
           </motion.p>
         </div>
+
+        {/* ── Search: scenario or section number ── */}
+        <form className="case-search" onSubmit={handleSearch} role="search">
+          <div className="case-search-field">
+            <svg className="case-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              type="search"
+              className="case-search-input"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search any case — “phone stolen in a market”, “BNS 303”, “420”…"
+              aria-label="Search cases by scenario or section number"
+              maxLength={200}
+            />
+            {query && (
+              <button type="button" className="case-search-clear" onClick={clearSearch} aria-label="Clear search">
+                ✕
+              </button>
+            )}
+          </div>
+          <button type="submit" className="case-search-btn" disabled={dynLoading || !query.trim()}>
+            {dynLoading ? 'Building…' : 'Unfold case'}
+          </button>
+        </form>
+        <p className="case-search-hint">
+          Search by scenario, or by section number from BNS 2023 and IPC 1860 — the
+          matching section is picked from our law dataset and the case is generated for it.
+        </p>
 
         {/* ── Dynamic case status ── */}
         {dynLoading && (

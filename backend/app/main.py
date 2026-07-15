@@ -608,8 +608,48 @@ def unfold_case(request: Request, body: UnfoldRequest):
                 best_law = law
                 break
 
-    # 2. Keyword scoring (question weighted higher than answer; stopwords ignored)
+    # 1b. Bare section number typed into the search box (e.g. "303" or "379").
+    #     Without this it falls through to keyword scoring, where the substring
+    #     test makes "303" match "1303" and any description containing the digits.
     if best_law is None:
+        bare = question.strip()
+        if re.fullmatch(r"\d+[A-Za-z]*", bare):
+            bare_l = bare.lower()
+            # Prefer a BNS match (current law), then IPC.
+            best_law = next(
+                (l for l in all_laws_list
+                 if str(l.get("bns_section", "")).lower() == bare_l),
+                None,
+            ) or next(
+                (l for l in all_laws_list
+                 if str(l.get("ipc_section", "")).lower() == bare_l),
+                None,
+            )
+
+    # 1c. Semantic search — this is what makes plain-scenario searches work
+    #     ("phone stolen in a crowded market" -> Theft). Keyword scoring below
+    #     only compares raw substrings, so it matches on incidental words and
+    #     picks the wrong section for anything phrased as a story.
+    semantic_ran = False
+    if best_law is None and question.strip():
+        try:
+            from vector.search import search as _vector_search
+            # Cutoff so an off-topic search says "no match" instead of
+            # confidently returning whatever section is nearest.
+            hits = _vector_search(question, k=3, max_distance=1.52)
+            semantic_ran = True
+            if hits:
+                best_law = hits[0]
+        except Exception as e:
+            # Never fatal — fall through to keyword scoring below.
+            print(f"[WARN] unfold-case semantic search unavailable: {e}")
+
+    # 2. Keyword scoring — only when semantic search could not run. It compares
+    #    raw substrings and accepts any score > 0, so "pizza recipe with extra
+    #    cheese" matches any law whose text happens to contain "extra". When
+    #    semantic search is working, its verdict (including "nothing close
+    #    enough") is the trustworthy one.
+    if best_law is None and not semantic_ran:
         q_words = [w.lower() for w in re.split(r"\W+", question) if len(w) > 2 and w.lower() not in _STOP]
         a_words = [w.lower() for w in re.split(r"\W+", answer)   if len(w) > 2 and w.lower() not in _STOP]
 
