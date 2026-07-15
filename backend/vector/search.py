@@ -94,6 +94,17 @@ def _lazy_init() -> bool:
         return False
 
 
+def is_available() -> bool:
+    """True when FAISS + the embedding model are actually usable.
+
+    search() returns [] both when nothing is similar enough AND when vector
+    search is switched off (DISABLE_VECTOR_SEARCH on small hosts) or failed to
+    load. Callers that treat "no results" as a meaningful verdict must check
+    this first, or a disabled index looks like "nothing matched".
+    """
+    return _lazy_init()
+
+
 def _is_new_format(id_entry) -> bool:
     """Check if id_mapping entry uses the new dict format {"id": ..., "source": ...}."""
     return isinstance(id_entry, dict) and "id" in id_entry and "source" in id_entry

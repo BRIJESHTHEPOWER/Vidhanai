@@ -633,13 +633,19 @@ def unfold_case(request: Request, body: UnfoldRequest):
     semantic_ran = False
     if best_law is None and question.strip():
         try:
-            from vector.search import search as _vector_search
-            # Cutoff so an off-topic search says "no match" instead of
-            # confidently returning whatever section is nearest.
-            hits = _vector_search(question, k=3, max_distance=1.52)
-            semantic_ran = True
-            if hits:
-                best_law = hits[0]
+            from vector.search import search as _vector_search, is_available
+            # is_available() distinguishes "nothing matched" from "vector search
+            # is switched off" (DISABLE_VECTOR_SEARCH on small hosts) — both of
+            # which make search() return []. Without this check a disabled index
+            # would look like "no law matches", and every scenario search would
+            # come back empty instead of falling back to keyword scoring.
+            if is_available():
+                # Cutoff so an off-topic search says "no match" instead of
+                # confidently returning whatever section is nearest.
+                hits = _vector_search(question, k=3, max_distance=1.52)
+                semantic_ran = True
+                if hits:
+                    best_law = hits[0]
         except Exception as e:
             # Never fatal — fall through to keyword scoring below.
             print(f"[WARN] unfold-case semantic search unavailable: {e}")
