@@ -38,8 +38,9 @@ services:
       - key: DISABLE_VECTOR_SEARCH
         value: "true"
 
-      # Comma-separated list of allowed browser origins (your Vercel frontend).
-      # e.g. https://vidhanai.vercel.app,https://www.vidhanai.me
+      # OPTIONAL. https://vidhanai.me, https://www.vidhanai.me and any
+      # *.vercel.app origin are already allowed in code (app/main.py), so this
+      # is only needed for EXTRA origins. Comma-separated.
       - key: CORS_ORIGINS
         sync: false
 

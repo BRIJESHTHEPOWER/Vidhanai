@@ -89,9 +89,9 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-# Local dev origins are always allowed. In production set CORS_ORIGINS to a
-# comma-separated list of your deployed frontend origins, e.g.
-#   CORS_ORIGINS=https://vidhanai.vercel.app,https://www.vidhanai.me
+# Dev + production origins are always allowed, so the deployed frontend works
+# even if CORS_ORIGINS is never set on the host. Use CORS_ORIGINS (comma-
+# separated) to add any EXTRA origins, e.g. a custom preview domain.
 import os as _os
 
 _DEV_ORIGINS = [
@@ -104,12 +104,23 @@ _DEV_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
+
+# Production frontend domains (apex + www). Baked in rather than left to env
+# config so a missing CORS_ORIGINS can never break the live site.
+_PROD_ORIGINS = [
+    "https://vidhanai.me",
+    "https://www.vidhanai.me",
+]
+
 _env_origins = [
     o.strip().rstrip("/")
     for o in (_os.getenv("CORS_ORIGINS") or "").split(",")
     if o.strip()
 ]
-_ALLOWED_ORIGINS = _DEV_ORIGINS + _env_origins
+
+# dict.fromkeys preserves order while dropping duplicates (e.g. if CORS_ORIGINS
+# repeats a domain already listed above).
+_ALLOWED_ORIGINS = list(dict.fromkeys(_DEV_ORIGINS + _PROD_ORIGINS + _env_origins))
 
 app.add_middleware(
     CORSMiddleware,
