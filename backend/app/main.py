@@ -161,7 +161,12 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # ── Routers ───────────────────────────────────────────────────────────────────
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# `static/` holds runtime-generated files (e.g. comic images), so it can be empty
+# or absent on a fresh clone/deploy. Resolve it relative to backend/ (not the
+# CWD) and create it if missing, so startup never fails on a missing directory.
+_STATIC_DIR = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "static")
+_os.makedirs(_STATIC_DIR, exist_ok=True)
+app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 app.include_router(search_router)
 app.include_router(learn_router)
 app.include_router(quiz_router)

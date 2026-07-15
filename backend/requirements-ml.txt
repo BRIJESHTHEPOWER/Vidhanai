@@ -12,7 +12,7 @@
 #     pip install -r requirements.txt -r requirements-ml.txt
 # then set DISABLE_VECTOR_SEARCH=false.
 #
-# These are also required by the index builders:
-#     vector/build_index.py, vector/custom_build.py
+# These are also required by the index builder:
+#     vector/build_index.py
 faiss-cpu==1.7.4
 sentence-transformers

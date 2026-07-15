@@ -1,0 +1,4 @@
+# Keeps backend/static/ present in a fresh clone.
+# Runtime-generated files (e.g. comic images under static/comics/) live here and
+# are gitignored, so without this file the directory would vanish from the repo.
+# app/main.py also creates this directory at startup as a safety net.
