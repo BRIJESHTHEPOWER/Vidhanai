@@ -1,3 +1,10 @@
+# Core runtime. Pinned to install cleanly on Python 3.11 (see .python-version) —
+# several of these pins (pillow 10.1.0, numpy 1.24.3) have no wheels for 3.12+
+# and fail to build from source there.
+#
+# Semantic/vector search (faiss + sentence-transformers -> PyTorch, ~2GB) is
+# OPTIONAL and lives in requirements-ml.txt. Without it the app automatically
+# falls back to the MongoDB keyword search.
 fastapi==0.104.1
 uvicorn==0.24.0
 pymongo==4.6.0
@@ -7,14 +14,12 @@ python-multipart==0.0.6
 aiofiles==23.2.1
 openai==1.3.5
 pillow==10.1.0
-faiss-cpu==1.7.4
 numpy==1.24.3
 requests==2.31.0
 beautifulsoup4==4.12.2
 httpx==0.25.1
 groq
 google-generativeai
-sentence-transformers
 slowapi
 pyjwt
 bcrypt

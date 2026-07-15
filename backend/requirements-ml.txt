@@ -1,0 +1,18 @@
+# OPTIONAL — semantic (FAISS) vector search.
+#
+# Kept out of requirements.txt because sentence-transformers pulls in PyTorch
+# (~2GB to install) and loading it costs ~400MB RAM — that does not fit a 512MB
+# instance such as Render's free tier, and it is dead weight whenever
+# DISABLE_VECTOR_SEARCH=true.
+#
+# The app degrades gracefully: vector/search.py catches the missing imports and
+# falls back to the MongoDB keyword RAG, so everything still works without these.
+#
+# Install when you DO want vector search (needs a >=2GB instance):
+#     pip install -r requirements.txt -r requirements-ml.txt
+# then set DISABLE_VECTOR_SEARCH=false.
+#
+# These are also required by the index builders:
+#     vector/build_index.py, vector/custom_build.py
+faiss-cpu==1.7.4
+sentence-transformers
