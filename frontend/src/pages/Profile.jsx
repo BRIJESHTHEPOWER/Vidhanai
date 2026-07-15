@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import usePlanStatus from '../hooks/usePlanStatus';
 import './Profile.css';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
@@ -18,7 +19,17 @@ export default function Profile() {
   const [phoneVal,    setPhoneVal]    = useState('');
   const [phoneEdit,   setPhoneEdit]   = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelling,    setCancelling]    = useState(false);
   const fileRef = useRef(null);
+
+  const { isPro, cancelAtCycleEnd, currentPeriodEnd, loading: planLoading, refetch: refetchPlan } = usePlanStatus();
+
+  const periodEndLabel = currentPeriodEnd
+    ? new Date(currentPeriodEnd).toLocaleDateString(undefined, {
+        day: 'numeric', month: 'short', year: 'numeric',
+      })
+    : null;
 
   // GestureFlow AI (touchless hand control) — state mirrors the global engine
   const [gestureOn, setGestureOn] = useState(() => window.GestureFlow?.isRunning() || false);
@@ -134,6 +145,30 @@ export default function Profile() {
       toast('error', err.message || 'Could not save phone.');
     } finally {
       setSavingPhone(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setCancelling(true);
+    try {
+      const token = localStorage.getItem('vidhan_token');
+      const res = await fetch(`${BASE_URL}/api/subscription/cancel`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const d = data.detail;
+        throw new Error((d && typeof d === 'object' ? d.message : d) || 'Could not cancel.');
+      }
+      setConfirmCancel(false);
+      await refetchPlan();
+      window.dispatchEvent(new Event('vidhan_plan_updated'));
+      toast('success', data.message || 'Subscription cancelled.');
+    } catch (err) {
+      toast('error', err.message || 'Could not cancel your subscription.');
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -281,6 +316,90 @@ export default function Profile() {
             reuses whichever number it last saw in this browser.
           </p>
         </div>
+
+        {/* Subscription */}
+        {!planLoading && (
+          <div className="prof-section">
+            <div className="prof-section-label">Subscription</div>
+
+            <div className="prof-plan-row">
+              <span className={`prof-plan-chip${isPro ? ' prof-plan-chip--pro' : ''}`}>
+                {isPro ? 'PRO' : 'FREE'}
+              </span>
+              {isPro && periodEndLabel && (
+                <span className="prof-plan-meta">
+                  {cancelAtCycleEnd
+                    ? `Access until ${periodEndLabel}`
+                    : `Renews on ${periodEndLabel}`}
+                </span>
+              )}
+            </div>
+
+            {!isPro && (
+              <>
+                <p className="prof-phone-hint">
+                  You’re on the Free plan — 5 AI legal questions a day, English only.
+                </p>
+                <button
+                  className="prof-btn prof-btn--primary prof-plan-btn"
+                  onClick={() => navigate('/pricing')}
+                >
+                  Upgrade to Pro
+                </button>
+              </>
+            )}
+
+            {isPro && cancelAtCycleEnd && (
+              <p className="prof-phone-hint">
+                Your subscription is cancelled and won’t renew. You’ll keep every Pro
+                feature until {periodEndLabel || 'the end of your billing period'}.
+              </p>
+            )}
+
+            {isPro && !cancelAtCycleEnd && !confirmCancel && (
+              <>
+                <p className="prof-phone-hint">
+                  Renews automatically. Cancel anytime — you’ll keep Pro until the end
+                  of the period you’ve already paid for.
+                </p>
+                <button
+                  className="prof-btn prof-btn--ghost prof-plan-btn prof-plan-btn--cancel"
+                  onClick={() => setConfirmCancel(true)}
+                >
+                  Cancel subscription
+                </button>
+              </>
+            )}
+
+            {isPro && !cancelAtCycleEnd && confirmCancel && (
+              <div className="prof-cancel-confirm">
+                <p className="prof-cancel-q">Cancel your Pro subscription?</p>
+                <p className="prof-cancel-body">
+                  You’ll keep Pro until {periodEndLabel || 'the end of your billing period'},
+                  then move to the Free plan. You won’t be charged again.
+                  {' '}<strong>The current period isn’t refunded.</strong>
+                </p>
+                <div className="prof-name-btns">
+                  <button
+                    className="prof-btn prof-plan-btn--confirm"
+                    onClick={handleCancelSubscription}
+                    disabled={cancelling}
+                  >
+                    {cancelling ? <span className="prof-spinner-sm" /> : null}
+                    {cancelling ? 'Cancelling…' : 'Yes, cancel'}
+                  </button>
+                  <button
+                    className="prof-btn prof-btn--ghost"
+                    onClick={() => setConfirmCancel(false)}
+                    disabled={cancelling}
+                  >
+                    Keep Pro
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* GestureFlow AI — touchless control */}
         <div className="prof-section">

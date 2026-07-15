@@ -48,6 +48,9 @@ export default function usePlanStatus() {
     planStatus: data?.plan_status ?? 'free',
     isPro: data?.is_pro ?? false,
     isTestMode: data?.is_test_mode ?? true,
+    // Cancelled but still inside the paid period — Pro now, no renewal.
+    cancelAtCycleEnd: data?.cancel_at_cycle_end ?? false,
+    currentPeriodEnd: data?.current_period_end ?? null,
     // Free-plan daily question usage ({questions_limit, questions_used_today,
     // questions_remaining} — all null for Pro).
     usage: data?.usage ?? null,

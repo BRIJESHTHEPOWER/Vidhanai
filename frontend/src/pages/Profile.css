@@ -197,6 +197,67 @@
   font-family: 'Inter', sans-serif;
 }
 
+/* ── Subscription section ── */
+.prof-plan-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.prof-plan-chip {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  background: rgba(100, 116, 139, 0.14);
+  font-family: 'Inter', sans-serif;
+}
+.prof-plan-chip--pro {
+  color: #fff;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+.prof-plan-meta {
+  font-size: 13px;
+  color: #64748b;
+  font-family: 'Inter', sans-serif;
+}
+.prof-plan-btn { margin-top: 10px; }
+.prof-plan-btn--cancel { color: #ef4444; }
+.prof-plan-btn--cancel:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+.prof-plan-btn--confirm {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+}
+.prof-plan-btn--confirm:hover { background: #dc2626; }
+
+.prof-cancel-confirm {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  background: rgba(239, 68, 68, 0.05);
+}
+.prof-cancel-q {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ef4444;
+  font-family: 'Inter', sans-serif;
+}
+.prof-cancel-body {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #94a3b8;
+  font-family: 'Inter', sans-serif;
+}
+
 /* ── Edit name form ── */
 .prof-name-edit {
   display: flex;

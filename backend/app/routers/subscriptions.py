@@ -153,6 +153,12 @@ async def subscribe(
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Razorpay subscription creation failed: {e}")
 
+    # Starting a new subscription clears any earlier cancellation, otherwise the
+    # UI would show "won't renew" against a brand-new subscription.
+    users_collection.update_one(
+        {"email": user_email}, {"$unset": {"cancel_at_cycle_end": ""}}
+    )
+
     now = _now()
     subscriptions_collection.update_one(
         {"razorpay_subscription_id": sub["id"]},
@@ -268,6 +274,14 @@ def _reconcile(sub_id: str, user_email: str) -> dict:
     if status in _PAID_STATUSES:
         plan_status = "pro"
     elif status in _DEAD_STATUSES:
+        # Only let a dead subscription revoke Pro if it is the one the user is
+        # actually on. A user can have older cancelled subscriptions alongside a
+        # live one; reconciling a stale id must not strip their access.
+        current = (users_collection.find_one(
+            {"email": user_email}, {"razorpay_subscription_id": 1}
+        ) or {}).get("razorpay_subscription_id")
+        if current and current != sub_id:
+            return {"plan_status": "pro", "subscription_status": status}
         plan_status = "free"
     else:
         # created / pending — nothing decided yet, leave the gate untouched.
@@ -299,8 +313,9 @@ _EVENT_MAP = {
 @router.post("/webhook/razorpay")
 async def razorpay_webhook(request: Request):
     """Handle Razorpay subscription webhooks. The raw-body signature is verified
-    before anything is trusted; this endpoint is the ONLY place Pro is granted or
-    revoked."""
+    before anything is trusted. Along with _reconcile() this is one of the two
+    server-side paths allowed to change plan_status; it is the only one that sees
+    renewals and cancellations, which nobody is on-screen for."""
     raw_body = await request.body()
     signature = request.headers.get("X-Razorpay-Signature", "")
 
@@ -388,6 +403,8 @@ async def plan_status(user_email: str = Depends(get_current_user_email)):
         "current_period_end": _iso(user.get("current_period_end")),
         "last_invoice_id":    user.get("last_invoice_id"),
         "razorpay_subscription_id": user.get("razorpay_subscription_id"),
+        # True once cancelled: still Pro, but won't renew at period end.
+        "cancel_at_cycle_end": bool(user.get("cancel_at_cycle_end")),
         "is_test_mode":       user.get("is_test_mode", is_test_mode()),
     }
 
@@ -413,7 +430,66 @@ async def reconcile_subscription(
     return {**result, "is_pro": result["plan_status"] == "pro"}
 
 
-# ── 6. Invoice ────────────────────────────────────────────────────────────────
+# ── 6. Cancel ─────────────────────────────────────────────────────────────────
+@router.post("/subscription/cancel")
+async def cancel_subscription(user_email: str = Depends(get_current_user_email)):
+    """Cancel the user's subscription at the END of the paid billing cycle.
+
+    No refund is issued, so the user keeps Pro for the period they already paid
+    for and simply isn't billed again. Cancelling immediately instead would take
+    the money and remove access the same second.
+
+    plan_status stays "pro" here on purpose — it flips to "free" when Razorpay
+    sends subscription.cancelled at the cycle end (or when _reconcile next sees
+    the cancelled status), so access ends exactly when the paid period does.
+    """
+    user = users_collection.find_one({"email": user_email}) or {}
+    sub_id = user.get("razorpay_subscription_id")
+    if not sub_id or user.get("plan_status") != "pro":
+        raise HTTPException(status_code=404, detail="You don't have an active subscription.")
+
+    client = _require(get_client)
+    try:
+        sub = client.subscription.cancel(sub_id, {"cancel_at_cycle_end": 1})
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Could not cancel the subscription: {e}")
+
+    # Prefer Razorpay's own end date over anything we cached.
+    end_ts = sub.get("current_end") or sub.get("end_at")
+    access_until = datetime.fromtimestamp(end_ts, tz=timezone.utc) if end_ts else None
+
+    now = _now()
+    subscriptions_collection.update_one(
+        {"razorpay_subscription_id": sub_id},
+        {"$set": {
+            "status": sub.get("status") or "active",
+            "cancel_at_cycle_end": True,
+            "cancelled_requested_at": now,
+            **({"current_period_end": access_until} if access_until else {}),
+            "updated_at": now,
+        }},
+    )
+    users_collection.update_one(
+        {"email": user_email},
+        {"$set": {
+            "cancel_at_cycle_end": True,
+            **({"current_period_end": access_until} if access_until else {}),
+        }},
+    )
+
+    return {
+        "status": "cancelled",
+        "subscription_status": sub.get("status"),
+        "access_until": _iso(access_until),
+        "refund_issued": False,
+        "message": (
+            "Your subscription is cancelled and won't renew. You'll keep Pro "
+            "until the end of your current billing period."
+        ),
+    }
+
+
+# ── 7. Invoice ────────────────────────────────────────────────────────────────
 @router.get("/subscription/invoice/{subscription_id}")
 async def get_invoice(
     subscription_id: str,
