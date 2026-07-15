@@ -5,6 +5,7 @@ Raises a clear error on startup if the DB is unreachable.
 import os
 import time
 import sys
+import certifi
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from dotenv import load_dotenv
@@ -18,18 +19,28 @@ _MAX_RETRIES = 3
 _RETRY_DELAY = 1  # seconds base for exponential backoff
 
 
+def _client_kwargs() -> dict:
+    """Connection options. Atlas (mongodb+srv) requires TLS — pin the CA bundle
+    to certifi so the handshake never depends on the host image's system
+    certificate store. Not passed for plain local mongodb:// (no TLS)."""
+    kwargs = dict(
+        maxPoolSize=10,
+        serverSelectionTimeoutMS=10000,   # Atlas from a remote host needs > 5s
+        socketTimeoutMS=45000,
+        connectTimeoutMS=10000,
+    )
+    uri = (MONGO_URI or "").lower()
+    if uri.startswith("mongodb+srv://") or "tls=true" in uri or "ssl=true" in uri:
+        kwargs["tlsCAFile"] = certifi.where()
+    return kwargs
+
+
 def _create_client_with_retry() -> MongoClient:
     """Attempt to connect to MongoDB with exponential backoff."""
     last_error = None
     for attempt in range(1, _MAX_RETRIES + 1):
         try:
-            client = MongoClient(
-                MONGO_URI,
-                maxPoolSize=10,
-                serverSelectionTimeoutMS=5000,
-                socketTimeoutMS=45000,
-                connectTimeoutMS=5000,
-            )
+            client = MongoClient(MONGO_URI, **_client_kwargs())
             # Ping to confirm connection is alive
             client.admin.command("ping")
             print(f"[OK] MongoDB Connected -> DB: {DB_NAME}  (attempt {attempt})")
@@ -55,13 +66,11 @@ def _create_client_with_retry() -> MongoClient:
         "          The server will start but DB-dependent endpoints will return errors. "
         "Please check your MONGO_URI in the .env file."
     )
-    # Return a client anyway; individual ops will raise and be caught downstream
-    return MongoClient(
-        MONGO_URI, 
-        maxPoolSize=10, 
-        serverSelectionTimeoutMS=5000, 
-        socketTimeoutMS=45000
-    )
+    # Return a client anyway; individual ops will raise and be caught downstream.
+    # pymongo keeps monitoring the topology in the background, so this client
+    # recovers on its own once the server becomes reachable (e.g. after adding
+    # the host's IP to the Atlas access list) — no restart needed.
+    return MongoClient(MONGO_URI, **_client_kwargs())
 
 
 # ── Initialise connection ────────────────────────────────────────────────────

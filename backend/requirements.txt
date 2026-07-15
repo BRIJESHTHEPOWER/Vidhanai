@@ -7,7 +7,12 @@
 # falls back to the MongoDB keyword search.
 fastapi==0.104.1
 uvicorn==0.24.0
-pymongo==4.6.0
+# 4.16.x is the version verified against the MongoDB Atlas cluster; the old
+# 4.6.0 pin was never tested here and is prone to TLS handshake issues with
+# Atlas on newer OpenSSL. certifi pins the CA bundle used for the Atlas TLS
+# handshake (see app/db/connection.py).
+pymongo==4.16.0
+certifi
 pydantic==2.5.0
 python-dotenv==1.0.0
 python-multipart==0.0.6
