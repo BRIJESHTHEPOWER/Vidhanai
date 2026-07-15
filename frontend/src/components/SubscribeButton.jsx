@@ -24,7 +24,7 @@ function loadCheckoutScript() {
 }
 
 /**
- * "Subscribe to Pro" button (TEST MODE).
+ * "Subscribe to Pro" button.
  *
  * On success it verifies the checkout signature (UI feedback only) and then
  * navigates to /subscribe/success, which polls plan-status until the WEBHOOK
@@ -88,7 +88,7 @@ export default function SubscribeButton({ className = '', children, plan = 'mont
         key: key_id,
         subscription_id,
         name: 'Vidhan.ai',
-        description: `Pro ${plan === 'annual' ? 'Annual' : 'Monthly'} — TEST MODE · simulated payment, no real money is charged`,
+        description: `Vidhan.ai Pro — ${plan === 'annual' ? 'Annual' : 'Monthly'} plan`,
         prefill: {
           name: prefill?.name || '',
           email: prefill?.email || localStorage.getItem('vidhan_email') || '',
@@ -147,8 +147,13 @@ export default function SubscribeButton({ className = '', children, plan = 'mont
       >
         {busy ? 'Opening checkout…' : (children || 'Subscribe to Pro')}
       </button>
-      <span className="subscribe-testmode" title="This is a sandbox. Razorpay simulates the payment — no real money is charged and no bank/UPI is debited.">
-        🧪 TEST MODE — simulated payment, no real money is charged
+      <span className="subscribe-secure">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="3" y="11" width="18" height="11" rx="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+        Secure payments by Razorpay · Cancel anytime
       </span>
       {error && (
         <p className="subscribe-btn-error" role="alert">

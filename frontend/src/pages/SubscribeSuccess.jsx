@@ -111,16 +111,13 @@ export default function SubscribeSuccess() {
       <Navbar />
       <main className="subsuccess-main">
         <div className="subsuccess-card">
-          <span className="subsuccess-testmode">🧪 TEST MODE — this was a simulated payment. No real money was charged and no bank/UPI account was debited.</span>
-
           {phase === 'processing' && (
             <>
               <div className="subsuccess-spinner" aria-hidden="true" />
-              <h1 className="subsuccess-title">Processing your subscription…</h1>
+              <h1 className="subsuccess-title">Confirming your payment…</h1>
               <p className="subsuccess-text">
-                This was a <strong>simulated test payment</strong> — no real money was charged.
-                We’re confirming the charge with Razorpay and unlocking Pro. This
-                usually takes a few seconds.
+                We’re confirming your payment with Razorpay and activating Pro.
+                This usually takes just a few seconds.
               </p>
             </>
           )}
@@ -133,10 +130,10 @@ export default function SubscribeSuccess() {
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
-              <h1 className="subsuccess-title">You’re Pro! 🎉</h1>
+              <h1 className="subsuccess-title">Welcome to Pro 🎉</h1>
               <p className="subsuccess-text">
-                Your subscription is active and all Pro features are unlocked.
-                This is a <strong>test-mode</strong> subscription — no real money was charged.
+                Your subscription is active and every Pro feature is unlocked.
+                A receipt is on its way to your email.
               </p>
 
               {invoice ? (
@@ -161,11 +158,11 @@ export default function SubscribeSuccess() {
 
           {phase === 'timeout' && (
             <>
-              <h1 className="subsuccess-title">Still processing…</h1>
+              <h1 className="subsuccess-title">Almost there…</h1>
               <p className="subsuccess-text">
-                The simulated test payment completed, but Razorpay hasn’t confirmed the
-                charge yet. Pro unlocks automatically as soon as it does — no real money
-                was charged, and you don’t need to pay again.
+                Your payment went through, but Razorpay hasn’t confirmed it just yet.
+                Pro unlocks automatically as soon as it does — there’s nothing more
+                to do, and you won’t be charged again.
               </p>
               <div className="subsuccess-actions">
                 <button className="subsuccess-btn subsuccess-btn--primary"

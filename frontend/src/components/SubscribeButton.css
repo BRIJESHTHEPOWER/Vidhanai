@@ -1,5 +1,5 @@
 /* SubscribeButton — inherits page CTA styling via the className prop;
-   these rules cover state + the test-mode badge the caller doesn't provide. */
+   these rules cover state + the trust line the caller doesn't provide. */
 .subscribe-wrap {
   display: flex;
   flex-direction: column;
@@ -19,19 +19,16 @@
   cursor: progress;
 }
 
-.subscribe-testmode {
+.subscribe-secure {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: #b45309;
-  background: #fef3c7;
-  border: 1px solid #fcd34d;
-  border-radius: 999px;
-  padding: 0.15rem 0.6rem;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--clr-text-faint, #94a3b8);
 }
+.subscribe-secure svg { opacity: 0.75; flex-shrink: 0; }
 
 .subscribe-btn-error {
   margin: 0.4rem 0 0;

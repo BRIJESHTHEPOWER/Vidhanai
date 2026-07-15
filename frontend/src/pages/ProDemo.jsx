@@ -18,7 +18,6 @@ export default function ProDemo() {
       <Navbar />
       <main className="subsuccess-main">
         <div className="subsuccess-card">
-          <span className="subsuccess-testmode">🧪 TEST MODE</span>
           <div className="subsuccess-check" aria-hidden="true">
             <svg width="34" height="34" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
