@@ -4,7 +4,7 @@ import CaseScenarioInline from './CaseScenarioInline';
 import { useLanguage, LANGUAGES } from '../LanguageContext';
 import './ExploreMode.css';
 
-const API = 'http://localhost:8000';
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const LEGAL_TERMS = [
   'imprisonment','fine','cognizable','bailable','non-bailable','arrest','warrant',

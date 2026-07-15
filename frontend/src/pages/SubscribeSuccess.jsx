@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import './SubscribeSuccess.css';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 90000; // give the webhook up to 90s to land
 

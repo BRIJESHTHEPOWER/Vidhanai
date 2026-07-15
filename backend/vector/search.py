@@ -37,6 +37,16 @@ def _lazy_init() -> bool:
     if _init_failed:
         return False         # previous init failed — skip retrying
 
+    # ── Guard: explicitly disabled (small hosts) ─────────────────────────────
+    # Loading PyTorch + MiniLM costs ~400MB RAM, which does not fit a 512MB
+    # instance (e.g. Render's free tier). Set DISABLE_VECTOR_SEARCH=true there;
+    # the app then uses the MongoDB keyword RAG fallback instead. Checked before
+    # the heavy imports below so torch is never even loaded.
+    if (os.getenv("DISABLE_VECTOR_SEARCH") or "").strip().lower() in ("1", "true", "yes"):
+        print("[INFO] Vector search disabled via DISABLE_VECTOR_SEARCH — using keyword fallback.")
+        _init_failed = True
+        return False
+
     # ── Guard: missing index files ───────────────────────────────────────────
     if not os.path.exists(INDEX_PATH):
         print(

@@ -4,7 +4,7 @@ import { SkeletonLearnStep } from './Skeleton';
 import { useLanguage, LANGUAGES } from '../LanguageContext';
 import './LearnMode.css';
 
-const API = 'http://localhost:8000';
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const PHASE_COLORS = {
   'Incident':      { color: '#f59e0b', icon: '🔍' },

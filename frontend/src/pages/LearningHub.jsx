@@ -5,7 +5,7 @@ import ModeSelector from '../components/ModeSelector';
 import Footer from '../components/Footer';
 import './LearningHub.css';
 
-const API = 'http://localhost:8000';
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const CATEGORIES = [
   { key: null,                          label: 'All Topics',       icon: '🔍' },

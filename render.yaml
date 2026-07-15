@@ -1,0 +1,90 @@
+# Render Blueprint — VidhanAI FastAPI backend
+#
+# Why Render and not Vercel: this is a stateful, long-running FastAPI app
+# (in-memory JD lesson sessions, TTS cache, FAISS index, 60s comic image calls).
+# Vercel's Python runtime is serverless, caps functions at 250MB unzipped and
+# kills long requests — PyTorch alone (via sentence-transformers) exceeds it.
+# Render runs uvicorn as a real persistent server, so none of that applies.
+#
+# Deploy:
+#   1. Push this file to GitHub (already done).
+#   2. Render Dashboard -> New -> Blueprint -> pick the Vidhanai repo.
+#   3. Render reads this file and asks for the secret values below
+#      (they are NOT stored in git — `sync: false` means "prompt me").
+#
+# NOTE: Python is pinned to 3.11 because requirements.txt pins numpy==1.24.3,
+# which has no wheels for 3.12 and would fail to build from source.
+
+services:
+  - type: web
+    name: vidhanai-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    region: singapore          # closest region to Indian users
+    branch: main
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+
+      # Vector search loads PyTorch + MiniLM (~400MB RAM). Render's free tier
+      # only has 512MB, so it is disabled by default and the app falls back to
+      # the MongoDB keyword RAG it already ships with. Set to "false" on a paid
+      # instance (>=2GB) to turn FAISS semantic search back on.
+      - key: DISABLE_VECTOR_SEARCH
+        value: "true"
+
+      # Comma-separated list of allowed browser origins (your Vercel frontend).
+      # e.g. https://vidhanai.vercel.app,https://www.vidhanai.me
+      - key: CORS_ORIGINS
+        sync: false
+
+      # ── Database (must be MongoDB Atlas — there is no localhost on Render) ──
+      - key: MONGO_URI
+        sync: false
+      - key: DB_NAME
+        value: ai_legal_system
+
+      # ── Auth ──
+      - key: JWT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+
+      # ── AI / LLM ──
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: HUGGINGFACE_API_KEY
+        sync: false
+      - key: SARVAM_API_KEY
+        sync: false
+
+      # ── Email (Resend, verified domain vidhanai.me) ──
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: VidhanAI <noreply@vidhanai.me>
+      - key: CONTACT_TO
+        sync: false
+
+      # ── Payments (Razorpay) ──
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_PLAN_ID_MONTHLY
+        sync: false
+      - key: RAZORPAY_PLAN_ID_ANNUAL
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+
+      # Public site URL used in announcement / unsubscribe links.
+      - key: SITE_URL
+        sync: false

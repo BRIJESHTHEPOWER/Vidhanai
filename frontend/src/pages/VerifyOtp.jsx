@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import './Login.css';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const RESEND_COOLDOWN = 30; // seconds — matches the backend's own cooldown
 
 export default function VerifyOtp() {

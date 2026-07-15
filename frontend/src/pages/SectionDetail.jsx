@@ -8,7 +8,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { SkeletonExploreLaw } from '../components/Skeleton';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const CATEGORY_LABELS = {
   crimes_against_body:         '🩸 Body Crime',

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './AdminPanel.css';
 
-const API = 'http://localhost:8000/admin';
+const API = `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/admin`;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function authHeaders(token) {
@@ -602,7 +602,7 @@ const TABS = [
 ];
 
 // ── ANNOUNCEMENTS TAB ─────────────────────────────────────────────────────────
-const ANN_API    = 'http://localhost:8000';
+const ANN_API    = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const ADMIN_KEY  = 'VIDHAN_ADMIN_2024';
 const FEAT_TAGS  = ['New Feature', 'Improvement', 'Bug Fix', 'Coming Soon'];
 const ANN_PLANS  = [

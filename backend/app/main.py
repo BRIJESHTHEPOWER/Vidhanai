@@ -89,20 +89,38 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
+# Local dev origins are always allowed. In production set CORS_ORIGINS to a
+# comma-separated list of your deployed frontend origins, e.g.
+#   CORS_ORIGINS=https://vidhanai.vercel.app,https://www.vidhanai.me
+import os as _os
+
+_DEV_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+_env_origins = [
+    o.strip().rstrip("/")
+    for o in (_os.getenv("CORS_ORIGINS") or "").split(",")
+    if o.strip()
+]
+_ALLOWED_ORIGINS = _DEV_ORIGINS + _env_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-    ],
+    allow_origins=_ALLOWED_ORIGINS,
+    # Allow any Vercel preview deployment (https://<branch>-<hash>.vercel.app).
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+print(f"[CORS] Allowed origins: {_ALLOWED_ORIGINS} (+ *.vercel.app)")
 
 
 # ── Maintenance-mode middleware ───────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './QuizMode.css';
 
-const API = 'http://localhost:8000';
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const QUESTION_TIME = 20; // seconds per question
 const SEEN_KEY      = 'vidhan_quiz_seen';  // localStorage key for seen question keys

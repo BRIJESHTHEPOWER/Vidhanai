@@ -5,7 +5,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { validateName, validateEmail, validatePassword, getPasswordStrength } from '../utils/authValidation';
 import './Login.css';
 
-const BASE_URL = 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const EyeIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './ComparisonTool.css';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const CHIPS    = ['Murder', 'Theft', 'Cheating'];
 
 /* ── Change card ────────────────────────────────────────────────────────────── */

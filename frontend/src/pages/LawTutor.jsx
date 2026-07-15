@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { authHeaders } from '../utils/authHeaders';
 import './LawTutor.css';
 
-const API = 'http://localhost:8000';
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 // ── Language config ───────────────────────────────────────────────────────────
 const TUTOR_LANGS = [

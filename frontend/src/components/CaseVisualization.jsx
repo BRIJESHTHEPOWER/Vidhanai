@@ -83,7 +83,7 @@ const ALL_CASES = [
   },
 ];
 
-const API = 'http://localhost:8000';
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 // Map a /unfold-case response into the visual case format used by this component.
 const DYN_ICONS  = [icons.alert, icons.shield, icons.book, icons.send];
