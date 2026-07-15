@@ -8,6 +8,8 @@ import NotificationBell from './Navbar/NotificationBell';
 import usePlanStatus from '../hooks/usePlanStatus';
 import './Navbar.css';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 const FEATURES_DROPDOWN = [
   { label: 'Ask AI',      to: '/ask-ai'  },
   { label: 'Comic Story', to: '/comic'   },
@@ -87,7 +89,7 @@ export default function Navbar() {
     // Record logout timestamp (fire-and-forget)
     const email = localStorage.getItem('vidhan_email') || (JSON.parse(localStorage.getItem('vidhan_user') || '{}')?.email);
     if (email) {
-      fetch('http://localhost:8000/auth/logout', {
+      fetch(`${API_BASE}/auth/logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

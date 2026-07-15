@@ -9,6 +9,8 @@ import Footer from '../components/Footer';
 import Lanyard from '../components/Lanyard/Lanyard';
 import './Reviews.css';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 /* ── Star renderer ── */
 function StarRow({ rating, size = 18, interactive = false, onRate }) {
   const [hover, setHover] = useState(0);
@@ -135,7 +137,7 @@ function SubmitModal({ onClose, onSuccess }) {
     setSubmitting(true);
     setError('');
     try {
-      const res = await fetch('http://localhost:8000/reviews', {
+      const res = await fetch(`${API_BASE}/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -372,7 +374,7 @@ export default function Reviews() {
 
   const fetchReviews = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:8000/reviews?limit=100&featured_only=false');
+      const res = await fetch(`${API_BASE}/reviews?limit=100&featured_only=false`);
       if (res.ok) {
         const data = await res.json();
         setReviews(data);

@@ -4,6 +4,8 @@ import { motion, useSpring, useScroll } from 'framer-motion';
 import { MessageSquarePlus } from 'lucide-react';
 import './TestimonialStack.css';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 /* fan config: index 0 = front card */
 const STACK_CONFIG = [
   { rotate: 0,   tx: 0,   ty: 0,   z: 100 },
@@ -112,7 +114,7 @@ export default function TestimonialStack() {
     try {
       // Only admin-approved ("featured") reviews are shown in this homepage
       // showcase. Every other submitted review still shows on /reviews.
-      const res = await fetch('http://localhost:8000/reviews');
+      const res = await fetch(`${API_BASE}/reviews`);
       if (res.ok) {
         const data = await res.json();
         const formatted = data.map((d, i) => ({
