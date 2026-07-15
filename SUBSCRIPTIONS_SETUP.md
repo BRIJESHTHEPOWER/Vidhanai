@@ -58,11 +58,39 @@ short_url, timestamps). The webhook writes both.
 | `POST /api/verify-subscription` | ✅ | |
 | `GET /api/subscription/invoice/...` | ✅ | |
 | `GET /api/user/plan-status` | ✅ | |
-| **Webhook → grant Pro** | | ✅ **required** |
+| **Initial upgrade → grant Pro** | ✅ via reconcile | |
+| **Renewals / cancellations / halts** | | ✅ **required** |
 
-> Without ngrok, checkout completes and the signature verifies, but the confirmation
-> screen stays in **"Processing…"** because `plan_status` only flips to `pro` when the
-> webhook lands. Start ngrok to complete the flow.
+Pro is granted by whichever of these confirms the charge first:
+
+1. **The webhook** (`POST /api/webhook/razorpay`) — Razorpay pushes to us. Needs a
+   public URL, so on localhost it needs ngrok.
+2. **Reconcile** (`POST /api/subscription/reconcile/{sub_id}`) — we pull the real
+   status from the Razorpay API with our secret key. Works anywhere, no tunnel.
+   The post-checkout screen calls this automatically.
+
+Both are server-side and equally trustworthy; Pro is never granted from browser data.
+
+> Reconcile means the **initial upgrade works without ngrok**. But nobody is on the
+> success page when a renewal is charged or a mandate is cancelled months later —
+> only the webhook catches those. So ngrok is still needed to test the full
+> lifecycle locally, and a real webhook is **required in production**.
+
+### ngrok is about the BACKEND, not the frontend
+
+Webhooks travel Razorpay → your backend. Where the *frontend* runs (localhost,
+Vercel, or `vidhanai.me`) is irrelevant to them.
+
+| Backend runs on | Webhook URL to register |
+|---|---|
+| localhost:8000 (dev) | `https://<your>.ngrok-free.app/api/webhook/razorpay` |
+| Render (prod) | `https://<your-render-host>/api/webhook/razorpay` |
+
+Razorpay allows **multiple webhooks**, so register both and leave them both active —
+the dev tunnel and production don't conflict.
+
+> Tip: a free ngrok static domain avoids re-editing the dashboard on every restart:
+> `ngrok http 8000 --domain=your-name.ngrok-free.app`
 
 ---
 
@@ -91,7 +119,9 @@ cd backend && uvicorn main:app --reload      # http://localhost:8000
 cd frontend && npm run dev                    # http://localhost:5173
 ```
 
-## 4. Expose the webhook with ngrok (required to grant Pro)
+## 4. Expose the webhook with ngrok (for the full lifecycle)
+Install once (`winget install ngrok`), add your authtoken from the ngrok dashboard
+(`ngrok config add-authtoken <token>`), then:
 ```bash
 ngrok http 8000
 ```
@@ -104,7 +134,17 @@ Razorpay Dashboard → **Settings → Webhooks → Add New Webhook**:
 - **Active Events** — tick exactly:
   `subscription.activated`, `subscription.charged`, `subscription.cancelled`, `subscription.halted`
 
-> Restarting ngrok changes the URL — update it in the dashboard again.
+> Restarting ngrok changes the URL — update it in the dashboard again, or claim a
+> free static domain and pass `--domain=` so the URL never changes.
+
+The same secret must be set on Render for the production webhook. If the secret in
+`.env` doesn't match the dashboard, the signature check fails and the webhook is
+rejected with a 400 — reconcile will still grant the initial upgrade, which can mask
+a misconfigured webhook. Check the backend log for rejected webhooks.
+
+**No tunnel handy?** `scripts/simulate_webhook.py --subscription-id sub_xxx` signs a
+real event with your secret and POSTs it locally — the only way to exercise
+`subscription.cancelled` / `.halted` without ngrok.
 
 ## 5. Test end-to-end (no real money)
 1. Log in, open **Pricing**, click **Subscribe to Pro** (note the 🧪 TEST MODE badge).

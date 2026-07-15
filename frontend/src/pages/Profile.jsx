@@ -14,6 +14,10 @@ export default function Profile() {
   const [uploading, setUploading] = useState(false);
   const [saving,    setSaving]    = useState(false);
   const [msg,       setMsg]       = useState({ type: '', text: '' });
+  const [phone,       setPhone]       = useState('');
+  const [phoneVal,    setPhoneVal]    = useState('');
+  const [phoneEdit,   setPhoneEdit]   = useState(false);
+  const [savingPhone, setSavingPhone] = useState(false);
   const fileRef = useRef(null);
 
   // GestureFlow AI (touchless hand control) — state mirrors the global engine
@@ -83,6 +87,53 @@ export default function Profile() {
       toast('success', 'Name updated.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  /* Load the saved phone. It lives on the user record, not localStorage, so
+     checkout prefills the same number on any device. */
+  useEffect(() => {
+    const token = localStorage.getItem('vidhan_token');
+    if (!token) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/auth/me/phone`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        setPhone(data.phone || '');
+        setPhoneVal(data.phone || '');
+      } catch { /* leave blank — the field is optional */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleSavePhone = async () => {
+    setSavingPhone(true);
+    try {
+      const token = localStorage.getItem('vidhan_token');
+      const res = await fetch(`${BASE_URL}/auth/me/phone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ phone: phoneVal.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Could not save phone.');
+      // Show the server's normalised value (e.g. +91 prefixed), not the raw input.
+      setPhone(data.phone || '');
+      setPhoneVal(data.phone || '');
+      setPhoneEdit(false);
+      toast('success', data.phone ? 'Phone number updated.' : 'Phone number cleared.');
+    } catch (err) {
+      toast('error', err.message || 'Could not save phone.');
+    } finally {
+      setSavingPhone(false);
     }
   };
 
@@ -186,6 +237,49 @@ export default function Profile() {
         <div className="prof-section">
           <div className="prof-section-label">Email Address</div>
           <div className="prof-email">{email || 'Not set'}</div>
+        </div>
+
+        {/* Phone — used to prefill Razorpay Checkout */}
+        <div className="prof-section">
+          <div className="prof-section-label">Phone Number</div>
+          {phoneEdit ? (
+            <div className="prof-name-edit">
+              <input
+                type="tel"
+                className="prof-input"
+                value={phoneVal}
+                onChange={e => setPhoneVal(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSavePhone(); if (e.key === 'Escape') setPhoneEdit(false); }}
+                placeholder="+91 98765 43210"
+                autoFocus
+                maxLength={20}
+              />
+              <div className="prof-name-btns">
+                <button className="prof-btn prof-btn--primary" onClick={handleSavePhone} disabled={savingPhone}>
+                  {savingPhone ? <span className="prof-spinner-sm" /> : null}
+                  {savingPhone ? 'Saving…' : 'Save'}
+                </button>
+                <button className="prof-btn prof-btn--ghost" onClick={() => { setPhoneEdit(false); setPhoneVal(phone); }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="prof-name-row">
+              <span className="prof-name-value">{phone || '—'}</span>
+              <button className="prof-edit-btn" onClick={() => setPhoneEdit(true)}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Edit
+              </button>
+            </div>
+          )}
+          <p className="prof-phone-hint">
+            Used to fill in your number at checkout. Without it, the payment page
+            reuses whichever number it last saw in this browser.
+          </p>
         </div>
 
         {/* GestureFlow AI — touchless control */}

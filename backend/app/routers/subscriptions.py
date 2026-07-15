@@ -6,16 +6,26 @@ Flow
 1. POST /api/subscribe            (Bearer) -> create a test subscription, return
                                     { subscription_id, key_id, is_test_mode }.
 2. checkout.js completes -> POST /api/verify-subscription (Bearer)
-                                    -> verify checkout HMAC. UI FEEDBACK ONLY.
-                                       Does NOT grant Pro.
-3. POST /api/webhook/razorpay      (Razorpay signature) -> SOURCE OF TRUTH.
+                                    -> verify checkout HMAC, then RECONCILE:
+                                       ask the Razorpay API for the real status
+                                       and grant Pro if it is authenticated/active.
+3. POST /api/webhook/razorpay      (Razorpay signature) -> lifecycle source of truth.
        subscription.activated / charged  -> users.plan_status = "pro"
        subscription.halted / cancelled   -> users.plan_status = "free" (downgrade)
 4. GET  /api/user/plan-status      (Bearer) -> current plan for gating.
-5. GET  /api/subscription/invoice/{sub_id} (Bearer) -> latest invoice + short_url.
+5. POST /api/subscription/reconcile/{sub_id} (Bearer) -> re-pull status from
+                                    Razorpay; the fallback when no webhook lands.
+6. GET  /api/subscription/invoice/{sub_id} (Bearer) -> latest invoice + short_url.
 
-Security: BOTH the checkout signature AND the webhook signature are verified.
-Pro access is granted ONLY by the webhook, never by the client handler.
+Security: Pro is never granted from data the browser sends. It is granted either
+by a signature-verified webhook, or by fetching the subscription straight from
+the Razorpay API with our secret key. The checkout HMAC is verified too, but it
+only decides whether we bother to reconcile.
+
+Why reconcile exists: webhooks need a public URL. On localhost (no ngrok), or if
+a delivery is dropped/retried late, the webhook never lands and the user is stuck
+on "Processing" forever despite having paid. Reconciliation closes that gap.
+
 TEST MODE ONLY — razorpay_client rejects non-`rzp_test_` keys.
 """
 import json
@@ -50,6 +60,16 @@ def _set_user_plan(user_email: str, plan_status: str, **extra) -> None:
     fields = {"plan_status": plan_status, "plan_updated_at": _now()}
     fields.update({k: v for k, v in extra.items() if v is not None})
     users_collection.update_one({"email": user_email}, {"$set": fields})
+
+
+# Razorpay subscription statuses, grouped by what they mean for our gate.
+# "authenticated" = mandate registered and the first payment went through at
+# checkout; "active" = billing cycle running. Both mean the user has paid.
+_PAID_STATUSES = {"authenticated", "active"}
+# Terminal/failed states that must revoke Pro. "pending" is deliberately absent:
+# it means a renewal charge failed and Razorpay is still retrying, so the user
+# keeps access until it becomes "halted".
+_DEAD_STATUSES = {"halted", "cancelled", "expired", "completed"}
 
 
 def _require(fn):
@@ -96,6 +116,33 @@ async def subscribe(
     if user and user.get("plan_status") == "pro":
         raise HTTPException(status_code=409, detail="You already have an active Pro subscription.")
 
+    # A phone number is required to subscribe. Without one, Checkout falls back to
+    # whichever number it remembered in this browser, and the mandate ends up
+    # authorised against a number that has nothing to do with this account.
+    phone = (user or {}).get("phone") or ""
+    if not phone:
+        raise HTTPException(status_code=400, detail={
+            "error": "phone_required",
+            "message": "Add your phone number in Profile before subscribing to Pro.",
+        })
+
+    # One number = one Pro subscription. Checked against plan_status rather than
+    # the subscriptions collection so abandoned "created" records never block a
+    # legitimate upgrade.
+    taken_by = users_collection.find_one(
+        {"phone": phone, "email": {"$ne": user_email}, "plan_status": "pro"},
+        {"email": 1},
+    )
+    if taken_by:
+        raise HTTPException(status_code=409, detail={
+            "error": "phone_in_use",
+            "message": (
+                "This phone number already has an active Pro subscription on "
+                "another account. Use a different number, or cancel the other "
+                "subscription first."
+            ),
+        })
+
     try:
         sub = client.subscription.create({
             "plan_id": plan_id,
@@ -131,6 +178,15 @@ async def subscribe(
         "subscription_id": sub["id"],
         "key_id": _require(get_key_id),
         "is_test_mode": is_test_mode(),
+        # Authoritative identity for checkout, taken from the JWT user — never
+        # from localStorage. Without an explicit contact, Checkout falls back to
+        # whichever number it remembered in this browser, which is how a stale
+        # phone number ends up shown next to a different account's email.
+        "prefill": {
+            "name":    (user or {}).get("name") or "",
+            "email":   user_email,
+            "contact": (user or {}).get("phone") or "",
+        },
     }
 
 
@@ -140,8 +196,8 @@ async def verify_subscription(
     payload: VerifyPayload,
     user_email: str = Depends(get_current_user_email),
 ):
-    """Verify the HMAC signature returned by checkout.js. Confirms the mandate is
-    genuine for UI feedback. Does NOT grant Pro — the webhook does that."""
+    """Verify the HMAC signature returned by checkout.js, then reconcile against
+    the Razorpay API — which is what actually decides whether Pro is granted."""
     client = _require(get_client)
     try:
         client.utility.verify_subscription_payment_signature({
@@ -166,10 +222,68 @@ async def verify_subscription(
             "updated_at": _now(),
         }},
     )
+
+    # The signature proves the browser isn't lying; this call is what grants Pro.
+    result = _reconcile(payload.razorpay_subscription_id, user_email)
     return {
         "status": "verified",
-        "message": "Payment authenticated. Pro access activates once the webhook confirms.",
+        "plan_status": result["plan_status"],
+        "subscription_status": result["subscription_status"],
+        "message": (
+            "Payment verified — Pro is active."
+            if result["plan_status"] == "pro"
+            else "Payment authenticated. Pro activates once Razorpay confirms the charge."
+        ),
     }
+
+
+def _reconcile(sub_id: str, user_email: str) -> dict:
+    """Ask the Razorpay API what `sub_id` actually is, and sync our records.
+
+    This is the non-webhook grant path. It is safe because the answer comes from
+    Razorpay over an authenticated API call with our secret key — the browser
+    cannot influence it. Returns {plan_status, subscription_status}.
+    """
+    client = _require(get_client)
+    try:
+        sub = client.subscription.fetch(sub_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Could not fetch subscription: {e}")
+
+    status = sub.get("status") or "created"
+
+    sub_update = {"status": status, "updated_at": _now()}
+    if sub.get("customer_id"):
+        sub_update["razorpay_customer_id"] = sub["customer_id"]
+
+    period_end = None
+    if sub.get("current_end"):
+        period_end = datetime.fromtimestamp(sub["current_end"], tz=timezone.utc)
+        sub_update["current_period_end"] = period_end
+
+    subscriptions_collection.update_one(
+        {"razorpay_subscription_id": sub_id}, {"$set": sub_update}
+    )
+
+    if status in _PAID_STATUSES:
+        plan_status = "pro"
+    elif status in _DEAD_STATUSES:
+        plan_status = "free"
+    else:
+        # created / pending — nothing decided yet, leave the gate untouched.
+        user = users_collection.find_one({"email": user_email}, {"plan_status": 1}) or {}
+        return {"plan_status": user.get("plan_status", "free"),
+                "subscription_status": status}
+
+    _set_user_plan(
+        user_email,
+        plan_status,
+        razorpay_subscription_id=sub_id,
+        razorpay_customer_id=sub.get("customer_id"),
+        current_period_end=period_end,
+        is_test_mode=is_test_mode(),
+    )
+    return {"plan_status": plan_status, "subscription_status": status}
 
 
 # ── 3. Webhook — SOURCE OF TRUTH ──────────────────────────────────────────────
@@ -278,7 +392,28 @@ async def plan_status(user_email: str = Depends(get_current_user_email)):
     }
 
 
-# ── 5. Invoice ────────────────────────────────────────────────────────────────
+# ── 5. Reconcile (webhook fallback) ───────────────────────────────────────────
+@router.post("/subscription/reconcile/{subscription_id}")
+async def reconcile_subscription(
+    subscription_id: str,
+    user_email: str = Depends(get_current_user_email),
+):
+    """Re-pull a subscription's status from Razorpay and sync the gate.
+
+    Used by the post-checkout screen when the webhook hasn't landed (no public
+    tunnel in local dev, a dropped delivery, or Razorpay retrying late), so a
+    paid user is never stuck on "Processing"."""
+    doc = subscriptions_collection.find_one(
+        {"razorpay_subscription_id": subscription_id}
+    )
+    if not doc or doc.get("user_email") != user_email:
+        raise HTTPException(status_code=404, detail="Subscription not found for this user.")
+
+    result = _reconcile(subscription_id, user_email)
+    return {**result, "is_pro": result["plan_status"] == "pro"}
+
+
+# ── 6. Invoice ────────────────────────────────────────────────────────────────
 @router.get("/subscription/invoice/{subscription_id}")
 async def get_invoice(
     subscription_id: str,

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 import bcrypt
 from app.db.connection import users_collection
+from app.routers import get_current_user_email
 from app.services.email_service import send_email
 from app.services import email_templates
 import jwt
@@ -87,6 +88,11 @@ class GoogleToken(BaseModel):
 class ProfileUpdate(BaseModel):
     email: str
     picture: str
+
+class PhoneUpdate(BaseModel):
+    # E.164-ish; validated in the endpoint. The account comes from the JWT.
+    phone: str
+
 
 class OTPVerify(BaseModel):
     email: str
@@ -381,6 +387,39 @@ def update_picture(body: ProfileUpdate):
     except Exception as e:
         print(f"[Auth] Update picture error: {e}")
         raise HTTPException(status_code=500, detail="Failed to update picture.")
+
+@router.get("/me/phone")
+def get_phone(user_email: str = Depends(get_current_user_email)):
+    """Return the saved phone for the logged-in account (may be empty)."""
+    user = users_collection.find_one({"email": user_email}, {"phone": 1}) or {}
+    return {"phone": user.get("phone") or ""}
+
+
+@router.post("/me/phone")
+def update_phone(body: PhoneUpdate, user_email: str = Depends(get_current_user_email)):
+    """Save the phone used to prefill Razorpay Checkout.
+
+    The account is taken from the JWT, never from the request body — the caller
+    can only ever change their own number.
+    """
+    # Keep digits and a leading +, so pasted numbers like "+91 98765 43210" work.
+    raw = (body.phone or "").strip()
+    cleaned = "".join(c for c in raw if c.isdigit() or c == "+")
+    if cleaned.startswith("+"):
+        cleaned = "+" + "".join(c for c in cleaned[1:] if c.isdigit())
+
+    if cleaned:
+        digits = cleaned.lstrip("+")
+        if not 7 <= len(digits) <= 15:  # ITU E.164 allows at most 15 digits
+            raise HTTPException(status_code=400, detail="Enter a valid phone number.")
+        # Bare 10-digit Indian numbers are the common case — Checkout wants a
+        # country code, so add the default one rather than rejecting the input.
+        if not cleaned.startswith("+"):
+            cleaned = ("+91" + digits) if len(digits) == 10 else ("+" + digits)
+
+    users_collection.update_one({"email": user_email}, {"$set": {"phone": cleaned}})
+    return {"message": "Phone updated.", "phone": cleaned}
+
 
 @router.post("/forgot-password")
 def forgot_password(req: ForgotPassword):

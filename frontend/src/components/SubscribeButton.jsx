@@ -39,9 +39,11 @@ export default function SubscribeButton({ className = '', children, plan = 'mont
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [needsPhone, setNeedsPhone] = useState(false);
 
   const handleClick = useCallback(async () => {
     setError('');
+    setNeedsPhone(false);
     const token = localStorage.getItem('vidhan_token');
     if (!token) {
       navigate('/login');
@@ -63,17 +65,36 @@ export default function SubscribeButton({ className = '', children, plan = 'mont
       });
       if (!createRes.ok) {
         const data = await createRes.json().catch(() => ({}));
-        throw new Error(data.detail || 'Could not start the subscription.');
+        // `detail` is a plain string for simple errors, or {error, message} for
+        // the ones the UI reacts to (phone_required / phone_in_use).
+        const detail = data.detail;
+        const structured = detail && typeof detail === 'object' ? detail : null;
+        if (structured?.error === 'phone_required') setNeedsPhone(true);
+        throw new Error(
+          structured?.message || (typeof detail === 'string' && detail) ||
+          'Could not start the subscription.',
+        );
       }
-      const { subscription_id, key_id } = await createRes.json();
+      const { subscription_id, key_id, prefill } = await createRes.json();
 
       // 2. Open Razorpay test checkout.
+      //    Identity comes from the server (the JWT user), not localStorage.
+      //    Passing contact explicitly stops Checkout falling back to a phone
+      //    number it remembered from an earlier, unrelated session in this
+      //    browser. Email is locked because Pro is granted to the logged-in
+      //    account regardless of what's typed here — letting it be edited only
+      //    creates the illusion that another account is being upgraded.
       const rzp = new window.Razorpay({
         key: key_id,
         subscription_id,
         name: 'Vidhan.ai',
         description: `Pro ${plan === 'annual' ? 'Annual' : 'Monthly'} — TEST MODE · simulated payment, no real money is charged`,
-        prefill: { email: localStorage.getItem('vidhan_email') || '' },
+        prefill: {
+          name: prefill?.name || '',
+          email: prefill?.email || localStorage.getItem('vidhan_email') || '',
+          contact: prefill?.contact || '',
+        },
+        readonly: { email: true },
         theme: { color: '#6d28d9' },
         handler: async (response) => {
           // 3. Verify signature (UI feedback only — does NOT grant Pro).
@@ -129,7 +150,20 @@ export default function SubscribeButton({ className = '', children, plan = 'mont
       <span className="subscribe-testmode" title="This is a sandbox. Razorpay simulates the payment — no real money is charged and no bank/UPI is debited.">
         🧪 TEST MODE — simulated payment, no real money is charged
       </span>
-      {error && <p className="subscribe-btn-error" role="alert">{error}</p>}
+      {error && (
+        <p className="subscribe-btn-error" role="alert">
+          {error}
+          {needsPhone && (
+            <button
+              type="button"
+              className="subscribe-btn-link"
+              onClick={() => navigate('/profile')}
+            >
+              Add phone number
+            </button>
+          )}
+        </p>
+      )}
     </div>
   );
 }

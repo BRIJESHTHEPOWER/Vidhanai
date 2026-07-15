@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import VidhanButton from './VidhanButton';
 import VidhanLogo from './VidhanLogo';
 import NotificationBell from './Navbar/NotificationBell';
+import usePlanStatus from '../hooks/usePlanStatus';
 import './Navbar.css';
 
 const FEATURES_DROPDOWN = [
@@ -24,6 +25,7 @@ export default function Navbar() {
 
   const { language, setLanguage, currentLang } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const { isPro, refetch: refetchPlan } = usePlanStatus();
   const langRef      = useRef(null);
   const featuresRef  = useRef(null);
   const navigate   = useNavigate();
@@ -72,6 +74,14 @@ export default function Navbar() {
       window.removeEventListener('vidhan_avatar_updated', handleStorageChange);
     };
   }, []);
+
+  /* Re-read the plan when a subscription completes, so the PRO badge appears
+     without a reload. SubscribeSuccess fires this once the backend confirms. */
+  useEffect(() => {
+    const onPlanChange = () => refetchPlan();
+    window.addEventListener('vidhan_plan_updated', onPlanChange);
+    return () => window.removeEventListener('vidhan_plan_updated', onPlanChange);
+  }, [refetchPlan]);
 
   const handleLogout = () => {
     // Record logout timestamp (fire-and-forget)
@@ -265,7 +275,11 @@ export default function Navbar() {
           {/* User Profile / Login */}
           {localStorage.getItem('vidhan_token') ? (
             <div className="navbar__user-menu">
-              <button className="navbar__avatar" onClick={() => navigate('/profile')} title="View Profile">
+              <button
+                className={`navbar__avatar${isPro ? ' navbar__avatar--pro' : ''}`}
+                onClick={() => navigate('/profile')}
+                title={isPro ? 'Pro member — View Profile' : 'View Profile'}
+              >
                 {avatar ? (
                   <img
                     src={avatar}
@@ -275,6 +289,7 @@ export default function Navbar() {
                 ) : (
                   <span>{localStorage.getItem('vidhan_user')?.charAt(0).toUpperCase() || 'U'}</span>
                 )}
+                {isPro && <span className="navbar__pro-badge">PRO</span>}
               </button>
               <button
                 className="navbar__logout-btn"

@@ -6,13 +6,16 @@ import './SubscribeSuccess.css';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const POLL_INTERVAL_MS = 3000;
-const POLL_TIMEOUT_MS = 90000; // give the webhook up to 90s to land
+const POLL_TIMEOUT_MS = 60000;
+// Re-ask Razorpay directly every Nth poll. The webhook usually wins the race;
+// this is the fallback for when it never arrives (no public tunnel in local dev,
+// or a dropped delivery), so a paid user is never stuck on "Processing".
+const RECONCILE_EVERY = 3;
 
 /**
  * Post-payment confirmation screen.
- * Polls /api/user/plan-status until the WEBHOOK flips the user to Pro, then
- * fetches and shows the invoice link. If the webhook never arrives (e.g. ngrok
- * not running), it surfaces a clear "still processing" message.
+ * Polls /api/user/plan-status until the user is Pro — granted either by the
+ * webhook or by reconciling against the Razorpay API — then shows the invoice.
  */
 export default function SubscribeSuccess() {
   const [params] = useSearchParams();
@@ -46,20 +49,48 @@ export default function SubscribeSuccess() {
       } catch { /* invoice is best-effort */ }
     }
 
+    /* Ask the backend to re-pull the real status from Razorpay. */
+    async function reconcile() {
+      if (!subscriptionId) return false;
+      try {
+        const res = await fetch(
+          `${BASE_URL}/api/subscription/reconcile/${subscriptionId}`,
+          { method: 'POST', headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (!res.ok) return false;
+        const data = await res.json();
+        return !!data.is_pro;
+      } catch {
+        return false;
+      }
+    }
+
+    function confirm() {
+      if (cancelled) return;
+      setPhase('confirmed');
+      // Tell the navbar to re-read the plan so the PRO badge appears now,
+      // rather than only after the next full page load.
+      window.dispatchEvent(new Event('vidhan_plan_updated'));
+      fetchInvoice();
+    }
+
+    let attempt = 0;
     async function poll() {
       if (cancelled) return;
+      attempt += 1;
+
       try {
         const res = await fetch(`${BASE_URL}/api/user/plan-status`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        if (data.is_pro) {
-          if (cancelled) return;
-          setPhase('confirmed');
-          fetchInvoice();
-          return;
-        }
+        if (data.is_pro) return confirm();
       } catch { /* keep polling */ }
+
+      // Webhook hasn't landed yet — go ask Razorpay ourselves.
+      if (attempt === 1 || attempt % RECONCILE_EVERY === 0) {
+        if (await reconcile()) return confirm();
+      }
 
       if (Date.now() - start > POLL_TIMEOUT_MS) {
         if (!cancelled) setPhase('timeout');
@@ -88,12 +119,8 @@ export default function SubscribeSuccess() {
               <h1 className="subsuccess-title">Processing your subscription…</h1>
               <p className="subsuccess-text">
                 This was a <strong>simulated test payment</strong> — no real money was charged.
-                We’re waiting for Razorpay’s signed webhook to confirm the (test) charge —
-                that verified webhook is the only thing that grants Pro access.
-              </p>
-              <p className="subsuccess-hint">
-                In local dev the webhook needs an <strong>ngrok</strong> tunnel. If Pro
-                doesn’t activate, check that ngrok is running and the webhook URL is set.
+                We’re confirming the charge with Razorpay and unlocking Pro. This
+                usually takes a few seconds.
               </p>
             </>
           )}
@@ -136,13 +163,9 @@ export default function SubscribeSuccess() {
             <>
               <h1 className="subsuccess-title">Still processing…</h1>
               <p className="subsuccess-text">
-                The simulated test payment completed, but we haven’t received the Razorpay
-                webhook confirmation yet. Pro unlocks automatically once it arrives — no real
-                money was charged.
-              </p>
-              <p className="subsuccess-hint">
-                Dev note: make sure <strong>ngrok</strong> is running and the webhook URL
-                (<code>/api/webhook/razorpay</code>) is configured in the Razorpay dashboard.
+                The simulated test payment completed, but Razorpay hasn’t confirmed the
+                charge yet. Pro unlocks automatically as soon as it does — no real money
+                was charged, and you don’t need to pay again.
               </p>
               <div className="subsuccess-actions">
                 <button className="subsuccess-btn subsuccess-btn--primary"

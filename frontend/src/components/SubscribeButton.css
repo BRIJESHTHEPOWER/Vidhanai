@@ -40,3 +40,18 @@
   color: #dc2626;
   text-align: center;
 }
+
+/* Inline recovery action, e.g. "Add phone number" -> /profile */
+.subscribe-btn-link {
+  display: block;
+  margin: 0.3rem auto 0;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: #6d28d9;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.subscribe-btn-link:hover { color: #4c1d95; }

@@ -422,6 +422,7 @@
 
 /* Avatar circle */
 .navbar__avatar {
+  position: relative;
   width: 34px; height: 34px;
   border-radius: 50%;
   background: linear-gradient(135deg, #4f46e5, #7c3aed);
@@ -438,6 +439,29 @@
 .navbar__avatar:hover {
   transform: scale(1.08);
   box-shadow: 0 4px 16px rgba(99,102,241,0.6), 0 0 0 2.5px rgba(99,102,241,0.4);
+}
+
+/* Pro member — gold ring + badge on the avatar */
+.navbar__avatar--pro {
+  box-shadow: 0 2px 8px rgba(245,158,11,0.45), 0 0 0 2px rgba(245,158,11,0.85);
+}
+.navbar__avatar--pro:hover {
+  box-shadow: 0 4px 16px rgba(245,158,11,0.6), 0 0 0 2.5px rgba(245,158,11,0.95);
+}
+.navbar__pro-badge {
+  position: absolute;
+  bottom: -6px; left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  pointer-events: none;
+  border: 1px solid var(--clr-bg, #0b0b12);
 }
 
 /* Logout button — ghost danger */
