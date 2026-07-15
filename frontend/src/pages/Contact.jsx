@@ -92,7 +92,7 @@ export default function Contact() {
               <div className="contact-info-icon">✉️</div>
               <div>
                 <div className="contact-info-label">Email us</div>
-                <a className="contact-info-value" href="mailto:noreply@vidhanai.me">support@vidhanai.me</a>
+                <a className="contact-info-value" href="mailto:vidhanai.updates@gmail.com">vidhanai.updates@gmail.com</a>
               </div>
             </div>
             <div className="contact-info-item">

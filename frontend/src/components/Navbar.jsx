@@ -232,6 +232,12 @@ export default function Navbar() {
             Reviews
             <span className="navbar__nav-underline" />
           </Link>
+
+          {/* ── Contact ── */}
+          <Link to="/contact" className="navbar__nav-link">
+            Contact
+            <span className="navbar__nav-underline" />
+          </Link>
         </nav>
 
         {/* Right Actions */}
@@ -339,6 +345,9 @@ export default function Navbar() {
         </Link>
         <Link to="/reviews" className="navbar__mobile-link" onClick={() => setMenuOpen(false)}>
           Reviews
+        </Link>
+        <Link to="/contact" className="navbar__mobile-link" onClick={() => setMenuOpen(false)}>
+          Contact
         </Link>
         {NAV_LINKS.map((link) => (
           <Link key={link.label} to={link.to} className="navbar__mobile-link" onClick={() => setMenuOpen(false)}>
