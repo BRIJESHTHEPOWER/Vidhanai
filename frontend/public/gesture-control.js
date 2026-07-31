@@ -968,6 +968,7 @@
   var stalls = 0;   // consecutive stall events without a confirmed fresh frame
   var pendingRecover = false;   // camera died while the tab was hidden
   var detectErrors = 0;         // consecutive detectForVideo throws
+  var lastDetectError = "";     // message of the most recent one (for diagnosis)
   var rebuildingAI = false;
 
   function safePlay() {
@@ -986,6 +987,19 @@
     if (rebuildingAI) return;
     rebuildingAI = true;
     setStatus("Restarting hand tracker…");
+    // We only get here after a sustained burst of inference failures, and the
+    // overwhelmingly common cause is a lost/evicted WebGL context. Rebuilding
+    // on GPU would just hand us another evictable context and fail the same
+    // way, forever — so escalate to CPU permanently for this session.
+    if (!forceCPU) {
+      forceCPU = true;
+      try { sessionStorage.setItem("gfai_cpu", "1"); } catch (_) {}
+      console.warn(
+        "[GestureFlowAI] GPU inference kept failing" +
+        (lastDetectError ? " (" + lastDetectError + ")" : "") +
+        " — rebuilding the tracker on the CPU delegate."
+      );
+    }
     try {
       try { if (landmarker && landmarker.close) landmarker.close(); } catch (_) {}
       landmarker = null;
@@ -1054,12 +1068,27 @@
     recovering = false;
   }
 
+  // The GPU delegate holds its own WebGL context. This app also mounts several
+  // three.js scenes, and browsers cap concurrent WebGL contexts (~16 in Chrome)
+  // — past the cap the OLDEST context is force-killed, which is usually ours.
+  // Creation still succeeds after that; it's every detectForVideo that throws,
+  // so a GPU rebuild just earns another evictable context and fails the same
+  // way. Once inference has failed persistently we stop asking for GPU at all:
+  // the CPU delegate needs no context and cannot be evicted, and at 480x360 it
+  // is easily fast enough for one hand. Remembered for the tab session so a
+  // later page load skips straight to CPU rather than replaying the failure.
+  var forceCPU = false;
+  try { forceCPU = sessionStorage.getItem("gfai_cpu") === "1"; } catch (_) {}
+
   // Build the landmarker for a given model URL, retrying on CPU if the GPU
   // delegate is unavailable (driver reset, WebGL blocked) — CPU still tracks
   // fine at 480x360, just uses a bit more processor.
   async function landmarkerFor(vision, fileset, model) {
     var opts = {
-      baseOptions: { modelAssetPath: model, delegate: "GPU" },
+      baseOptions: {
+        modelAssetPath: model,
+        delegate: forceCPU ? "CPU" : "GPU",
+      },
       runningMode: "VIDEO",
       numHands: 1,
       // Lower thresholds hold the hand lock through fast-swing motion blur so
@@ -1242,9 +1271,12 @@
         // Skipped when the tab is hidden (RAF is paused → stalls are expected).
         recoverCamera();
       }
-    } catch (_) {
+    } catch (e) {
       // ONE bad frame must never kill the loop — but if EVERY frame throws
       // (lost WebGL context), the tracker itself is dead: rebuild it.
+      // Keep the message: rebuildLandmarker logs it, which is the only way to
+      // diagnose this from a user's console since the loop swallows it.
+      lastDetectError = (e && e.message) ? e.message : String(e);
       if (++detectErrors > 45 && !rebuildingAI) rebuildLandmarker();
     }
     requestAnimationFrame(loop);
