@@ -33,8 +33,12 @@ def _today() -> str:
 
 
 def get_plan_status(user_email: str) -> str:
-    user = users_collection.find_one({"email": user_email}, {"plan_status": 1}) or {}
-    return user.get("plan_status", "free")
+    try:
+        user = users_collection.find_one({"email": user_email}, {"plan_status": 1}) or {}
+        return user.get("plan_status", "free")
+    except Exception as e:
+        print(f"[WARN] Database query failed in get_plan_status: {e}")
+        return "free"
 
 
 def _upgrade_403(message: str, feature: str) -> HTTPException:

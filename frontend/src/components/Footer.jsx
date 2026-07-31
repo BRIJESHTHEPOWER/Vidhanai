@@ -8,15 +8,31 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const COLS = [
   {
     title: 'Product',
-    links: ['Ask AI', 'Browse IPC', 'Case Library', 'Law Comparison', 'Voice Input'],
+    links: [
+      { label: 'Ask AI', to: '/ask-ai' },
+      { label: 'Comic Story', to: '/comic' },
+      { label: 'AI Law Tutor', to: '/tutor' },
+      { label: 'Law Comparison', to: '/compare' },
+      { label: 'Quiz Hub', to: '/quiz' },
+    ],
   },
   {
     title: 'Resources',
-    links: ['Documentation', 'API Reference', 'IPC Handbook', 'BNS Guide', 'Case Studies'],
+    links: [
+      { label: 'About Vidhan.ai', to: '/about' },
+      { label: 'IPC 1860 & BNS Guide', to: '/compare' },
+      { label: 'User Reviews', to: '/reviews' },
+      { label: 'Pricing & Pro', to: '/pricing' },
+    ],
   },
   {
     title: 'Legal',
-    links: ['Terms of Service', 'Privacy Policy', 'Cookie Policy', 'Disclaimer', 'Accessibility'],
+    links: [
+      { label: 'Terms of Service', to: '/about#disclaimer' },
+      { label: 'Privacy Policy', to: '/about#disclaimer' },
+      { label: 'Legal Disclaimer', to: '/about#disclaimer' },
+      { label: 'Cookie Policy', to: '/about#disclaimer' },
+    ],
   },
   {
     title: 'Contact',
@@ -24,8 +40,7 @@ const COLS = [
       { label: 'Contact Us', to: '/contact' },
       { label: 'Report a Bug', to: '/contact' },
       { label: 'Raise a Complaint', to: '/contact' },
-      'Community',
-      'Press Kit',
+      { label: 'Help & Feedback', to: '/contact' },
     ],
   },
 ];

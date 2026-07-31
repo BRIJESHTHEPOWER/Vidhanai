@@ -2223,15 +2223,6 @@ body {
 [data-theme="light"] .cv-add-list { background: #ffffff; border-color: #d4d4d8; color: #3f3f46; }
 [data-theme="light"] .cv-add-list:hover { background: #f4f4f5; }
 
-/* ─── QuizHub ──────────────────────────────────────────── */
-[data-theme="light"] .qh-root       { background: #f6f7f9 !important; color: #18181b !important; }
-[data-theme="light"] .qh-hero-title { color: #18181b !important; }
-[data-theme="light"] .qh-hero-sub   { color: #52525b !important; }
-[data-theme="light"] .qh-topic-card { background: #ffffff !important; border-color: #e4e4e7 !important; }
-[data-theme="light"] .qh-topic-title{ color: #18181b !important; }
-[data-theme="light"] .qh-topic-desc { color: #52525b !important; }
-[data-theme="light"] .qh-start-btn  { color: #fff !important; }
-
 /* ─── glowing-border-container (used by case panel & others) ─ */
 [data-theme="light"] .glowing-border-container {
   background: #ffffff !important;
@@ -2250,99 +2241,6 @@ body {
 [data-theme="light"] .mouse-glow-overlay {
   background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(99,102,241,0.06) 0%, transparent 50%);
 }
-
-/* ─── CaseVisualization (correct class names) ──────────── */
-[data-theme="light"] .case-section { background: #f6f7f9; }
-
-/* Selector tabs */
-[data-theme="light"] .case-selector-tab {
-  background: #ffffff;
-  border-color: #d4d4d8;
-  color: #52525b;
-}
-[data-theme="light"] .case-selector-tab:hover {
-  background: #f4f4f5;
-  color: #3f3f46;
-}
-[data-theme="light"] .case-selector-tab--active {
-  color: var(--tab-color);
-  background: color-mix(in srgb, var(--tab-color) 8%, #ffffff);
-  border-color: var(--tab-color);
-}
-
-/* Main panel — glowing-border-container handles bg, we patch specifics */
-[data-theme="light"] .case-panel {
-  background: #ffffff !important;
-  border-color: #e4e4e7 !important;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04) !important;
-}
-[data-theme="light"] .case-panel-step-label { color: #71717a !important; }
-[data-theme="light"] .case-panel-title      { color: #18181b !important; font-weight: 800 !important; }
-[data-theme="light"] .case-panel-desc       { color: #3f3f46 !important; }
-[data-theme="light"] .case-panel-progress   { background: #e4e4e7 !important; }
-[data-theme="light"] .case-nav              { border-top-color: #e4e4e7 !important; }
-[data-theme="light"] .case-dot              { background: #d4d4d8 !important; border: none !important; }
-
-/* Meta tags (location, value, etc.) */
-[data-theme="light"] .case-meta-tag {
-  background: #f4f4f5 !important;
-  border-color: #e4e4e7 !important;
-  color: #3f3f46 !important;
-}
-
-/* Step navigator (left column) */
-[data-theme="light"] .case-step-num {
-  background: #f4f4f5 !important;
-  border-color: #d4d4d8 !important;
-  color: #52525b !important;
-}
-[data-theme="light"] .case-step--done .case-step-num {
-  background: #f0fdf4 !important;
-  border-color: #86efac !important;
-  color: #16a34a !important;
-}
-[data-theme="light"] .case-step-label  { color: #52525b !important; }
-[data-theme="light"] .case-step--active .case-step-label { color: var(--step-color) !important; }
-[data-theme="light"] .case-step--done  .case-step-label { color: #16a34a !important; }
-[data-theme="light"] .case-step-line   { background: #e4e4e7 !important; }
-[data-theme="light"] .case-step-icon   { opacity: 0.6; }
-[data-theme="light"] .case-step--active .case-step-icon { opacity: 1; }
-
-/* IPC side panel (right column) */
-[data-theme="light"] .case-ipc-panel {
-  background: #f6f7f9 !important;
-  border-color: #e4e4e7 !important;
-}
-[data-theme="light"] .case-ipc-panel-title { color: #52525b !important; font-weight: 700; }
-[data-theme="light"] .case-ipc-entry {
-  background: #ffffff !important;
-  border-color: #e4e4e7 !important;
-}
-[data-theme="light"] .case-ipc-entry--bns:hover { border-color: #c4b5fd !important; background: #f5f3ff !important; }
-[data-theme="light"] .case-ipc-entry--ipc:hover { border-color: #fcd34d !important; background: #fffbeb !important; }
-[data-theme="light"] .case-ipc-text { color: #3f3f46 !important; }
-[data-theme="light"] .case-law-group-label--bns { color: #7c3aed !important; }
-[data-theme="light"] .case-law-group-label--ipc { color: #b45309 !important; }
-
-/* Timeline */
-[data-theme="light"] .case-tl-dot {
-  background: #d4d4d8 !important;
-  border-color: #d4d4d8 !important;
-  box-shadow: none !important;
-}
-[data-theme="light"] .case-tl-item--active .case-tl-dot,
-[data-theme="light"] .case-tl-item--done .case-tl-dot {
-  background: var(--tl-color) !important;
-  border-color: var(--tl-color) !important;
-  box-shadow: 0 0 6px var(--tl-color) !important;
-}
-[data-theme="light"] .case-tl-label { color: #52525b !important; }
-[data-theme="light"] .case-tl-item--active .case-tl-label { color: var(--tl-color) !important; }
-[data-theme="light"] .case-tl-item:hover { background: #f4f4f5 !important; }
-
-/* Dynamic status banners */
-[data-theme="light"] .case-dyn-status--loading { background: #f5f3ff; border-color: #c4b5fd; color: #6d28d9; }
-[data-theme="light"] .case-dyn-status--error   { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
 
 /* ─── LawComparison (correct class names) ──────────────── */
 [data-theme="light"] .compare-section   { background: #f6f7f9; }

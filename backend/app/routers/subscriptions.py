@@ -394,7 +394,12 @@ async def plan_status(user_email: str = Depends(get_current_user_email)):
     """Return the user's current plan. `plan_status` defaults to 'free' when unset."""
     from app.services.plan_gate import question_usage
 
-    user = users_collection.find_one({"email": user_email}) or {}
+    try:
+        user = users_collection.find_one({"email": user_email}) or {}
+    except Exception as e:
+        print(f"[WARN] Database find_one failed in /user/plan-status: {e}")
+        user = {}
+
     status = user.get("plan_status", "free")
     return {
         "plan_status":        status,

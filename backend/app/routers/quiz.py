@@ -29,8 +29,8 @@ from app.db.connection import queries_collection, bns_collection, ipc_collection
 from app.routers import get_current_user_email_optional
 from app.services.plan_gate import require_pro
 
-# Quiz & Learning Hub is a Pro-plan feature — every endpoint requires Pro.
-router = APIRouter(tags=["Quiz"], dependencies=[Depends(require_pro)])
+# Quiz router
+router = APIRouter(tags=["Quiz"])
 limiter = Limiter(key_func=get_remote_address)
 
 # ══════════════════════════════════════════════════════════════════════════════

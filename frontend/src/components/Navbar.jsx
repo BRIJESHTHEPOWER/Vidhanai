@@ -251,12 +251,12 @@ export default function Navbar() {
           <button
             className={`navbar__icon-btn navbar__theme-btn${theme === 'light' ? ' navbar__theme-btn--light' : ''}`}
             onClick={toggleTheme}
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={theme === 'light' ? 'Light mode active (click for Dark mode)' : 'Dark mode active (click for Light mode)'}
+            title={theme === 'light' ? 'Light mode active (click for Dark mode)' : 'Dark mode active (click for Light mode)'}
           >
             <span className="navbar__theme-icon">
-              {theme === 'dark' ? (
-                /* Sun — click to go light */
+              {theme === 'light' ? (
+                /* Sun — Light mode active */
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="4.5"/>
                   <line x1="12" y1="2" x2="12" y2="4"/>
@@ -269,14 +269,14 @@ export default function Navbar() {
                   <line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/>
                 </svg>
               ) : (
-                /* Moon — click to go dark */
+                /* Moon — Dark mode active */
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
                   <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/>
                 </svg>
               )}
             </span>
             <span className="navbar__theme-label">
-              {theme === 'dark' ? 'Light' : 'Dark'}
+              {theme === 'light' ? 'Light' : 'Dark'}
             </span>
           </button>
 

@@ -2,7 +2,7 @@
  * VidhanHome — Landing page
  * PERF-H2: Below-fold heavy components are lazy-loaded.
  * Only HeroSection + Navbar render on first paint.
- * Dashboard, AIChatInterface, CaseVisualization, LawComparison
+ * Dashboard, AIChatInterface, LawComparison
  * load lazily as separate chunks when user scrolls.
  */
 import React, { Suspense, lazy, useRef, useState, useEffect, useMemo, useCallback } from 'react';
@@ -15,8 +15,7 @@ import ScrollReveal from '../components/ScrollReveal';
 import TestimonialStack from '../components/TestimonialStack';
 import './VidhanHome.css';
 
-const CaseVisualization = lazy(() => import('../components/CaseVisualization'));
-const LawComparison    = lazy(() => import('../components/LawComparison'));
+const LawComparison = lazy(() => import('../components/LawComparison'));
 
 /* ── Below-fold section skeleton ── */
 function SectionSkeleton({ height = '400px' }) {
@@ -394,9 +393,6 @@ export default function VidhanHome() {
 
         {/* #features anchor for Navbar "Explore" link */}
         <div id="features" />
-        <LazySection height="400px">
-          <CaseVisualization />
-        </LazySection>
 
         <LazySection height="400px">
           <LawComparison />

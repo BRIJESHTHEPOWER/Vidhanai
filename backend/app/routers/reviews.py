@@ -68,7 +68,8 @@ async def get_reviews(limit: int = 100, featured_only: bool = True):
             reviews.append(doc)
         return reviews
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch reviews: {str(e)}")
+        print(f"[WARN] Database query failed in get_reviews: {e}")
+        return []
 
 @router.delete("/{review_id}")
 async def delete_review(review_id: str):

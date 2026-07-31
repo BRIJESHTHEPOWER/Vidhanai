@@ -424,6 +424,82 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   Light mode — the panel was designed dark-only, so every color
+   here needs a counterpart or it renders unreadable (near-white
+   text on the light page, or washed-out pastel text on a white card).
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="light"] .qm-panel {
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+  border-color: #e2e8f0;
+  box-shadow:
+    0 0 0 1px rgba(99,102,241,0.08),
+    0 40px 120px rgba(15,23,42,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+}
+[data-theme="light"] .qm-nav-btn,
+[data-theme="light"] .qm-score-pill,
+[data-theme="light"] .qm-close-btn,
+[data-theme="light"] .qm-cat-pill {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .qm-nav-btn:hover {
+  color: #4338ca; background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.3);
+}
+[data-theme="light"] .qm-score-pill strong { color: #4338ca; }
+[data-theme="light"] .qm-close-btn:hover { color: #dc2626; background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); }
+[data-theme="light"] .qm-prog-wrap { background: #e2e8f0; }
+[data-theme="light"] .qm-q-counter { color: #1e293b; }
+[data-theme="light"] .qm-q-text { color: #1e293b; }
+
+[data-theme="light"] .qm-option {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .qm-option:hover:not(:disabled) {
+  background: rgba(99,102,241,0.06);
+  border-color: rgba(99,102,241,0.3);
+}
+[data-theme="light"] .qm-option-label { background: #e2e8f0; border-color: #cbd5e1; color: #475569; }
+[data-theme="light"] .qm-option-text  { color: #1e293b; }
+
+[data-theme="light"] .qm-option--selected .qm-option-label { color: #4338ca; }
+[data-theme="light"] .qm-option--correct .qm-option-label  { color: #15803d; }
+[data-theme="light"] .qm-option--correct .qm-option-text   { color: #166534; }
+[data-theme="light"] .qm-option--wrong .qm-option-label    { color: #b91c1c; }
+[data-theme="light"] .qm-option--wrong .qm-option-text     { color: #b91c1c; }
+
+[data-theme="light"] .qm-tag--type    { background: #f1f5f9; border-color: #e2e8f0; color: #475569; }
+[data-theme="light"] .qm-exp-text     { color: #475569; }
+[data-theme="light"] .qm-hint         { color: #94a3b8; }
+[data-theme="light"] .qm-hint kbd     { background: #f1f5f9; border-color: #e2e8f0; color: #475569; }
+
+[data-theme="light"] .qm-btn--outline { background: #f1f5f9; border-color: #e2e8f0; color: #475569; }
+[data-theme="light"] .qm-btn--outline:hover { background: #e2e8f0; color: #1e293b; }
+
+[data-theme="light"] .qm-loading-title { color: #1e293b; }
+[data-theme="light"] .qm-loading-tip,
+[data-theme="light"] .qm-error-msg { color: #64748b; }
+
+[data-theme="light"] .qm-end-hero      { border-color: #e2e8f0; }
+[data-theme="light"] .qm-end-title     { color: #1e293b; }
+[data-theme="light"] .qm-end-of        { color: #94a3b8; }
+[data-theme="light"] .qm-end-pct       { color: #64748b; }
+[data-theme="light"] .qm-end-bar-wrap  { background: #e2e8f0; }
+[data-theme="light"] .qm-end-tabs      { background: #f1f5f9; border-color: #e2e8f0; }
+[data-theme="light"] .qm-end-tab       { color: #64748b; }
+[data-theme="light"] .qm-end-tab.active { background: rgba(99,102,241,0.12); color: #4338ca; }
+[data-theme="light"] .qm-stat          { background: #f8fafc; border-color: #e2e8f0; }
+[data-theme="light"] .qm-stat-lbl      { color: #64748b; }
+[data-theme="light"] .qm-end-tip       { color: #64748b; background: #f8fafc; border-color: #e2e8f0; }
+
+[data-theme="light"] .qm-review-item      { border-color: #e2e8f0; }
+[data-theme="light"] .qm-review-item.correct { background: rgba(34,197,94,0.06); border-color: rgba(34,197,94,0.25); }
+[data-theme="light"] .qm-review-item.wrong   { background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.25); }
+[data-theme="light"] .qm-review-q  { color: #1e293b; }
+[data-theme="light"] .qm-review-exp { color: #64748b; }
+
 /* ── Responsive ── */
 @media (max-width: 600px) {
   .qm-panel { padding: 16px 14px 20px; border-radius: 18px; }

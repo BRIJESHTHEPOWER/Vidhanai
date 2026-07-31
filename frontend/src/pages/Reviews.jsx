@@ -322,17 +322,7 @@ function ThankYouCard({ review, visible, onClose, onAnother }) {
         <button 
           onClick={onClose}
           aria-label="Close"
-          style={{
-            position: 'absolute', top: 32, right: 32, zIndex: 100,
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            color: '#94a3b8',
-            width: 48, height: 48, borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', transition: 'all 0.2s'
-          }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+          className="rv-thank-you-close"
         >
           <X size={24} />
         </button>
@@ -354,7 +344,7 @@ function ThankYouCard({ review, visible, onClose, onAnother }) {
           <button className="rv-btn-primary" onClick={onClose} style={{ pointerEvents: 'auto' }}>
             Continue Exploring
           </button>
-          <button className="rv-btn-secondary" onClick={onAnother} style={{ pointerEvents: 'auto', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+          <button className="rv-btn-secondary rv-thank-you-btn-sec" onClick={onAnother} style={{ pointerEvents: 'auto' }}>
             Submit Another Review
           </button>
         </div>

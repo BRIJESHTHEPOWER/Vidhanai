@@ -114,12 +114,16 @@ def list_announcements():
     """Feed for the website bell. Only updates from the last 7 days — older
     ones disappear from the frontend but remain stored for the admin."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=BELL_WINDOW_DAYS)
-    docs = list(
-        announcements_collection
-        .find({"created_at": {"$gte": cutoff}})
-        .sort("created_at", -1)
-        .limit(50)
-    )
+    try:
+        docs = list(
+            announcements_collection
+            .find({"created_at": {"$gte": cutoff}})
+            .sort("created_at", -1)
+            .limit(50)
+        )
+    except Exception as e:
+        print(f"[WARN] Database find failed in /api/announcements: {e}")
+        docs = []
     out = []
     for d in docs:
         out.append({

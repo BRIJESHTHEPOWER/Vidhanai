@@ -65,3 +65,9 @@ backend/static/comics/
 # =========================
 .DS_Store
 Thumbs.db
+# =========================
+# Office / editor temp files
+# =========================
+~$*
+~WRL*.tmp
+*.stackdump

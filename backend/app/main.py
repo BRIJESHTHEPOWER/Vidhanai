@@ -158,6 +158,24 @@ async def maintenance_gate(request: Request, call_next):
     return await call_next(request)
 
 
+from pymongo.errors import PyMongoError
+
+
+# ── Database Exception Handler ──────────────────────────────────────────────
+@app.exception_handler(PyMongoError)
+async def pymongo_exception_handler(request: Request, exc: PyMongoError):
+    print(f"[ERROR] [MongoDB] Database error on {request.url}: {exc}")
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": "Database service is temporarily unavailable or unreachable. Please try again.",
+            "status": "error",
+            "error_type": exc.__class__.__name__,
+            "path": str(request.url),
+        },
+    )
+
+
 # ── Global exception handler (C2) ─────────────────────────────────────────────
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

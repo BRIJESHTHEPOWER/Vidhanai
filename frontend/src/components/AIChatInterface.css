@@ -221,20 +221,6 @@
 }
 .chat-action-btn--copy { padding: 5px 8px; }
 
-/* Visualize Case — distinct amber CTA button */
-.chat-action-btn--visualize {
-  color: #f59e0b;
-  background: rgba(245,158,11,0.08);
-  border-color: rgba(245,158,11,0.22);
-  font-weight: 600;
-}
-.chat-action-btn--visualize:hover {
-  color: #fbbf24;
-  background: rgba(245,158,11,0.15);
-  border-color: rgba(245,158,11,0.45);
-  box-shadow: 0 0 14px rgba(245,158,11,0.25);
-}
-
 /* Sidebar "how to use Visualize" hint */
 .chat-visualize-hint {
   display: flex;

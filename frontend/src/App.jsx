@@ -88,13 +88,11 @@ function App() {
             {/* Protected Routes */}
             <Route path="/reviews"     element={<ProtectedRoute><Reviews /></ProtectedRoute>} />
             <Route path="/profile"     element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/quiz"        element={<ProtectedRoute><QuizHub /></ProtectedRoute>} />
             <Route path="/subscribe/success" element={<ProtectedRoute><SubscribeSuccess /></ProtectedRoute>} />
 
             {/* Pro-gated (plan_status must be "pro" — set by the Razorpay webhook) */}
             <Route path="/pro"         element={<ProRoute><ProDemo /></ProRoute>} />
-            <Route path="/quiz"        element={<ProRoute><QuizHub /></ProRoute>} />
-            <Route path="/comic"       element={<ProRoute><ComicStory /></ProRoute>} />
-            <Route path="/tutor"       element={<ProRoute><LawTutor /></ProRoute>} />
 
             {/* Free-plan accessible (login required; AI questions limited server-side) */}
             <Route path="/ask-ai"      element={<ProtectedRoute><AskAI /></ProtectedRoute>} />
@@ -102,6 +100,8 @@ function App() {
             <Route path="/compare-detail/:bns" element={<ProtectedRoute><ComparisonView /></ProtectedRoute>} />
             <Route path="/awareness"   element={<ProtectedRoute><Awareness /></ProtectedRoute>} />
             <Route path="/section/:id" element={<ProtectedRoute><SectionDetail /></ProtectedRoute>} />
+            <Route path="/comic"       element={<ProtectedRoute><ComicStory /></ProtectedRoute>} />
+            <Route path="/tutor"       element={<ProtectedRoute><LawTutor /></ProtectedRoute>} />
 
             {/* Admin Panel — self-contained auth, no nav */}
             <Route path="/admin"       element={<AdminPanel />} />

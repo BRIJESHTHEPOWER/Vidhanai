@@ -937,7 +937,9 @@ export default function AskAI() {
           <p>
             This AI assistant provides general legal information only and should not be considered as legal advice. Please consult with a qualified legal professional for advice on your specific situation.
           </p>
-          <button className="askai-rs-btn">Learn More</button>
+          <Link to="/about#disclaimer" className="askai-rs-btn" style={{ textDecoration: 'none', textAlign: 'center', display: 'block' }}>
+            Learn More
+          </Link>
         </div>
       </aside>
     </div>

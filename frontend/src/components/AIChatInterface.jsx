@@ -3,23 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { BorderBeam } from './ui/BorderBeam';
 import './AIChatInterface.css';
 
-/* ── Case category detector ─────────────────────────────────────────────────── */
-const CASE_KEYWORDS = {
-  theft:      [/theft|steal|stolen|rob|pickpocket|burglary|379|303|ipc 379/i],
-  fraud:      [/fraud|cheat|scam|420|420|318|phishing|cyber fraud|online fraud|otp/i],
-  assault:    [/assault|hurt|attack|beat|325|117|grievous|physical violence|fight/i],
-  domestic:   [/domestic|498a|498|dowry|cruelty|husband|wife|matrimon|dv act/i],
-  murder:     [/murder|kill|death|302|101|homicide|culpable/i],
-  cybercrime: [/cyber|hack|data theft|it act|66|computer|online|internet|digital/i],
-};
-
-function detectCase(text) {
-  for (const [caseId, patterns] of Object.entries(CASE_KEYWORDS)) {
-    if (patterns.some(p => p.test(text))) return caseId;
-  }
-  return null;
-}
-
 /* ── IPC Badge inline ── */
 function IPCBadge({ section }) {
   return <span className="chat-ipc-badge">{section}</span>;
@@ -63,21 +46,6 @@ function Message({ msg, index }) {
   const isAI = msg.role === 'ai';
   const [copied, setCopied] = useState(false);
 
-  const handleVisualize = () => {
-    // Detect case from both question and answer text
-    const combined = (msg.question || '') + ' ' + (msg.text || '');
-    const caseId = detectCase(combined);
-
-    // Fire custom event so CaseVisualization can switch its tab
-    window.dispatchEvent(new CustomEvent('vidhan:visualize', {
-      detail: { caseId: caseId || 'theft' },
-    }));
-
-    // Smooth scroll to the Cases section
-    const el = document.getElementById('cases');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   const handleCopy = () => {
     navigator.clipboard?.writeText(msg.text || '').then(() => {
       setCopied(true);
@@ -112,15 +80,6 @@ function Message({ msg, index }) {
             <button className="chat-action-btn" id={`explain-${index}`} title="Explain Simply">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
               Explain Simply
-            </button>
-            <button
-              className="chat-action-btn chat-action-btn--visualize"
-              id={`visualize-${index}`}
-              title="See case procedure step-by-step"
-              onClick={handleVisualize}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 9 5 12 1.774-5.226L21 14 9 9z"/></svg>
-              Visualize Case
             </button>
             <button
               className="chat-action-btn chat-action-btn--copy"

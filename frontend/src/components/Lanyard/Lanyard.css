@@ -11,8 +11,14 @@
   transform: scale(1);
   transform-origin: center;
   pointer-events: none;
+  background: transparent !important;
+}
+
+.lanyard-wrapper canvas {
+  background: transparent !important;
 }
 
 .lanyard-wrapper > div {
   pointer-events: auto;
 }
+

@@ -25,12 +25,15 @@ def _client_kwargs() -> dict:
     certificate store. Not passed for plain local mongodb:// (no TLS)."""
     kwargs = dict(
         maxPoolSize=10,
-        serverSelectionTimeoutMS=10000,   # Atlas from a remote host needs > 5s
+        serverSelectionTimeoutMS=20000,   # Atlas from a remote host needs > 5s (increased to 20s for DNS/SSL handshake resilience)
         socketTimeoutMS=45000,
-        connectTimeoutMS=10000,
+        connectTimeoutMS=20000,
+        retryWrites=True,
+        retryReads=True,
     )
     uri = (MONGO_URI or "").lower()
     if uri.startswith("mongodb+srv://") or "tls=true" in uri or "ssl=true" in uri:
+        kwargs["tls"] = True
         kwargs["tlsCAFile"] = certifi.where()
     return kwargs
 

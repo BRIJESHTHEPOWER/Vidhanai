@@ -740,16 +740,20 @@
 .rv-thank-you-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #0f172a 70%, #090d16 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   z-index: 10000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
   opacity: 1;
-  transition: opacity 0.35s ease, visibility 0.35s ease;
+  transition: opacity 0.35s ease, background 0.35s ease, visibility 0.35s ease;
+}
+
+[data-theme="light"] .rv-thank-you-overlay {
+  background: radial-gradient(circle at 50% 30%, #e0e7ff 0%, #f1f5f9 70%, #ffffff 100%) !important;
 }
 
 /* Kept mounted but hidden — the 3D lanyard inside stays initialised so it
@@ -774,24 +778,96 @@
 }
 
 .rv-thankyou-banner h2 {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 800;
-  color: #f1f5f9;
-  margin: 0 0 8px;
+  color: #ffffff;
+  margin: 0 0 10px;
   letter-spacing: -0.02em;
-  text-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.9), 0 0 40px rgba(99, 102, 241, 0.5);
+  transition: color 0.3s ease;
+}
+
+[data-theme="light"] .rv-thankyou-banner h2 {
+  color: #0f172a !important;
+  text-shadow: 0 2px 16px rgba(99, 102, 241, 0.2) !important;
 }
 
 .rv-thankyou-banner p {
-  font-size: 15px;
-  color: #cbd5e1;
+  font-size: 16px;
+  color: #e2e8f0;
   margin: 0;
-  text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
+  transition: color 0.3s ease;
+}
+
+[data-theme="light"] .rv-thankyou-banner p {
+  color: #475569 !important;
+  text-shadow: none !important;
+}
+
+/* Close button */
+.rv-thank-you-close {
+  position: absolute;
+  top: 32px;
+  right: 32px;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rv-thank-you-close:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="light"] .rv-thank-you-close {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .rv-thank-you-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Secondary Action button */
+.rv-thank-you-btn-sec {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.rv-thank-you-btn-sec:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="light"] .rv-thank-you-btn-sec {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme="light"] .rv-thank-you-btn-sec:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
 }
 
 @media (max-width: 640px) {
-  .rv-thankyou-banner h2 { font-size: 24px; }
-  .rv-thankyou-banner p { font-size: 13px; }
+  .rv-thankyou-banner h2 { font-size: 26px; }
+  .rv-thankyou-banner p { font-size: 14px; }
 }
 
 .rv-thank-you-card {

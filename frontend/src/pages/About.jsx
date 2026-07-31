@@ -88,6 +88,29 @@ const MISSION_PILLARS = [
   },
 ];
 
+const HERO_HIGHLIGHTS = [
+  {
+    icon: '⚖️',
+    title: 'BNS 2023 & IPC 1860',
+    sub: 'Side-by-side legal comparison',
+    badge: 'Updated',
+    color: '#6366f1'
+  },
+  {
+    icon: '🗣️',
+    title: '7 Indian Languages',
+    sub: 'Hindi, Tamil, Telugu & more',
+    badge: 'Multilingual',
+    color: '#06b6d4'
+  },
+  {
+    icon: '🎓',
+    title: 'Interactive Learning',
+    sub: 'Quizzes, AI Tutor & Scenarios',
+    color: '#f59e0b'
+  }
+];
+
 const DIFFERENTIATORS = [
   {
     title: 'BNS 2023 Ready',
@@ -111,13 +134,6 @@ const DIFFERENTIATORS = [
     bg: 'rgba(34,211,238,0.1)',
   },
   {
-    title: 'Visual Case Breakdown',
-    body: "Don't just read — watch legal scenarios unfold step by step. Theft, assault, fraud — see how the law is applied at each stage.",
-    icon: '🎬',
-    color: '#f472b6',
-    bg: 'rgba(244,114,182,0.1)',
-  },
-  {
     title: 'Educational, Not Just Lookup',
     body: 'Quiz mode, AI Tutor, Comic Story — we believe you retain law better when you learn it interactively.',
     icon: '📚',
@@ -131,13 +147,6 @@ const DIFFERENTIATORS = [
     color: '#fb923c',
     bg: 'rgba(251,146,60,0.1)',
   },
-];
-
-const STATS = [
-  { value: '10,000+', label: 'Students & Citizens' },
-  { value: '500+',    label: 'Laws & Sections'      },
-  { value: '7',       label: 'Indian Languages'     },
-  { value: '98%',     label: 'Answer Accuracy'      },
 ];
 
 /* ─────────────────── sub-components ─────────────────── */
@@ -223,13 +232,32 @@ export default function About() {
               BNS 2023 and IPC 1860, available in 7 Indian languages, free to start.
             </motion.p>
 
-            <motion.div className="about-stats-row" {...fadeUp(0.28)}>
-              {STATS.map((s) => (
-                <div key={s.label} className="about-stat">
-                  <span className="about-stat-val">{s.value}</span>
-                  <span className="about-stat-lbl">{s.label}</span>
+            <motion.div className="about-hero-highlights" {...fadeUp(0.26)}>
+              {HERO_HIGHLIGHTS.map((item) => (
+                <div key={item.title} className="about-hero-card" style={{ '--card-accent': item.color }}>
+                  <div className="about-hero-card-icon">{item.icon}</div>
+                  <div className="about-hero-card-content">
+                    <div className="about-hero-card-top">
+                      <span className="about-hero-card-title">{item.title}</span>
+                      {item.badge && <span className="about-hero-card-badge">{item.badge}</span>}
+                    </div>
+                    <span className="about-hero-card-sub">{item.sub}</span>
+                  </div>
                 </div>
               ))}
+            </motion.div>
+
+            <motion.div className="about-hero-actions" {...fadeUp(0.34)}>
+              <Link to="/ask-ai" className="about-hero-btn-primary">
+                <span>Try Vidhan AI Assistant</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </Link>
+              <Link to="/quiz" className="about-hero-btn-secondary">
+                Explore Quizzes
+              </Link>
             </motion.div>
           </div>
         </section>
@@ -356,7 +384,7 @@ export default function About() {
                       What is the punishment for theft, and how did it change from IPC to BNS?
                     </div>
                     <div className="about-why-card-msg about-why-card-msg--ai">
-                      Theft is <strong>BNS §303</strong> (earlier <strong>IPC §378/379</strong>):
+                      Theft is <strong>BNS 303</strong> (earlier <strong>IPC 378/379</strong>):
                       <ul className="about-why-card-list">
                         <li>Dishonestly taking movable property without consent</li>
                         <li>Punishment: up to 3 years imprisonment, or fine, or both</li>
@@ -398,7 +426,7 @@ export default function About() {
         </section>
 
         {/* ══════════ DISCLAIMER ══════════ */}
-        <section className="about-disclaimer-section">
+        <section className="about-disclaimer-section" id="disclaimer">
           <div className="container">
             <ScrollReveal direction="up" distance={40}>
               <motion.div

@@ -1,10 +1,11 @@
 /* eslint-disable react/no-unknown-property */
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas, extend, useFrame } from '@react-three/fiber';
 import { useGLTF, Environment, Lightformer } from '@react-three/drei';
 import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
+import { useTheme } from '../../context/ThemeContext';
 
 import cardGLB from './card.glb';
 
@@ -19,6 +20,7 @@ useGLTF.preload(cardGLB);
 
 export default function Lanyard({ position = [0, 0, 30], gravity = [0, -40, 0], fov = 20, transparent = true, name = "", replay = false }) {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+  const { theme } = useTheme();
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -31,49 +33,61 @@ export default function Lanyard({ position = [0, 0, 30], gravity = [0, -40, 0], 
       <Canvas
         camera={{ position: position, fov: fov }}
         dpr={[1, isMobile ? 1.5 : 2]}
-        gl={{ alpha: transparent }}
-        onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
+        gl={{ alpha: transparent, powerPreference: "high-performance" }}
+        frameloop={replay ? 'always' : 'never'}
+        style={{ background: 'transparent' }}
+        onCreated={({ gl }) => {
+          gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1);
+          if (gl.domElement) {
+            gl.domElement.addEventListener('webglcontextlost', (e) => {
+              e.preventDefault();
+              console.warn('WebGL context lost in Lanyard Canvas');
+            });
+          }
+        }}
       >
         <ambientLight intensity={Math.PI} />
-        <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
-          <Band isMobile={isMobile} name={name} replay={replay} />
-        </Physics>
-        <Environment blur={0.75}>
-          <Lightformer
-            intensity={2}
-            color="white"
-            position={[0, -1, 5]}
-            rotation={[0, 0, Math.PI / 3]}
-            scale={[100, 0.1, 1]}
-          />
-          <Lightformer
-            intensity={3}
-            color="white"
-            position={[-1, -1, 1]}
-            rotation={[0, 0, Math.PI / 3]}
-            scale={[100, 0.1, 1]}
-          />
-          <Lightformer
-            intensity={3}
-            color="white"
-            position={[1, 1, 1]}
-            rotation={[0, 0, Math.PI / 3]}
-            scale={[100, 0.1, 1]}
-          />
-          <Lightformer
-            intensity={10}
-            color="white"
-            position={[-10, 0, 14]}
-            rotation={[0, Math.PI / 2, Math.PI / 3]}
-            scale={[100, 10, 1]}
-          />
-        </Environment>
+        <Suspense fallback={null}>
+          <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
+            <Band isMobile={isMobile} name={name} replay={replay} theme={theme} />
+          </Physics>
+          <Environment blur={0.75}>
+            <Lightformer
+              intensity={2}
+              color="white"
+              position={[0, -1, 5]}
+              rotation={[0, 0, Math.PI / 3]}
+              scale={[100, 0.1, 1]}
+            />
+            <Lightformer
+              intensity={3}
+              color="white"
+              position={[-1, -1, 1]}
+              rotation={[0, 0, Math.PI / 3]}
+              scale={[100, 0.1, 1]}
+            />
+            <Lightformer
+              intensity={3}
+              color="white"
+              position={[1, 1, 1]}
+              rotation={[0, 0, Math.PI / 3]}
+              scale={[100, 0.1, 1]}
+            />
+            <Lightformer
+              intensity={10}
+              color="white"
+              position={[-10, 0, 14]}
+              rotation={[0, Math.PI / 2, Math.PI / 3]}
+              scale={[100, 10, 1]}
+            />
+          </Environment>
+        </Suspense>
       </Canvas>
     </div>
   );
 }
 
-function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, name = "", replay = false }) {
+function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, name = "", replay = false, theme = "dark" }) {
   const band = useRef(),
     fixed = useRef(),
     j1 = useRef(),
@@ -109,14 +123,26 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, name = "", replay
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
     
+    const isDark = theme === 'dark';
+
     // Draw background
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = isDark ? '#0f172a' : '#ffffff';
     ctx.fillRect(0, 0, 512, 512);
 
-    // Draw top gradient bar
+    // Draw subtle border
+    ctx.strokeStyle = isDark ? 'rgba(99, 102, 241, 0.4)' : '#e2e8f0';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, 506, 506);
+
+    // Draw top gradient header bar
     const gradient = ctx.createLinearGradient(0, 0, 512, 0);
-    gradient.addColorStop(0, '#6366f1');
-    gradient.addColorStop(1, '#06b6d4');
+    if (isDark) {
+      gradient.addColorStop(0, '#6366f1');
+      gradient.addColorStop(1, '#06b6d4');
+    } else {
+      gradient.addColorStop(0, '#4f46e5');
+      gradient.addColorStop(1, '#0891b2');
+    }
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 512, 100);
 
@@ -124,27 +150,27 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, name = "", replay
     const drawCardFace = (centerX) => {
       ctx.textAlign = 'center';
       
-      ctx.fillStyle = '#ffffff'; // White text on gradient
+      ctx.fillStyle = '#ffffff'; // White text on gradient header
       ctx.font = 'bold 34px Arial';
       ctx.fillText('Thank You!', centerX, 60);
       
       let yOffset = 180;
       if (name) {
-        ctx.fillStyle = '#6366f1';
+        ctx.fillStyle = isDark ? '#818cf8' : '#4f46e5';
         ctx.font = 'bold 30px Arial';
         ctx.fillText(name, centerX, yOffset);
         yOffset += 60;
       }
 
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#cbd5e1' : '#334155';
       ctx.font = '20px Arial';
       ctx.fillText('Your review was', centerX, yOffset);
       ctx.fillText('submitted', centerX, yOffset + 30);
       ctx.fillText('successfully.', centerX, yOffset + 60);
       
-      // Draw a subtle footer
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '14px Arial';
+      // Draw footer brand name
+      ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
+      ctx.font = 'bold 15px Arial';
       ctx.fillText('Vidhan.ai', centerX, 460);
     };
 
@@ -156,7 +182,7 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, name = "", replay
     tex.flipY = false;
     tex.colorSpace = THREE.SRGBColorSpace;
     setCardTexture(tex);
-  }, [name]);
+  }, [name, theme]);
 
   useEffect(() => {
     if (hovered) {

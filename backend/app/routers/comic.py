@@ -5,7 +5,7 @@ import time
 import logging
 import requests
 import threading
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 from typing import Optional, List
@@ -14,12 +14,10 @@ from slowapi.util import get_remote_address
 
 from app.db.connection import bns_collection, normalize_law_doc
 from app.services.ai import generate_json_response, generate_groq_text
-from app.services.plan_gate import require_pro
 
 logger = logging.getLogger(__name__)
 
-# Comic Story mode is a Pro-plan feature — every endpoint requires Pro.
-router = APIRouter(prefix="/comic-story", tags=["comic"], dependencies=[Depends(require_pro)])
+router = APIRouter(prefix="/comic-story", tags=["comic"])
 limiter = Limiter(key_func=get_remote_address)
 
 # HF_API_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"

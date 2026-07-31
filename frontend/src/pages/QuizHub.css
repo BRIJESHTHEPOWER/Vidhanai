@@ -571,12 +571,31 @@
 [data-theme="light"] .qh-root { background: #f8fafc; color: #1e293b; }
 [data-theme="light"] .qh-hero-title { color: #1e293b; }
 [data-theme="light"] .qh-hero-sub   { color: #475569; }
+[data-theme="light"] .qh-hero-pill  { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.22); color: #4338ca; }
+[data-theme="light"] .qh-step-lbl   { color: #475569; }
+[data-theme="light"] .qh-step + .qh-step::before { color: #cbd5e1; }
 [data-theme="light"] .qh-search { background: #ffffff; border-color: #e2e8f0; }
 [data-theme="light"] .qh-search input { color: #1e293b; }
 [data-theme="light"] .qh-search input::placeholder { color: #94a3b8; }
-[data-theme="light"] .qh-topic-card { background: #ffffff; border-color: #e2e8f0; }
+[data-theme="light"] .qh-topic-card { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04); }
+[data-theme="light"] .qh-topic-card:hover { box-shadow: 0 16px 40px rgba(0,0,0,0.08); }
+[data-theme="light"] .qh-topic-title { color: #1e293b; }
+[data-theme="light"] .qh-topic-desc  { color: #52525b; }
 [data-theme="light"] .qh-cat-btn { background: #ffffff; border-color: #e2e8f0; color: #475569; }
 [data-theme="light"] .qh-cat-btn--active { color: #ffffff; }
 [data-theme="light"] .qh-stat-num { color: #1e293b; }
 [data-theme="light"] .qh-stat-lbl { color: #64748b; }
 [data-theme="light"] .qh-stat + .qh-stat { border-left-color: #e2e8f0; }
+[data-theme="light"] .qh-stats { background: #ffffff; border-color: #e2e8f0; }
+[data-theme="light"] .qh-stat { background: #ffffff; }
+
+/* Start-quiz button: keep the per-law tinted background, just darken
+   the text — the dark-mode lavender (#a5b4fc) has almost no contrast
+   against the pale tint once the page background is white. */
+[data-theme="light"] .qh-start-btn { color: #1e293b; }
+[data-theme="light"] .qh-start-btn:hover { color: #111827; }
+
+[data-theme="light"] .qh-tips-title { color: #1e293b; }
+[data-theme="light"] .qh-tip-card  { background: #ffffff; border-color: #e2e8f0; }
+[data-theme="light"] .qh-tip-title { color: #1e293b; }
+[data-theme="light"] .qh-tip-desc  { color: #52525b; }

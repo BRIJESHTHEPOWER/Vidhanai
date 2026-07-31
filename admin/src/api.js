@@ -1,5 +1,5 @@
 /* Shared API client for admin — attaches Bearer token to every request */
-const BASE = 'http://localhost:8000';
+const BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 function getToken() {
   return localStorage.getItem('vadmin_token') || '';

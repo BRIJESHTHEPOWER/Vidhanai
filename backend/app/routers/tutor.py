@@ -7,7 +7,7 @@ import re
 import json
 import logging
 from typing import Optional, List
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -102,10 +102,7 @@ def _lesson_display_json(system: str, user_text: str, language: str, max_tokens:
 
 logger = logging.getLogger(__name__)
 
-from app.services.plan_gate import require_pro
-
-# The AI Law Tutor is a Pro-plan feature — every endpoint requires Pro.
-router = APIRouter(tags=["Tutor"], dependencies=[Depends(require_pro)])
+router = APIRouter(tags=["Tutor"])
 limiter = Limiter(key_func=get_remote_address)
 
 # ── Chapter badges ─────────────────────────────────────────────────────────────
