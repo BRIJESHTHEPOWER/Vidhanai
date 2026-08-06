@@ -969,6 +969,7 @@
   var pendingRecover = false;   // camera died while the tab was hidden
   var detectErrors = 0;         // consecutive detectForVideo throws
   var lastDetectError = "";     // message of the most recent one (for diagnosis)
+  var rebuildCooldownUntil = 0; // don't hammer the CDN when a rebuild fails
   var rebuildingAI = false;
 
   function safePlay() {
@@ -1006,9 +1007,16 @@
       await createLandmarker();
       detectErrors = 0;
       setStatus("Show your hand");
-    } catch (_) {
-      // model fetch hiccup — the next error burst retries the rebuild
+    } catch (e) {
+      // Creation failed — model fetch hiccup, or the WASM runtime not ready.
+      // landmarker is null now, and with nothing to call detectForVideo on no
+      // further errors can accumulate, so the error-burst path can never fire
+      // again: without an explicit retry tracking stays dead and the panel sits
+      // there as a black rectangle. Arm a cooldown; the loop retries after it.
       detectErrors = 0;
+      lastDetectError = (e && e.message) ? e.message : String(e);
+      rebuildCooldownUntil = performance.now() + 2500;
+      setStatus("Hand tracker failed to start — retrying…");
     }
     lastVideoTime = -1;
     lastFreshT = performance.now();
@@ -1121,7 +1129,16 @@
   async function startCamera() {
     if (!video) {
       video = document.createElement("video");
-      video.style.display = "none";
+      // NOT display:none. Chrome treats a display:none media element as having
+      // no rendering work to do and can stop advancing currentTime on it, which
+      // freezes the frame the detect loop gates on — the loop then skips
+      // detection entirely, the skeleton panel never gets painted (it stays a
+      // black rectangle) and the stall watchdog just re-opens the camera
+      // forever. Keep it rendered but effectively invisible: 2x2px, fully
+      // transparent, parked off-screen. No camera image is ever shown.
+      video.style.cssText =
+        "position:fixed;left:-10000px;top:0;width:2px;height:2px;" +
+        "opacity:0;pointer-events:none;z-index:-1;";
       video.muted = true;
       video.setAttribute("playsinline", "");
       video.setAttribute("autoplay", "");
@@ -1264,6 +1281,14 @@
             noHand(video);
           }
         }
+      } else if (running && !landmarker && !rebuildingAI &&
+                 performance.now() >= rebuildCooldownUntil) {
+        // The tracker is gone because a rebuild failed. Nothing is calling
+        // detectForVideo, so the error-burst path can never notice — this is
+        // the only thing that can bring tracking back. Keep the panel honest
+        // meanwhile rather than leaving an unexplained black rectangle.
+        drawPreview(null);
+        rebuildLandmarker();
       } else if (lastFreshT && performance.now() - lastFreshT > 3500 &&
                  !recovering && !rebuildingAI && !document.hidden) {
         // Watchdog: the camera stopped delivering frames (device grabbed by
