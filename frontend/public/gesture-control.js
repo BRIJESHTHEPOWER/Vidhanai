@@ -1430,9 +1430,19 @@
     // it back on automatically — camera permission is already granted, so
     // this needs no user interaction.
     if (sessionStorage.getItem("gfai_on") === "1") {
-      setTimeout(function () {
-        if (!running) toggle();
-      }, 600);
+      // Restoring costs ~11MB (MediaPipe lib + 2.4MB WASM + the 7.8MB model)
+      // plus camera startup. Firing that 600ms after DOMContentLoaded put it
+      // right on top of React booting and the route's lazy chunks, so every
+      // navigation felt slow. Wait for the page to finish loading AND for the
+      // main thread to go idle first — gesture control is never the reason
+      // someone opened the page, so it must never compete with rendering it.
+      var restore = function () {
+        var go = function () { if (!running) toggle(); };
+        if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 3000 });
+        else setTimeout(go, 800);
+      };
+      if (document.readyState === "complete") restore();
+      else window.addEventListener("load", restore, { once: true });
     }
   }
 
