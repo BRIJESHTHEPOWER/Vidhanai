@@ -4,10 +4,13 @@
      bg #030712, accent #6366f1→#06b6d4, font Space Grotesk
    ───────────────────────────────────────────────────────── */
 
-/* ── Section ── */
+/* ── Section ──
+   Sized by its content. This used to be a 300vh scroll-hijacked stack, which
+   cost three screens of vertical scrolling to read a handful of reviews; the
+   rail below scrolls horizontally instead and the page keeps its own scroll. */
 .ts-section {
   position: relative;
-  height: 300vh;
+  padding-bottom: 90px;
   background: #030712;
   font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
 }
@@ -69,32 +72,79 @@
   line-height: 1.65;
 }
 
-/* ── Sticky viewport ── */
-.ts-sticky {
-  position: sticky;
-  top: 0;
-  height: 100vh;
+/* ── Carousel shell: arrows flank the scrolling rail ── */
+.ts-carousel {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  gap: 8px;
+  margin-top: 54px;
+  padding: 0 12px;
 }
 
-/* ── Perspective wrapper ── */
-.ts-stack-wrapper {
-  position: relative;
-  width: 380px;
-  height: 500px;
-  perspective: 1500px;
-  transform-style: preserve-3d;
+/* ── The horizontal rail ──
+   Native overflow scrolling, so touch drag, shift+wheel, trackpad swipe and
+   arrow keys all work without any JS. Snapping keeps cards centred. */
+.ts-scroller {
+  flex: 1;
+  display: flex;
+  gap: 26px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  /* Room for the cards' glow + hover lift, which would otherwise be clipped */
+  padding: 30px 0 38px;
+  /* First/last card can still reach the centre of the rail */
+  scroll-padding-inline: 50%;
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* old Edge */
+}
+
+.ts-scroller::-webkit-scrollbar { display: none; }
+
+.ts-scroller:focus-visible {
+  outline: 2px solid rgba(34, 211, 238, 0.8);
+  outline-offset: 6px;
+  border-radius: 28px;
+}
+
+/* ── Nav arrows ── */
+.ts-nav {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: background 0.25s ease, border-color 0.25s ease,
+              opacity 0.25s ease, transform 0.25s ease;
+}
+
+.ts-nav:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.3);
+  border-color: rgba(99, 102, 241, 0.6);
+  transform: scale(1.07);
+}
+
+.ts-nav:disabled {
+  opacity: 0.28;
+  cursor: default;
 }
 
 /* ── Individual glass card ── */
 .ts-card {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  /* Laid out in the rail rather than stacked absolutely */
+  flex: 0 0 auto;
+  width: 380px;
+  min-height: 460px;
+  scroll-snap-align: center;
 
   /* Advanced Vidhan.ai glass surface */
   background: linear-gradient(
@@ -103,8 +153,8 @@
     rgba(99, 102, 241, 0.05) 45%,
     rgba(6, 182, 212, 0.04) 100%
   );
-  backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
+  backdrop-filter: blur(30px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   border-left: 1px solid rgba(255, 255, 255, 0.15);
@@ -121,14 +171,22 @@
   justify-content: center;
   padding: 44px 38px;
   box-sizing: border-box;
-  transform-style: preserve-3d;
-  will-change: transform, opacity;
   cursor: default;
-  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+  /* Off-centre cards recede slightly so the centred one reads as the subject */
+  opacity: 0.62;
+  transform: scale(0.955);
+  transition: box-shadow 0.4s ease, border-color 0.4s ease,
+              opacity 0.4s ease, transform 0.4s ease;
 }
 
-/* Active (front) card gets a subtle indigo-cyan top glow */
+.ts-card:hover {
+  transform: scale(0.975) translateY(-8px);
+}
+
+/* Centred card gets full presence and a subtle indigo-cyan glow */
 .ts-card-active {
+  opacity: 1;
+  transform: scale(1);
   border-top: 1px solid rgba(99, 102, 241, 0.5);
   border-left: 1px solid rgba(6, 182, 212, 0.4);
   box-shadow:
@@ -137,6 +195,19 @@
     0 0 80px rgba(99,102,241,0.15) inset,
     0 -1px 0 rgba(6,182,212,0.3) inset,
     0 0 30px rgba(6, 182, 212, 0.2);
+}
+
+.ts-card-active:hover {
+  transform: scale(1) translateY(-10px);
+}
+
+/* Honour a reduced-motion preference: no smooth scroll, no scale/lift */
+@media (prefers-reduced-motion: reduce) {
+  .ts-scroller { scroll-behavior: auto; }
+  .ts-card,
+  .ts-card-active,
+  .ts-card:hover,
+  .ts-card-active:hover { transform: none; transition: none; }
 }
 
 /* ── Stars ── */
@@ -255,52 +326,37 @@
 }
 
 /* ── Progress indicator ── */
+/* ── Progress dots (clickable — they jump the rail to that card) ── */
 .ts-progress {
-  position: absolute;
-  bottom: -52px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
+  margin-top: 10px;
 }
 
 .ts-dot {
-  width: 5px;
-  height: 5px;
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: none;
   border-radius: 50%;
-  background: rgba(255,255,255,0.15);
-  transition: background 0.35s ease, transform 0.35s ease, width 0.35s ease;
+  cursor: pointer;
+  background: rgba(255,255,255,0.18);
+  transition: background 0.35s ease, width 0.35s ease;
+}
+
+.ts-dot:hover { background: rgba(255,255,255,0.4); }
+
+.ts-dot:focus-visible {
+  outline: 2px solid rgba(34, 211, 238, 0.9);
+  outline-offset: 3px;
 }
 
 .ts-dot.active {
-  width: 20px;
+  width: 22px;
   border-radius: 9999px;
   background: linear-gradient(90deg, #6366f1, #06b6d4);
-  transform: none;
-}
-
-/* ── Scroll hint ── */
-.ts-scroll-hint {
-  position: absolute;
-  bottom: -100px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  color: #475569;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  animation: ts-bounce 2s infinite;
-}
-
-.ts-scroll-hint svg {
-  width: 16px;
-  height: 16px;
-  color: #475569;
 }
 
 @keyframes ts-bounce {
@@ -310,14 +366,17 @@
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .ts-stack-wrapper { width: 340px; height: 460px; }
-  .ts-card { padding: 36px 28px; }
+  /* Arrows are redundant next to touch drag, and they steal rail width */
+  .ts-nav { display: none; }
+  .ts-carousel { margin-top: 40px; padding: 0; }
+  .ts-scroller { gap: 18px; padding: 22px 0 30px; }
+  .ts-card { width: 330px; min-height: 430px; padding: 36px 28px; }
   .ts-quote { font-size: 15px; }
 }
 
 @media (max-width: 480px) {
-  .ts-stack-wrapper { width: 300px; height: 420px; }
-  .ts-card { padding: 28px 22px; }
+  .ts-scroller { gap: 14px; }
+  .ts-card { width: 290px; min-height: 400px; padding: 28px 22px; }
   .ts-quote { font-size: 14px; }
   .ts-heading-wrapper { padding-top: 60px; }
   .ts-title { font-size: 26px; }

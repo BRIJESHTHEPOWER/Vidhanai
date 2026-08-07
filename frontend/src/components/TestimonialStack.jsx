@@ -1,20 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, useSpring, useScroll } from 'framer-motion';
-import { MessageSquarePlus } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { MessageSquarePlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import './TestimonialStack.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-
-/* fan config: index 0 = front card */
-const STACK_CONFIG = [
-  { rotate: 0,   tx: 0,   ty: 0,   z: 100 },
-  { rotate: 6,   tx: 28,  ty: -10, z: 90  },
-  { rotate: 12,  tx: 56,  ty: -20, z: 80  },
-  { rotate: 18,  tx: 84,  ty: -30, z: 70  },
-  { rotate: 24,  tx: 112, ty: -40, z: 60  },
-  { rotate: 30,  tx: 140, ty: -50, z: 50  },
-];
 
 /* ── Star SVG ── */
 function StarIcon({ fill = "currentColor", stroke = "currentColor" }) {
@@ -25,71 +15,40 @@ function StarIcon({ fill = "currentColor", stroke = "currentColor" }) {
   );
 }
 
-/* ── Single animated card ── */
-function TestimonialCard({ testimonial, stackPosition, isActive, totalCount }) {
-  const cfg = STACK_CONFIG[stackPosition] ?? STACK_CONFIG[STACK_CONFIG.length - 1];
-
-  const rotate = useSpring(cfg.rotate, { stiffness: 120, damping: 18 });
-  const tx     = useSpring(cfg.tx,     { stiffness: 120, damping: 18 });
-  const ty     = useSpring(cfg.ty,     { stiffness: 120, damping: 18 });
-
-  useEffect(() => {
-    rotate.set(cfg.rotate);
-    tx.set(cfg.tx);
-    ty.set(cfg.ty);
-  }, [cfg.rotate, cfg.tx, cfg.ty]);
-
+/* ── Single card in the horizontal rail ── */
+function TestimonialCard({ testimonial, isActive, index }) {
   return (
-    <motion.div
+    <motion.article
       className={`ts-card${isActive ? ' ts-card-active' : ''}`}
-      style={{
-        rotate,
-        x: tx,
-        y: ty,
-        zIndex: cfg.z,
-        opacity: stackPosition >= STACK_CONFIG.length ? 0 : isActive ? 1 : 0.65,
-      }}
-      initial={{ opacity: 0, y: 30 }}
-      animate={{
-        opacity: stackPosition >= STACK_CONFIG.length ? 0 : isActive ? 1 : 0.65,
-        y: cfg.ty,
-        transition: { type: 'spring', stiffness: 100, damping: 20, delay: stackPosition * 0.04 },
-      }}
-      whileHover={
-        isActive
-          ? {
-              y: cfg.ty - 12,
-              scale: 1.015,
-              boxShadow:
-                '0 60px 120px rgba(0,0,0,0.75), 0 0 80px rgba(99,102,241,0.18) inset',
-              transition: { type: 'spring', stiffness: 300, damping: 22 },
-            }
-          : {}
-      }
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.45, delay: Math.min(index, 4) * 0.06 }}
+      aria-roledescription="testimonial"
+      aria-label={`Review ${index + 1} by ${testimonial.name}`}
     >
-      {/* badge */}
       <span className="ts-badge">{testimonial.badge || 'Community'}</span>
 
-      {/* stars */}
-      <div className="ts-stars">
+      <div className="ts-stars" aria-label={`${testimonial.rating} out of 5 stars`}>
         {Array.from({ length: 5 }).map((_, i) => (
-          <StarIcon key={i} fill={i < testimonial.rating ? "currentColor" : "none"} stroke={i < testimonial.rating ? "currentColor" : "rgba(6,182,212,0.5)"} />
+          <StarIcon
+            key={i}
+            fill={i < testimonial.rating ? "currentColor" : "none"}
+            stroke={i < testimonial.rating ? "currentColor" : "rgba(6,182,212,0.5)"}
+          />
         ))}
       </div>
 
-      {/* quote */}
       <p className="ts-quote">"{testimonial.quote || testimonial.text}"</p>
 
-      {/* divider */}
       <div className="ts-divider" />
 
-      {/* profile */}
       <div className="ts-profile">
         <div className="ts-avatar-wrap">
           <img
             className="ts-avatar"
             src={testimonial.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonial.name)}&background=3b82f6&color=fff`}
-            alt={testimonial.name}
+            alt=""
             loading="lazy"
           />
         </div>
@@ -98,64 +57,92 @@ function TestimonialCard({ testimonial, stackPosition, isActive, totalCount }) {
           <p className="ts-role">{testimonial.role || 'Verified User'}</p>
         </div>
       </div>
-    </motion.div>
+    </motion.article>
   );
 }
 
 /* ─── Main export ─── */
 export default function TestimonialStack() {
-  const sectionRef = useRef(null);
+  const scrollerRef = useRef(null);
   const navigate = useNavigate();
   const [activeIndex, setActiveIndex] = useState(0);
   const [testimonials, setTestimonials] = useState([]);
   const [loaded, setLoaded] = useState(false);
-
-  const fetchReviews = async () => {
-    try {
-      // Only admin-approved ("featured") reviews are shown in this homepage
-      // showcase. Every other submitted review still shows on /reviews.
-      const res = await fetch(`${API_BASE}/reviews`);
-      if (res.ok) {
-        const data = await res.json();
-        const formatted = data.map((d, i) => ({
-          ...d,
-          quote: d.text,
-          id: d.id || i,
-          badge: i === 0 ? 'Newest' : 'Community'
-        }));
-        setTestimonials(formatted);
-      }
-    } catch (err) {
-      console.error("Failed to fetch reviews:", err);
-    } finally {
-      setLoaded(true);
-    }
-  };
+  const [edges, setEdges] = useState({ atStart: true, atEnd: false });
 
   useEffect(() => {
-    fetchReviews();
+    let cancelled = false;
+    (async () => {
+      try {
+        // Only admin-approved ("featured") reviews are shown in this homepage
+        // showcase. Every other submitted review still shows on /reviews.
+        const res = await fetch(`${API_BASE}/reviews`);
+        if (res.ok) {
+          const data = await res.json();
+          if (cancelled) return;
+          setTestimonials(data.map((d, i) => ({
+            ...d,
+            quote: d.text,
+            id: d.id || i,
+            badge: i === 0 ? 'Newest' : 'Community',
+          })));
+        }
+      } catch (err) {
+        console.error('Failed to fetch reviews:', err);
+      } finally {
+        if (!cancelled) setLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ['start start', 'end end'],
-  });
+  // Which card is centred in the rail, plus whether we've hit either end so the
+  // arrows can disable themselves. Driven by real scroll position rather than a
+  // counter, so dragging, trackpad flicks and keyboard scrolling all agree.
+  const syncToScroll = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const cards = Array.from(el.querySelectorAll('.ts-card'));
+    if (!cards.length) return;
+
+    const mid = el.scrollLeft + el.clientWidth / 2;
+    let best = 0;
+    let bestDist = Infinity;
+    cards.forEach((c, i) => {
+      const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - mid);
+      if (d < bestDist) { bestDist = d; best = i; }
+    });
+    setActiveIndex(best);
+    setEdges({
+      atStart: el.scrollLeft <= 2,
+      atEnd: el.scrollLeft >= el.scrollWidth - el.clientWidth - 2,
+    });
+  }, []);
 
   useEffect(() => {
-    if (testimonials.length === 0) return;
-    const unsub = scrollYProgress.on('change', (v) => {
-      const idx = Math.min(
-        Math.floor(v * testimonials.length),
-        testimonials.length - 1
-      );
-      setActiveIndex(idx);
-    });
-    return unsub;
-  }, [scrollYProgress, testimonials]);
+    const el = scrollerRef.current;
+    if (!el) return;
+    syncToScroll();
+    el.addEventListener('scroll', syncToScroll, { passive: true });
+    window.addEventListener('resize', syncToScroll);
+    return () => {
+      el.removeEventListener('scroll', syncToScroll);
+      window.removeEventListener('resize', syncToScroll);
+    };
+  }, [syncToScroll, testimonials.length]);
 
-  const getStackPos = (cardIndex) => {
-    const diff = cardIndex - activeIndex;
-    return diff < 0 ? -1 : diff;
+  const scrollToIndex = (i) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const cards = el.querySelectorAll('.ts-card');
+    const target = cards[Math.max(0, Math.min(i, cards.length - 1))];
+    if (!target) return;
+    // Centre the card in the rail rather than aligning it left, so partial
+    // neighbours stay visible and the rail reads as a continuous strip.
+    el.scrollTo({
+      left: target.offsetLeft - (el.clientWidth - target.offsetWidth) / 2,
+      behavior: 'smooth',
+    });
   };
 
   // Wait for the fetch, and skip the showcase entirely if there are no
@@ -163,8 +150,7 @@ export default function TestimonialStack() {
   if (!loaded || testimonials.length === 0) return null;
 
   return (
-    <section className="ts-section" ref={sectionRef} id="testimonials">
-      {/* ── Heading (not sticky, scrolls out) ── */}
+    <section className="ts-section" id="testimonials">
       <div className="ts-heading-wrapper">
         <div className="ts-label">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -179,68 +165,69 @@ export default function TestimonialStack() {
         <p className="ts-subtitle">
           From tenants to founders, students to activists — see how Vidhan.ai is making India's legal system accessible to everyone.
         </p>
-        
+
         <button className="write-review-btn" onClick={() => navigate('/reviews')} style={{ marginTop: '20px' }}>
           <MessageSquarePlus size={20} />
           Write a Review
         </button>
       </div>
 
-      {/* ── Sticky card stack ── */}
-      <div className="ts-sticky">
-        <div className="ts-stack-wrapper">
-          {/* render back-to-front */}
-          {[...testimonials].reverse().map((t, ri) => {
-            const cardIndex = testimonials.length - 1 - ri;
-            const stackPos  = getStackPos(cardIndex);
-            const isActive  = cardIndex === activeIndex;
+      <div className="ts-carousel">
+        <button
+          type="button"
+          className="ts-nav ts-nav-prev"
+          onClick={() => scrollToIndex(activeIndex - 1)}
+          disabled={edges.atStart}
+          aria-label="Previous review"
+        >
+          <ChevronLeft size={22} />
+        </button>
 
-            /* departed — fly out upward */
-            if (stackPos < 0) {
-              return (
-                <motion.div
-                  key={t.id}
-                  className="ts-card"
-                  initial={false}
-                  animate={{ y: -680, opacity: 0, rotate: -18, scale: 0.92 }}
-                  transition={{ type: 'spring', stiffness: 120, damping: 18 }}
-                  style={{ zIndex: 5, pointerEvents: 'none' }}
-                />
-              );
-            }
-
-            return (
-              <TestimonialCard
-                key={t.id}
-                testimonial={t}
-                stackPosition={stackPos}
-                isActive={isActive}
-                totalCount={testimonials.length}
-              />
-            );
-          })}
-
-          {/* progress dots */}
-          <div className="ts-progress">
-            {testimonials.map((_, i) => (
-              <div
-                key={i}
-                className={`ts-dot${i === activeIndex ? ' active' : ''}`}
-              />
-            ))}
-          </div>
-
-          {/* scroll hint — only show on first card */}
-          {activeIndex === 0 && testimonials.length > 0 && (
-            <div className="ts-scroll-hint">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 5v14M5 12l7 7 7-7"/>
-              </svg>
-              Scroll to explore
-            </div>
-          )}
+        {/* Native horizontal scroll + snap: works with touch, trackpad, shift-
+            wheel and arrow keys for free, and needs no scroll hijacking. */}
+        <div
+          className="ts-scroller"
+          ref={scrollerRef}
+          tabIndex={0}
+          role="region"
+          aria-label="Community reviews, scroll horizontally"
+        >
+          {testimonials.map((t, i) => (
+            <TestimonialCard
+              key={t.id}
+              testimonial={t}
+              index={i}
+              isActive={i === activeIndex}
+            />
+          ))}
         </div>
+
+        <button
+          type="button"
+          className="ts-nav ts-nav-next"
+          onClick={() => scrollToIndex(activeIndex + 1)}
+          disabled={edges.atEnd}
+          aria-label="Next review"
+        >
+          <ChevronRight size={22} />
+        </button>
       </div>
+
+      {testimonials.length > 1 && (
+        <div className="ts-progress" role="tablist" aria-label="Choose a review">
+          {testimonials.map((t, i) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={i === activeIndex}
+              aria-label={`Go to review ${i + 1}`}
+              className={`ts-dot${i === activeIndex ? ' active' : ''}`}
+              onClick={() => scrollToIndex(i)}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

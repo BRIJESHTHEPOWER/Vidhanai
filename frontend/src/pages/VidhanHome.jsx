@@ -398,7 +398,8 @@ export default function VidhanHome() {
           <LawComparison />
         </LazySection>
 
-        {/* TestimonialStack manages its own 300vh scroll — no LazySection needed */}
+        {/* Reviews scroll horizontally in their own rail, and the section
+            hides itself when there are no approved reviews to show */}
         <TestimonialStack />
 
         {/* LearnSection is lightweight — no lazy needed */}
