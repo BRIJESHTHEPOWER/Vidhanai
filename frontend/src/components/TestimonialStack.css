@@ -7,12 +7,53 @@
 /* ── Section ──
    Sized by its content. This used to be a 300vh scroll-hijacked stack, which
    cost three screens of vertical scrolling to read a handful of reviews; the
-   rail below scrolls horizontally instead and the page keeps its own scroll. */
+   rail below drifts horizontally instead and the page keeps its own scroll.
+
+   Every colour is a token declared for BOTH themes here, rather than dark
+   values hardcoded inline — the section previously pinned #030712 and had no
+   light-mode rules at all, so it rendered as a black slab on the light theme. */
 .ts-section {
   position: relative;
   padding-bottom: 90px;
-  background: #030712;
   font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+
+  --ts-bg: #030712;
+  --ts-card-bg: linear-gradient(145deg,
+      rgba(255,255,255,0.08) 0%, rgba(99,102,241,0.05) 45%, rgba(6,182,212,0.04) 100%);
+  --ts-card-border: rgba(255,255,255,0.10);
+  --ts-card-border-top: rgba(255,255,255,0.20);
+  --ts-card-shadow: 0 30px 60px rgba(0,0,0,0.55);
+  --ts-quote: rgba(241,245,249,0.92);
+  --ts-name: #f1f5f9;
+  --ts-role: #94a3b8;
+  --ts-subtitle: #94a3b8;
+  --ts-star: #06b6d4;
+  --ts-star-empty: rgba(6,182,212,0.45);
+  --ts-star-glow: drop-shadow(0 0 4px rgba(6,182,212,0.5));
+  --ts-avatar-ring: #030712;
+  --ts-fade: #030712;
+
+  background: var(--ts-bg);
+}
+
+/* Light theme — desaturated tonal variants rather than inverted darks, and
+   text re-picked to clear 4.5:1 on a pale surface. */
+[data-theme="light"] .ts-section {
+  --ts-bg: #f6f8fc;
+  --ts-card-bg: linear-gradient(145deg,
+      rgba(255,255,255,0.96) 0%, rgba(99,102,241,0.06) 55%, rgba(6,182,212,0.05) 100%);
+  --ts-card-border: rgba(15,23,42,0.10);
+  --ts-card-border-top: rgba(255,255,255,0.9);
+  --ts-card-shadow: 0 18px 40px rgba(15,23,42,0.10);
+  --ts-quote: #1e293b;
+  --ts-name: #0f172a;
+  --ts-role: #475569;
+  --ts-subtitle: #475569;
+  --ts-star: #0891b2;
+  --ts-star-empty: rgba(8,145,178,0.40);
+  --ts-star-glow: none;
+  --ts-avatar-ring: #ffffff;
+  --ts-fade: #f6f8fc;
 }
 
 /* radial glow behind the whole section */
@@ -26,6 +67,28 @@
     rgba(6,182,212,0.08) 45%,
     transparent 70%);
   pointer-events: none;
+}
+
+/* A glow tuned for a near-black backdrop turns into grey haze on a pale one */
+[data-theme="light"] .ts-section::before {
+  background: radial-gradient(ellipse 80% 60% at 50% 0%,
+    rgba(99,102,241,0.10) 0%,
+    rgba(6,182,212,0.06) 45%,
+    transparent 70%);
+}
+
+/* The pale sky-blue→cyan gradient and cyan pill both sit near 2:1 on a light
+   surface. Deepen both so heading and label stay legible in either theme. */
+[data-theme="light"] .ts-title {
+  background: linear-gradient(135deg, #1d4ed8 0%, #6d28d9 50%, #0e7490 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+[data-theme="light"] .ts-label {
+  color: #0e7490;
+  background: rgba(6,182,212,0.10);
+  border-color: rgba(14,116,144,0.30);
 }
 
 /* ── Heading block (not sticky) ── */
@@ -66,104 +129,82 @@
 
 .ts-subtitle {
   font-size: 15px;
-  color: #94a3b8;
+  color: var(--ts-subtitle);
   max-width: 460px;
   margin: 0 auto;
   line-height: 1.65;
 }
 
-/* ── Carousel shell: arrows flank the scrolling rail ── */
-.ts-carousel {
+/* ── Marquee shell ──
+   Masks both edges so cards dissolve into the background instead of being cut
+   off mid-card, which is what sells the strip as endless. */
+.ts-marquee {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
   margin-top: 54px;
-  padding: 0 12px;
 }
 
-/* ── The horizontal rail ──
-   Native overflow scrolling, so touch drag, shift+wheel, trackpad swipe and
-   arrow keys all work without any JS. Snapping keeps cards centred. */
-.ts-scroller {
-  flex: 1;
+.ts-marquee::before,
+.ts-marquee::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: clamp(40px, 9vw, 150px);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.ts-marquee::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--ts-fade), transparent);
+}
+
+.ts-marquee::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--ts-fade), transparent);
+}
+
+/* ── The drifting rail ──
+   A real scroll container, not a transformed track: the JS drift just advances
+   scrollLeft, so drag, shift+wheel and arrow keys keep working and the user can
+   take over at any moment. Scrollbar hidden — the motion is the affordance. */
+.ts-rail {
   display: flex;
   gap: 26px;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
   /* Room for the cards' glow + hover lift, which would otherwise be clipped */
   padding: 30px 0 38px;
-  /* First/last card can still reach the centre of the rail */
-  scroll-padding-inline: 50%;
   scrollbar-width: none;          /* Firefox */
   -ms-overflow-style: none;       /* old Edge */
 }
 
-.ts-scroller::-webkit-scrollbar { display: none; }
+.ts-rail::-webkit-scrollbar { display: none; }
 
-.ts-scroller:focus-visible {
-  outline: 2px solid rgba(34, 211, 238, 0.8);
-  outline-offset: 6px;
+.ts-rail:focus-visible {
+  outline: 2px solid rgba(34, 211, 238, 0.85);
+  outline-offset: 4px;
   border-radius: 28px;
 }
 
-/* ── Nav arrows ── */
-.ts-nav {
-  flex: 0 0 auto;
-  width: 46px;
-  height: 46px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  cursor: pointer;
-  color: #e2e8f0;
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  transition: background 0.25s ease, border-color 0.25s ease,
-              opacity 0.25s ease, transform 0.25s ease;
-}
+.ts-slot { flex: 0 0 auto; }
 
-.ts-nav:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.3);
-  border-color: rgba(99, 102, 241, 0.6);
-  transform: scale(1.07);
-}
-
-.ts-nav:disabled {
-  opacity: 0.28;
-  cursor: default;
-}
-
-/* ── Individual glass card ── */
+/* ── Individual glass card ──
+   Every card carries equal weight now: on a continuously drifting rail there is
+   no single "current" card, so dimming some of them would just read as a bug. */
 .ts-card {
-  /* Laid out in the rail rather than stacked absolutely */
-  flex: 0 0 auto;
+  /* Anchors the absolutely-positioned .ts-badge to this card. Without it the
+     badge escapes to .ts-marquee and every card's badge piles up in one corner. */
+  position: relative;
   width: 380px;
-  min-height: 460px;
-  scroll-snap-align: center;
-
-  /* Advanced Vidhan.ai glass surface */
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(99, 102, 241, 0.05) 45%,
-    rgba(6, 182, 212, 0.04) 100%
-  );
+  min-height: 440px;
+  background: var(--ts-card-bg);
   -webkit-backdrop-filter: blur(30px);
   backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--ts-card-border);
+  border-top: 1px solid var(--ts-card-border-top);
   border-radius: 28px;
-
-  box-shadow:
-    0 40px 80px rgba(0,0,0,0.6),
-    0 0 0 1px rgba(255,255,255,0.05) inset,
-    0 0 50px rgba(99,102,241,0.08) inset;
+  box-shadow: var(--ts-card-shadow);
 
   display: flex;
   flex-direction: column;
@@ -172,42 +213,19 @@
   padding: 44px 38px;
   box-sizing: border-box;
   cursor: default;
-  /* Off-centre cards recede slightly so the centred one reads as the subject */
-  opacity: 0.62;
-  transform: scale(0.955);
-  transition: box-shadow 0.4s ease, border-color 0.4s ease,
-              opacity 0.4s ease, transform 0.4s ease;
+  transition: box-shadow 0.35s ease, border-color 0.35s ease, transform 0.35s ease;
 }
 
+/* Lift only — no scale, so neighbouring cards never shift as the pointer
+   crosses the rail (the drift is already doing the moving). */
 .ts-card:hover {
-  transform: scale(0.975) translateY(-8px);
+  transform: translateY(-6px);
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: var(--ts-card-shadow), 0 0 28px rgba(99, 102, 241, 0.18);
 }
 
-/* Centred card gets full presence and a subtle indigo-cyan glow */
-.ts-card-active {
-  opacity: 1;
-  transform: scale(1);
-  border-top: 1px solid rgba(99, 102, 241, 0.5);
-  border-left: 1px solid rgba(6, 182, 212, 0.4);
-  box-shadow:
-    0 50px 100px rgba(0,0,0,0.8),
-    0 0 0 1px rgba(99,102,241,0.2) inset,
-    0 0 80px rgba(99,102,241,0.15) inset,
-    0 -1px 0 rgba(6,182,212,0.3) inset,
-    0 0 30px rgba(6, 182, 212, 0.2);
-}
-
-.ts-card-active:hover {
-  transform: scale(1) translateY(-10px);
-}
-
-/* Honour a reduced-motion preference: no smooth scroll, no scale/lift */
 @media (prefers-reduced-motion: reduce) {
-  .ts-scroller { scroll-behavior: auto; }
-  .ts-card,
-  .ts-card-active,
-  .ts-card:hover,
-  .ts-card-active:hover { transform: none; transition: none; }
+  .ts-card, .ts-card:hover { transform: none; transition: none; }
 }
 
 /* ── Stars ── */
@@ -222,8 +240,8 @@
   width: 20px;
   height: 20px;
   /* site cyan accent */
-  color: #06b6d4;
-  filter: drop-shadow(0 0 4px rgba(6,182,212,0.5));
+  color: var(--ts-star);
+  filter: var(--ts-star-glow);
 }
 
 /* ── Quote ── */
@@ -240,7 +258,7 @@
 .ts-quote {
   font-size: 16px;
   font-weight: 500;
-  color: rgba(241,245,249,0.92);
+  color: var(--ts-quote);
   line-height: 1.7;
   text-align: center;
   margin: 0 0 32px;
@@ -286,7 +304,7 @@
   height: 48px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #030712;
+  border: 2px solid var(--ts-avatar-ring);
   display: block;
 }
 
@@ -297,14 +315,14 @@
 .ts-name {
   font-size: 15px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--ts-name);
   margin: 0 0 2px;
   letter-spacing: -0.01em;
 }
 
 .ts-role {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--ts-role);
   margin: 0;
   letter-spacing: 0.02em;
 }
@@ -325,40 +343,15 @@
   padding: 3px 10px;
 }
 
+/* Bright cyan on a white card is about 1.9:1 — the badge was effectively
+   invisible in light mode. Darken the ink and firm up the pill behind it. */
+[data-theme="light"] .ts-badge {
+  color: #0e7490;
+  background: rgba(6,182,212,0.12);
+  border-color: rgba(14,116,144,0.35);
+}
+
 /* ── Progress indicator ── */
-/* ── Progress dots (clickable — they jump the rail to that card) ── */
-.ts-progress {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.ts-dot {
-  width: 7px;
-  height: 7px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  background: rgba(255,255,255,0.18);
-  transition: background 0.35s ease, width 0.35s ease;
-}
-
-.ts-dot:hover { background: rgba(255,255,255,0.4); }
-
-.ts-dot:focus-visible {
-  outline: 2px solid rgba(34, 211, 238, 0.9);
-  outline-offset: 3px;
-}
-
-.ts-dot.active {
-  width: 22px;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, #6366f1, #06b6d4);
-}
-
 @keyframes ts-bounce {
   0%, 100% { transform: translateX(-50%) translateY(0); }
   50%       { transform: translateX(-50%) translateY(5px); }
@@ -366,17 +359,15 @@
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  /* Arrows are redundant next to touch drag, and they steal rail width */
-  .ts-nav { display: none; }
-  .ts-carousel { margin-top: 40px; padding: 0; }
-  .ts-scroller { gap: 18px; padding: 22px 0 30px; }
-  .ts-card { width: 330px; min-height: 430px; padding: 36px 28px; }
+  .ts-marquee { margin-top: 40px; }
+  .ts-rail { gap: 18px; padding: 22px 0 30px; }
+  .ts-card { width: 320px; min-height: 410px; padding: 36px 28px; }
   .ts-quote { font-size: 15px; }
 }
 
 @media (max-width: 480px) {
-  .ts-scroller { gap: 14px; }
-  .ts-card { width: 290px; min-height: 400px; padding: 28px 22px; }
+  .ts-rail { gap: 14px; }
+  .ts-card { width: 278px; min-height: 380px; padding: 28px 22px; }
   .ts-quote { font-size: 14px; }
   .ts-heading-wrapper { padding-top: 60px; }
   .ts-title { font-size: 26px; }
