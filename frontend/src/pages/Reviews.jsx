@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,8 +6,14 @@ import { Star, X, MessageSquarePlus, Quote, Award, Users, TrendingUp, Filter } f
 import confetti from 'canvas-confetti';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import Lanyard from '../components/Lanyard/Lanyard';
 import './Reviews.css';
+
+// The lanyard drags in three.js AND the rapier physics engine — ~2.2MB of the
+// /reviews payload for something only shown after a review is submitted. Load
+// it on demand instead, and warm it while the submit form is open (see
+// prefetchLanyard) so it is already cached by the time the card appears.
+const Lanyard = lazy(() => import('../components/Lanyard/Lanyard'));
+const prefetchLanyard = () => { import('../components/Lanyard/Lanyard'); };
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
@@ -123,6 +129,11 @@ function SubmitModal({ onClose, onSuccess }) {
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Opening this form is the strongest signal a thank-you card is coming, so
+  // start fetching its 3D chunk now — it downloads while the user is typing
+  // and is cached by the time they submit.
+  useEffect(() => { prefetchLanyard(); }, []);
 
   const goLogin = () => { onClose(); navigate('/login'); };
 
@@ -274,9 +285,12 @@ function SubmitModal({ onClose, onSuccess }) {
 }
 
 /* ── Thank You Card Modal ──
-   Stays MOUNTED at all times (hidden via CSS) so the Lanyard's WebGL canvas,
-   physics world and environment lighting are fully initialised on page load.
-   Toggling `visible` is then instant — no re-mount, no loading delay. */
+   The overlay itself stays mounted so it can fade in and out, but the Lanyard
+   inside is mounted ONLY while visible. It previously rendered at all times,
+   hidden behind opacity:0 — which still runs its WebGL canvas and rapier
+   physics world every frame for the entire visit, and holds a WebGL context
+   the browser may later evict from something else. Its chunk is prefetched
+   while the submit form is open, so mounting on demand is still instant. */
 function ThankYouCard({ review, visible, onClose, onAnother }) {
   useEffect(() => {
     if (!visible) return;
@@ -336,9 +350,13 @@ function ThankYouCard({ review, visible, onClose, onAnother }) {
           </p>
         </div>
 
-        <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'auto' }}>
-          <Lanyard position={[0, 0, 24]} gravity={[0, -40, 0]} transparent={true} name={review?.name?.split(' ')[0]} replay={visible} />
-        </div>
+        {visible && (
+          <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'auto' }}>
+            <Suspense fallback={null}>
+              <Lanyard position={[0, 0, 24]} gravity={[0, -40, 0]} transparent={true} name={review?.name?.split(' ')[0]} replay={visible} />
+            </Suspense>
+          </div>
+        )}
         
         <div style={{ position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', gap: 16 }}>
           <button className="rv-btn-primary" onClick={onClose} style={{ pointerEvents: 'auto' }}>
@@ -505,8 +523,8 @@ export default function Reviews() {
         />
       )}
 
-      {/* Always mounted (hidden until a review is submitted) so the 3D lanyard
-          is pre-initialised and appears instantly — see ThankYouCard note. */}
+      {/* Overlay stays mounted so it can fade; the 3D lanyard inside only
+          mounts while visible — see ThankYouCard note. */}
       <ThankYouCard
         review={submittedReview}
         visible={Boolean(submittedReview)}
