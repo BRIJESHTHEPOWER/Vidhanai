@@ -68,10 +68,23 @@ function ReviewCard({ review, index }) {
       {/* Author row */}
       <div className="rv-card-author">
         <div className="rv-card-avatar" style={{ background: `linear-gradient(135deg, ${color}cc, ${color}55)`, borderColor: color + '44' }}>
-          {initials}
+          {/* Google profile photo when the account has one; initials otherwise.
+              onError covers an expired Google URL, which would otherwise leave
+              a broken-image icon where a face should be. */}
+          {review.picture
+            ? <img src={review.picture} alt="" className="rv-card-avatar-img"
+                   referrerPolicy="no-referrer"
+                   onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            : initials}
         </div>
         <div className="rv-card-author-info">
-          <span className="rv-card-name">{review.name}</span>
+          <span className="rv-card-name">
+            {review.name}
+            {review.email && (
+              <span className="rv-card-verified" title="Written from a signed-in account">✓</span>
+            )}
+          </span>
+          {review.email && <span className="rv-card-email">{review.email}</span>}
           <span className="rv-card-date">{date}</span>
         </div>
         <div className="rv-card-rating-badge" style={{ background: `${color}18`, borderColor: `${color}44`, color }}>
@@ -127,6 +140,10 @@ function SubmitModal({ onClose, onSuccess }) {
   const [role, setRole] = useState('');
   const [rating, setRating] = useState(5);
   const [text, setText] = useState('');
+  // Pre-filled with the account name but editable — a reviewer may want to post
+  // under just a first name or a shorter form. The account behind it is still
+  // recorded and shown on the card.
+  const [displayName, setDisplayName] = useState(accountName);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -154,7 +171,13 @@ function SubmitModal({ onClose, onSuccess }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ role: role.trim(), rating, text: text.trim() }),
+        body: JSON.stringify({
+          role: role.trim(),
+          rating,
+          text: text.trim(),
+          // Blank falls back to the account name server-side.
+          name: displayName.trim(),
+        }),
       });
       if (res.status === 401) {
         // Token missing/expired/invalid — clear the stale session so the UI stops
@@ -199,7 +222,7 @@ function SubmitModal({ onClose, onSuccess }) {
             <div className="rv-modal-icon"><MessageSquarePlus size={22} /></div>
             <div>
               <h2 className="rv-modal-title">Share Your Experience</h2>
-              <p className="rv-modal-sub">Help others understand how Vidhan.ai helped you</p>
+              <p className="rv-modal-sub">Help others understand how VidhanAI helped you</p>
             </div>
           </div>
 
@@ -208,7 +231,7 @@ function SubmitModal({ onClose, onSuccess }) {
               {error && <div className="rv-modal-error" style={{ marginBottom: 16 }}><X size={14} /> {error}</div>}
               <p style={{ color: 'var(--clr-text-muted, #94a3b8)', fontSize: 15, lineHeight: 1.6, margin: '0 0 20px' }}>
                 You need to be logged in to post a review — this keeps every review
-                tied to a real account and shown under your real name.
+                tied to a real account. You can still choose the name it appears under.
               </p>
               <button type="button" className="rv-modal-submit" onClick={goLogin} style={{ width: '100%' }}>
                 <MessageSquarePlus size={18} /> Log In to Continue
@@ -219,7 +242,13 @@ function SubmitModal({ onClose, onSuccess }) {
             <div className="rv-modal-row">
               <div className="rv-field">
                 <label>Posting As</label>
-                <input type="text" value={accountName} disabled readOnly />
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={e => setDisplayName(e.target.value)}
+                  placeholder={accountName || 'Your name'}
+                  maxLength={60}
+                />
               </div>
               <div className="rv-field">
                 <label>Your Role <span>(optional)</span></label>
@@ -259,7 +288,7 @@ function SubmitModal({ onClose, onSuccess }) {
               <textarea
                 value={text}
                 onChange={e => setText(e.target.value)}
-                placeholder="How did Vidhan.ai help you? Share your experience with legal queries, explanations, case understanding..."
+                placeholder="How did VidhanAI help you? Share your experience with legal queries, explanations, case understanding..."
                 maxLength={1000}
                 rows={5}
                 required
@@ -435,7 +464,7 @@ export default function Reviews() {
             Community Voices,<br /><span className="rv-hero-gradient">Real Impact</span>
           </h1>
           <p className="rv-hero-sub">
-            From students to business owners — see how Vidhan.ai is making India's legal system accessible to everyone.
+            From students to business owners — see how VidhanAI is making India's legal system accessible to everyone.
           </p>
 
           {/* Quick stats */}

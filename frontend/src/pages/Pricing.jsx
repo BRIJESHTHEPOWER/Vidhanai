@@ -51,7 +51,6 @@ const PLANS = [
       { text: 'Voice input',                         on: false },
       { text: 'Quiz & Learning Hub',                 on: false },
       { text: 'AI Law Tutor',                        on: true  },
-      { text: 'Comic Story mode',                    on: true  },
     ],
   },
   {
@@ -75,7 +74,6 @@ const PLANS = [
       { text: 'Voice input (unlimited)',             on: true },
       { text: 'Quiz & Learning Hub',                 on: true },
       { text: 'AI Law Tutor',                        on: true },
-      { text: 'Comic Story mode',                    on: true },
       { text: 'Priority support',                    on: true },
     ],
   },
@@ -292,7 +290,7 @@ export default function Pricing() {
               { label: 'Languages',     free: '1 (EN)',    pro: 'All 7'     },
               { label: 'Voice Input',   free: '—',         pro: 'Unlimited' },
               { label: 'AI Law Tutor',  free: 'Included',  pro: 'Included'  },
-              { label: 'Quiz & Comics', free: 'Included',  pro: 'Included'  },
+              { label: 'Quizzes',      free: 'Included',  pro: 'Included'  },
               { label: 'Support',       free: 'Community', pro: 'Priority'  },
             ].map((row, i) => (
               <div key={row.label} className={`pricing-cmp-row${i % 2 === 0 ? ' pricing-cmp-row--alt' : ''}`}>

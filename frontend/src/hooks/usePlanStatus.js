@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { getToken, clearSession } from '../utils/authHeaders';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
@@ -22,7 +23,7 @@ export default function usePlanStatus() {
   const [error, setError] = useState('');
 
   const refetch = useCallback(async () => {
-    const token = localStorage.getItem('vidhan_token');
+    const token = getToken();
     if (!token) {
       setData(null);
       setLoading(false);
@@ -43,6 +44,14 @@ export default function usePlanStatus() {
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
+      if (res.status === 401) {
+        // The session is dead. Drop it AND the cached plan — otherwise the
+        // cache kept reporting a plan for a user the server no longer knows,
+        // and every consumer went on firing requests that could only 401.
+        clearSession();
+        setData(null);
+        throw new Error('Your session has expired. Please log in again.');
+      }
       if (!res.ok) throw new Error('Could not load plan status.');
       const json = await res.json();
       setData(json);

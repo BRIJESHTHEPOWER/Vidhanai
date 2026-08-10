@@ -56,7 +56,7 @@ function StaticHero({ onSearch, query, setQuery, onAsk }) {
             AI-Powered Indian Legal Intelligence
           </div>
           <h1 className="hero-title-3d">
-            Vidhan.ai Legal Command Center.
+            VidhanAI Legal Command Center.
             <span className="hero-accent"> From question to justice path.</span>
           </h1>
           <p className="hero-subtitle-3d">
@@ -93,7 +93,6 @@ function StaticHero({ onSearch, query, setQuery, onAsk }) {
             </div>
             <div className="hero-cta-row">
               <button className="hero-cta-btn primary" onClick={() => onAsk && onAsk('rag')} type="button">Ask AI</button>
-              <button className="hero-cta-btn" onClick={() => onAsk && onAsk('comic')} type="button">Story Mode</button>
             </div>
           </div>
         </motion.div>
@@ -605,7 +604,7 @@ export default function CinematicHero({ onSearch, query, setQuery, onAsk }) {
           </div>
 
           <h1 className="hero-title-3d">
-            Vidhan.ai Legal Command Center.
+            VidhanAI Legal Command Center.
             <span className="hero-accent"> From question to justice path.</span>
           </h1>
 
@@ -654,9 +653,6 @@ export default function CinematicHero({ onSearch, query, setQuery, onAsk }) {
             <div className="hero-cta-row">
               <button className="hero-cta-btn primary" onClick={() => onAsk && onAsk('rag')} type="button">
                 Ask AI
-              </button>
-              <button className="hero-cta-btn" onClick={() => onAsk && onAsk('comic')} type="button">
-                Story Mode
               </button>
             </div>
           </div>

@@ -140,10 +140,9 @@ def voice_intent(request: Request, body: VoiceIntentRequest):
         system_prompt = (
             "You are the Voice Intent Engine for Vidhan.ai (Indian legal app).\n"
             "Analyze the transcript and current_section, and classify it into one of these intents:\n"
-            "- open_home, open_chatbot, open_quiz, open_comic, open_comparison, go_back\n"
+            "- open_home, open_chatbot, open_quiz, open_comparison, go_back\n"
             "- explain_law, search_section, read_punishment, legal_example, summarize_section, related_sections (parameter: section number/name, default to current_section if applicable)\n"
             "- compare_sections (parameter: sections like '378,303')\n"
-            "- generate_comic (parameter: topic or section)\n"
             "- start_quiz, next_question, submit_answer (parameter: answer like 'A' or 'B'), show_score\n"
             "- stop_speaking\n"
             "- default (fallback to general QA search)\n\n"
@@ -167,8 +166,6 @@ def voice_intent(request: Request, body: VoiceIntentRequest):
         lower_trans = transcript.lower()
         if "quiz" in lower_trans or "test" in lower_trans:
             return {"intent": "open_quiz", "parameter": None, "response": "Starting the quiz."}
-        if "comic" in lower_trans or "story" in lower_trans:
-            return {"intent": "open_comic", "parameter": None, "response": "Opening the comic story generator."}
         if "compare" in lower_trans:
             return {"intent": "open_comparison", "parameter": None, "response": "Opening the comparison tool."}
         if "home" in lower_trans or "dashboard" in lower_trans:

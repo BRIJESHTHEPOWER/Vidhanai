@@ -47,7 +47,7 @@ export default class ErrorBoundary extends React.Component {
             Something went wrong
           </h1>
           <p style={{ color: '#94a3b8', maxWidth: '400px', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-            An unexpected error occurred in this section. The rest of Vidhan.ai is still working.
+            An unexpected error occurred in this section. The rest of VidhanAI is still working.
           </p>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <button

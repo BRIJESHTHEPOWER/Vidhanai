@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import usePlanStatus from '../hooks/usePlanStatus';
 import PageLoader from './PageLoader';
+import { getToken } from '../utils/authHeaders';
 
 /**
  * Wrapper for Pro-only routes/components.
@@ -12,7 +13,7 @@ import PageLoader from './PageLoader';
  * Mirrors ProtectedRoute, but gates on the server-verified plan_status.
  */
 export default function ProRoute({ children }) {
-  const token = localStorage.getItem('vidhan_token');
+  const token = getToken();          // null for a missing, malformed or expired token
   const { isPro, loading } = usePlanStatus();
 
   if (!token) return <Navigate to="/login" replace />;

@@ -123,7 +123,7 @@ function TypingIndicator() {
 const INITIAL = [
   {
     role: 'ai',
-    text: "Hello! I'm Vidhan.ai. Ask me anything about Indian law — BNS sections, your rights, or legal procedures. I explain complex legal language in plain words.",
+    text: "Hello! I'm VidhanAI. Ask me anything about Indian law — BNS sections, your rights, or legal procedures. I explain complex legal language in plain words.",
     ipcs: [],
   },
   {

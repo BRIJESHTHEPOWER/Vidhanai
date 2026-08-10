@@ -250,7 +250,7 @@ export default function LearningHub() {
 
         {/* Mode guide */}
         <div className="hub-mode-guide container">
-          <h2 className="hub-mode-guide-title">How to Learn with Vidhan.ai</h2>
+          <h2 className="hub-mode-guide-title">How to Learn with VidhanAI</h2>
           <div className="hub-mode-guide-grid">
             {[
               { icon: '🎭', title: 'Learn — Scenario', color: '#6366f1',

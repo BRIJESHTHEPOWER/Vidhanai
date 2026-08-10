@@ -171,7 +171,7 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, name = "", replay
       // Draw footer brand name
       ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
       ctx.font = 'bold 15px Arial';
-      ctx.fillText('Vidhan.ai', centerX, 460);
+      ctx.fillText('VidhanAI', centerX, 460);
     };
 
     // Draw on front (left half of texture) and back (right half)

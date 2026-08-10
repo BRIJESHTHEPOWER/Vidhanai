@@ -7,7 +7,7 @@ import re
 import json
 import logging
 from typing import Optional, List
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -18,6 +18,7 @@ from app.db.connection import bns_collection, ipc_collection
 from app.services.ai import generate_groq_json_response, generate_groq_text, generate_json_response
 from app.services.teaching import generate_doubt_answer, generate_teaching_script, generate_chapter_intro
 from app.services import sarvam_llm
+from app.services.plan_gate import require_pro
 
 
 def _is_indian(language: str) -> bool:
@@ -65,12 +66,26 @@ def _gemini_lesson_json(system: str, user_text: str, max_tokens: int = _GEMINI_J
         return None
 
 
-def _sarvam_lesson_json(system: str, user_text: str, max_tokens: int = 4200) -> dict | None:
+# sarvam-105b is a reasoning model: it thinks for a few thousand tokens before
+# writing any JSON, so the budget has to cover thinking AND the lesson. Its tier
+# ceiling (4096) is the most we can give it — anything above is a hard 400, which
+# is why this call used to fail on every single request. reasoning_effort="low"
+# keeps the thinking short so the lesson itself fits in what is left.
+_SARVAM_JSON_TOKENS = sarvam_llm.MAX_OUTPUT_TOKENS[sarvam_llm.MODEL_REASONING]
+
+
+def _sarvam_lesson_json(system: str, user_text: str, max_tokens: int = _SARVAM_JSON_TOKENS) -> dict | None:
     """Generate lesson JSON via Sarvam-105b — Sarvam's own LLM, purpose-built
     for Indian languages, so it writes correct native script inside valid JSON
     for Tamil/Kannada/Telugu/Malayalam/Marathi/Hindi as well as English."""
     try:
-        return _parse_json_object(sarvam_llm.generate_text(system, user_text, temperature=0.45, max_tokens=max_tokens))
+        return _parse_json_object(sarvam_llm.generate_text(
+            system, user_text,
+            temperature=0.45,
+            max_tokens=max_tokens,
+            model=sarvam_llm.MODEL_REASONING,
+            reasoning_effort="low",
+        ))
     except Exception as exc:
         logger.warning("[Tutor] Sarvam lesson JSON failed: %s", exc)
         return None
@@ -102,7 +117,10 @@ def _lesson_display_json(system: str, user_text: str, language: str, max_tokens:
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["Tutor"])
+# The AI Law Tutor is a Pro feature (see plan_gate). The voice half (/tts, /jd/teach)
+# was already gated, but these content endpoints were not — a free account could
+# open /tutor and pull unlimited lessons while JD sat silent on a 403.
+router = APIRouter(tags=["Tutor"], dependencies=[Depends(require_pro)])
 limiter = Limiter(key_func=get_remote_address)
 
 # ── Chapter badges ─────────────────────────────────────────────────────────────

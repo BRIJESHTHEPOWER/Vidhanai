@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 import bcrypt
-from app.db.connection import users_collection
+from app.db.connection import users_collection, reviews_collection
 from app.routers import get_current_user_email
 from app.services.email_service import send_email
 from app.services import email_templates
@@ -92,6 +92,11 @@ class ProfileUpdate(BaseModel):
 class PhoneUpdate(BaseModel):
     # E.164-ish; validated in the endpoint. The account comes from the JWT.
     phone: str
+
+
+class NameUpdate(BaseModel):
+    # Display name. The account comes from the JWT, never the body.
+    name: str
 
 
 class OTPVerify(BaseModel):
@@ -393,6 +398,41 @@ def get_phone(user_email: str = Depends(get_current_user_email)):
     """Return the saved phone for the logged-in account (may be empty)."""
     user = users_collection.find_one({"email": user_email}, {"phone": 1}) or {}
     return {"phone": user.get("phone") or ""}
+
+
+@router.post("/update-name")
+def update_name(body: NameUpdate, user_email: str = Depends(get_current_user_email)):
+    """Change the account's display name.
+
+    The account is taken from the JWT, never the body — a caller can only ever
+    rename themselves. Renaming also carries over to reviews that were published
+    under the OLD account name, so a rename is not left half-applied across the
+    site. Reviews where the author deliberately typed a different display name
+    are left alone: that name was a choice about that review, not the account.
+    """
+    name = (body.name or "").strip()
+    if not (2 <= len(name) <= 60):
+        raise HTTPException(status_code=400, detail="Name must be 2-60 characters.")
+
+    user = users_collection.find_one({"email": user_email}, {"name": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="Account not found.")
+
+    old_name = (user.get("name") or "").strip()
+    users_collection.update_one({"email": user_email}, {"$set": {"name": name}})
+
+    reviews_updated = 0
+    if old_name and old_name != name:
+        try:
+            reviews_updated = reviews_collection.update_many(
+                {"email": user_email, "name": old_name}, {"$set": {"name": name}}
+            ).modified_count
+        except Exception as exc:
+            # The rename itself succeeded; the cascade is a nicety, not a reason
+            # to report failure back to the user.
+            print(f"[WARN] Could not rename reviews for {user_email}: {exc}")
+
+    return {"ok": True, "name": name, "reviews_updated": reviews_updated}
 
 
 @router.post("/me/phone")

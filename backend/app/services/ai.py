@@ -9,7 +9,7 @@ AI service — dual-provider wrapper with strict separation:
     - Chat answers in Indian languages (Llama can't write Tamil/Kannada/
       Telugu/Malayalam scripts reliably), with Groq as resilience fallback
     - Fallback for English chat if Groq is rate-limited or unavailable
-    - Comic story generation (/comic-story, /ask mode=comic)
+    - Story mode for /ask (mode=comic)
     - Translation, simplify, voice intent
 
 Never use Gemini for /ai-compare.

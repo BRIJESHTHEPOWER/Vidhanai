@@ -29,21 +29,21 @@ const STORY_TIMELINE = [
     year: '2023',
     label: 'The Problem',
     heading: 'A Nation Without Legal Literacy',
-    body: "India has 40+ million pending court cases. Most citizens don't know their fundamental rights, can't afford legal counsel, and struggle with laws written in archaic English. We saw a crisis — and a solution.",
+    body: "Tens of millions of cases sit pending in Indian courts. Most citizens cannot afford legal counsel, do not know which law applies to them, and meet statutes written in archaic English. Not knowing the law has a real cost — and it falls hardest on the people least able to pay it.",
     color: '#6366f1',
   },
   {
     year: '2023',
     label: 'The Idea',
     heading: 'AI Meets Indian Law',
-    body: 'We built an AI specifically around BNS 2023 and IPC 1860 — India\'s core criminal codes. The goal: make a citizen type any legal question in any Indian language and instantly understand the law.',
+    body: 'So we built the AI around BNS 2023 and IPC 1860 themselves, rather than bolting Indian law onto a general chatbot. Ask in your own words, in your own language, and get the actual section back — explained.',
     color: '#D4A017',
   },
   {
-    year: '2024',
-    label: 'Today',
+    year: 'Today',
+    label: 'Where We Are',
     heading: 'Democratising Legal Knowledge',
-    body: 'Vidhan.ai now serves students and everyday citizens across India. From understanding a theft charge to knowing your rights at arrest — clarity is now one question away.',
+    body: 'All 358 BNS sections and 577 IPC sections are now searchable, cross-referenced and explained in plain language. From understanding a theft charge to knowing your rights at arrest, clarity is one question away.',
     color: '#22d3ee',
   },
 ];
@@ -128,14 +128,14 @@ const DIFFERENTIATORS = [
   },
   {
     title: 'Cites the Source',
-    body: 'Every answer references the exact section. You can verify, share, and build on what Vidhan.ai tells you.',
+    body: 'Every answer references the exact section. You can verify, share, and build on what VidhanAI tells you.',
     icon: '📋',
     color: '#22d3ee',
     bg: 'rgba(34,211,238,0.1)',
   },
   {
     title: 'Educational, Not Just Lookup',
-    body: 'Quiz mode, AI Tutor, Comic Story — we believe you retain law better when you learn it interactively.',
+    body: 'Quiz mode and the AI Tutor — we believe you retain law better when you learn it interactively.',
     icon: '📚',
     color: '#4ade80',
     bg: 'rgba(74,222,128,0.1)',
@@ -147,7 +147,19 @@ const DIFFERENTIATORS = [
     color: '#fb923c',
     bg: 'rgba(251,146,60,0.1)',
   },
+  {
+    title: 'A Tutor That Speaks',
+    body: 'JD teaches chapter by chapter out loud, checks whether you followed, and answers doubts mid-lesson — in your own language, not just English.',
+    icon: '🎧',
+    color: '#ec4899',
+    bg: 'rgba(236,72,153,0.1)',
+  },
 ];
+
+/* Written out so the heading reads naturally, and derived from the array so it
+   can never drift out of step with the cards again. */
+const COUNT_WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+const countWord = (n) => COUNT_WORDS[n] || String(n);
 
 /* ─────────────────── sub-components ─────────────────── */
 
@@ -219,7 +231,7 @@ export default function About() {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               </svg>
-              About Vidhan.ai
+              About VidhanAI
             </motion.div>
 
             <motion.h1 className="about-hero-title" {...fadeUp(0.08)}>
@@ -228,8 +240,8 @@ export default function About() {
             </motion.h1>
 
             <motion.p className="about-hero-sub" {...fadeUp(0.18)}>
-              Vidhan.ai is India's first AI-powered legal intelligence platform — built specifically for
-              BNS 2023 and IPC 1860, available in 7 Indian languages, free to start.
+              VidhanAI turns India's criminal law into something you can actually read — every BNS 2023 and
+              IPC 1860 section explained in plain words, in 7 Indian languages, free to start.
             </motion.p>
 
             <motion.div className="about-hero-highlights" {...fadeUp(0.26)}>
@@ -269,7 +281,7 @@ export default function About() {
               <div className="section-header">
                 <div className="section-label">Our Story</div>
                 <h2 className="section-title">
-                  Why we built <span className="gradient-text">Vidhan.ai</span>
+                  Why we built <span className="gradient-text">VidhanAI</span>
                 </h2>
               </div>
             </ScrollReveal>
@@ -307,7 +319,7 @@ export default function About() {
                   Three pillars of <span className="gradient-text">everything we do</span>
                 </h2>
                 <p className="section-subtitle">
-                  Every feature, every word, every decision at Vidhan.ai is guided by three core principles.
+                  Every feature, every word, every decision at VidhanAI is guided by three core principles.
                 </p>
               </div>
             </ScrollReveal>
@@ -326,12 +338,12 @@ export default function About() {
           </div>
         </section>
 
-        {/* ══════════ WHY VIDHAN.AI ══════════ */}
+        {/* ══════════ WHY VIDHANAI ══════════ */}
         <section className="about-why-section">
           <div className="container">
             <ScrollReveal direction="down" distance={30}>
               <div className="section-header">
-                <div className="section-label">Why Vidhan.ai</div>
+                <div className="section-label">Why VidhanAI</div>
                 <h2 className="section-title">
                   Not just another <span className="gradient-text">AI chatbot</span>
                 </h2>
@@ -348,8 +360,8 @@ export default function About() {
                     { title: 'Indian-law-first AI', desc: 'Built around BNS 2023 and IPC 1860 — India\'s criminal codes, not generic world law.' },
                     { title: 'Cites the actual section', desc: 'Every answer includes the exact BNS/IPC section so you can verify independently.' },
                     { title: 'Explains, not just quotes', desc: 'Plain-language breakdowns anyone can understand, not copy-pasted legalese.' },
-                    { title: 'Built for citizens & students', desc: 'Whether you\'re a first-time user or a student preparing for exams, Vidhan.ai scales to your needs.' },
-                    { title: 'Continuously updated', desc: 'As Indian law evolves, so does Vidhan.ai — amendments and new acts.' },
+                    { title: 'Built for citizens and students', desc: 'A first-time reader gets everyday language; a student preparing for exams gets the formal legal term named right alongside it.' },
+                    { title: 'Answers you can check', desc: 'Punishment, bailable status and whether police can arrest without a warrant — stated plainly, with the section to verify it against.' },
                   ].map((item, i) => (
                     <motion.div
                       key={item.title}
@@ -409,10 +421,10 @@ export default function About() {
               <div className="section-header">
                 <div className="section-label">What Makes It Different</div>
                 <h2 className="section-title">
-                  Six features, <span className="gradient-text">one platform</span>
+                  {countWord(DIFFERENTIATORS.length)} features, <span className="gradient-text">one platform</span>
                 </h2>
                 <p className="section-subtitle">
-                  Hover any card to see what sets Vidhan.ai apart from every other legal tool in India.
+                  Hover any card to see what sets VidhanAI apart from every other legal tool in India.
                 </p>
               </div>
             </ScrollReveal>
@@ -446,12 +458,12 @@ export default function About() {
                 </div>
                 <div className="about-disclaimer-body">
                   <p>
-                    Vidhan.ai is an <strong>educational and informational platform</strong>. The content provided —
+                    VidhanAI is an <strong>educational and informational platform</strong>. The content provided —
                     including AI-generated answers, law summaries, case breakdowns, and comparisons — is intended
                     solely for general awareness and legal literacy.
                   </p>
                   <p>
-                    <strong>Vidhan.ai is not a law firm</strong> and does not provide legal advice, legal opinions,
+                    <strong>VidhanAI is not a law firm</strong> and does not provide legal advice, legal opinions,
                     or legal representation. Nothing on this platform constitutes or should be construed as
                     professional legal counsel.
                   </p>
@@ -461,7 +473,7 @@ export default function About() {
                     consult a <strong>qualified and licensed advocate</strong> registered with the Bar Council of India.
                   </p>
                   <p>
-                    While we strive for accuracy, Indian law is complex and constantly evolving. Vidhan.ai makes no
+                    While we strive for accuracy, Indian law is complex and constantly evolving. VidhanAI makes no
                     warranties regarding the completeness, currency, or applicability of any information to your
                     specific circumstances. Use this platform to learn and be informed — not as a substitute for
                     professional legal guidance.

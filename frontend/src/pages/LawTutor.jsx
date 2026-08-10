@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import VidhanLogo from '../components/VidhanLogo';
 import { motion, AnimatePresence } from 'framer-motion';
-import { authHeaders } from '../utils/authHeaders';
+import { authHeaders, readPlanError } from '../utils/authHeaders';
 import './LawTutor.css';
 
 const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
@@ -206,6 +206,10 @@ function useSarvamTTS(defaultLanguage = 'English') {
 
   const [fetching, setFetching] = useState(false);
   const [blocked,  setBlocked]  = useState(false);
+  // Why the voice went silent, in the student's words. Without this a failed
+  // /tts/speak (Pro gate, Sarvam outage) just produced silence with no reason —
+  // the lesson text kept rendering, so it read as "Sarvam is not responding".
+  const [voiceError, setVoiceError] = useState(null);   // { message, upgrade } | null
 
   // ── Install a one-shot interaction listener ─────────────────────────────
   const installUnlock = useCallback((playFn) => {
@@ -231,6 +235,7 @@ function useSarvamTTS(defaultLanguage = 'English') {
     pendingRef.current = null;
     setFetching(false);
     setBlocked(false);
+    setVoiceError(null);        // a fresh attempt starts without the old reason
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.onended = null;
@@ -267,7 +272,21 @@ function useSarvamTTS(defaultLanguage = 'English') {
         body: JSON.stringify({ text: chunkText, language: langName, engine: 'sarvam' }),
         signal: ctrl.signal,
       })
-        .then(res => { if (!res.ok) throw new Error(`tts ${res.status}`); return res.blob(); })
+        .then(async res => {
+          if (res.ok) return res.blob();
+          const { error, message } = await readPlanError(res);
+          const err = new Error(`tts ${res.status}`);
+          err.voiceMessage =
+            error === 'upgrade_required'
+              ? "JD's voice lessons are part of Pro — the written lesson below is still yours to read."
+              : res.status === 401
+                ? 'Your session expired — sign in again to hear JD speak.'
+                : res.status === 502 || res.status === 503
+                  ? `JD's voice is unavailable right now${message ? `: ${message}` : ''}. The written lesson below is unaffected.`
+                  : `JD's voice failed (error ${res.status}). The written lesson below is unaffected.`;
+          err.upgrade = error === 'upgrade_required';
+          throw err;
+        })
         .finally(() => abortersRef.current.delete(ctrl));
     };
 
@@ -312,6 +331,8 @@ function useSarvamTTS(defaultLanguage = 'English') {
     } catch (err) {
       if (dead() || err?.name === 'AbortError') return;   // cancelled — no-op
       setFetching(false);
+      // Say why JD went quiet, then let the lesson flow continue as before.
+      if (err?.voiceMessage) setVoiceError({ message: err.voiceMessage, upgrade: !!err.upgrade });
       onDone?.();
     }
   }, [defaultLanguage, stopAll, installUnlock]);
@@ -322,7 +343,7 @@ function useSarvamTTS(defaultLanguage = 'English') {
 
   useEffect(() => () => stopAll(), [stopAll]);
 
-  return { speak, stopAll, pause, fetching, blocked };
+  return { speak, stopAll, pause, fetching, blocked, voiceError };
 }
 
 // ── XP table ─────────────────────────────────────────────────────────────────
@@ -642,7 +663,8 @@ function LessonPreparing({ sec }) {
 
 // ── View: Lesson ──────────────────────────────────────────────────────────────
 function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete, onBack, addXP }) {
-  const { speak, stopAll, pause: pauseLesson, fetching: ttsLoading, blocked: ttsBlocked } = useSarvamTTS(language);
+  const { speak, stopAll, pause: pauseLesson, fetching: ttsLoading, blocked: ttsBlocked,
+          voiceError: ttsError } = useSarvamTTS(language);
 
   const [sections, setSections]             = useState([]);
   const [loading, setLoading]               = useState(true);
@@ -1176,7 +1198,12 @@ function LessonView({ lawCode, chapter, mode, language, lawProgress, onComplete,
         <div className="tutor-lesson-jd-row">
           <JDAvatar state={ttsBlocked ? 'idle' : ttsLoading ? 'thinking' : jdState} />
           <div className="tutor-lesson-jd-bubble">
-            {!readyToTeach
+            {ttsError
+              ? <span className="tutor-jd-voice-error">
+                  🔇 {ttsError.message}
+                  {ttsError.upgrade && <> <Link to="/pricing">See plans →</Link></>}
+                </span>
+              : !readyToTeach
               ? <span>📢 JD is introducing the chapter…</span>
               : lessonLoading
                 ? <span>✍️ JD is writing your lesson — the legal text is below…</span>
@@ -1971,7 +1998,8 @@ function Achievements({ progress, onBack }) {
 // • Haan / Nahi buttons + voice recognition
 // • Free-form query box so student can ask anything about the chapter
 function SessionComplete({ lawCode, chapter, score, total, xpEarned, badgeEarned, language, mode = 'student', onNextTopic, onGoodbye }) {
-  const { speak, stopAll, fetching: ttsLoading, blocked: ttsBlocked } = useSarvamTTS(language);
+  const { speak, stopAll, fetching: ttsLoading, blocked: ttsBlocked,
+          voiceError: ttsError } = useSarvamTTS(language);
 
   const [jdState,      setJdState]      = useState('idle');
   const [listeningYN,  setListeningYN]  = useState(false);
@@ -2121,12 +2149,18 @@ function SessionComplete({ lawCode, chapter, score, total, xpEarned, badgeEarned
       <div className="tutor-sc-jd-row">
         <JDAvatar state={ttsLoading ? 'thinking' : ttsBlocked ? 'idle' : jdState} />
         <div className="tutor-sc-jd-bubble">
-          {ttsLoading                          && '🎵 JD is warming up his voice…'}
-          {!ttsLoading && ttsBlocked           && <span className="tutor-jd-tap-hint">🔊 JD is ready — <strong>tap anywhere to hear</strong></span>}
-          {!ttsLoading && !ttsBlocked && jdState === 'speaking'  && '🔊 JD is speaking…'}
-          {!ttsLoading && !ttsBlocked && jdState === 'thinking'  && '⏳ JD is answering…'}
-          {!ttsLoading && !ttsBlocked && jdState === 'idle' && listeningYN  && '🎤 Bol do: "Haan" ya "Nahi"'}
-          {!ttsLoading && !ttsBlocked && jdState === 'idle' && !listeningYN && 'Next topic padhna chahoge?'}
+          {ttsError && (
+            <span className="tutor-jd-voice-error">
+              🔇 {ttsError.message}
+              {ttsError.upgrade && <> <Link to="/pricing">See plans →</Link></>}
+            </span>
+          )}
+          {!ttsError && ttsLoading             && '🎵 JD is warming up his voice…'}
+          {!ttsError && !ttsLoading && ttsBlocked && <span className="tutor-jd-tap-hint">🔊 JD is ready — <strong>tap anywhere to hear</strong></span>}
+          {!ttsError && !ttsLoading && !ttsBlocked && jdState === 'speaking'  && '🔊 JD is speaking…'}
+          {!ttsError && !ttsLoading && !ttsBlocked && jdState === 'thinking'  && '⏳ JD is answering…'}
+          {!ttsError && !ttsLoading && !ttsBlocked && jdState === 'idle' && listeningYN  && '🎤 Bol do: "Haan" ya "Nahi"'}
+          {!ttsError && !ttsLoading && !ttsBlocked && jdState === 'idle' && !listeningYN && 'Next topic padhna chahoge?'}
         </div>
         {listeningYN && <span className="tutor-sc-listen-dot" />}
       </div>

@@ -12,7 +12,6 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const FEATURES_DROPDOWN = [
   { label: 'Ask AI',      to: '/ask-ai'  },
-  { label: 'Comic Story', to: '/comic'   },
   { label: 'Tutor',       to: '/tutor'   },
   { label: 'Compare',     to: '/compare' },
   { label: 'Quiz',        to: '/quiz'    },
@@ -107,7 +106,6 @@ export default function Navbar() {
   const NAV_LINKS = [
     { label: 'Tutor',       to: '/tutor',   badge: 'New' },
     { label: 'Ask AI',      to: '/ask-ai'               },
-    { label: 'Comic Story', to: '/comic',   badge: 'Fun' },
     { label: 'Compare',     to: '/compare'              },
     { label: 'Quiz',        to: '/quiz'                 },
   ];

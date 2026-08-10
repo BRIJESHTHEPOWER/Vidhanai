@@ -73,19 +73,6 @@ const FEATURES_OV = [
     renderIcon: () => <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>,
   },
   {
-    to: '/comic',
-    iconColor: '#fb923c', iconBg: 'rgba(249,115,22,0.15)',
-    title: 'Comic Story',
-    desc: 'Understand complex Indian laws through visual storytelling and illustrated real-life case scenarios.',
-    renderIcon: () => (
-      <>
-        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
-        <line x1="10" y1="7" x2="16" y2="7"/>
-        <line x1="10" y1="11" x2="14" y2="11"/>
-      </>
-    ),
-  },
-  {
     to: '/tutor',
     iconColor: '#34d399', iconBg: 'rgba(16,185,129,0.15)',
     title: 'Tutor',
@@ -147,7 +134,7 @@ const HOW_STEPS = [
     accent: '#D4A017',
     accentRgb: '212, 160, 23',
     title: 'AI Decodes the Law',
-    desc: 'Vidhan.ai searches every BNS 2023 and IPC 1860 section instantly — surfacing the exact section, its punishment, and how the old and new law compare.',
+    desc: 'VidhanAI searches every BNS 2023 and IPC 1860 section instantly — surfacing the exact section, its punishment, and how the old and new law compare.',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M12 3 13.8 8.2 19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/>
@@ -278,39 +265,39 @@ function FeaturesOverview() {
   );
 }
 
-/* ── FAQ data — Vidhan.ai website questions ── */
+/* ── FAQ data — VidhanAI website questions ── */
 const HOME_FAQS = [
   {
-    q: 'What is Vidhan.ai?',
-    a: 'Vidhan.ai is an AI-powered platform for learning Indian criminal law. It lets you search, understand, and compare the Bharatiya Nyaya Sanhita (BNS) 2023 and the Indian Penal Code (IPC) 1860 in plain language — without needing a law degree.',
+    q: 'What is VidhanAI?',
+    a: 'VidhanAI is an AI-powered platform for learning Indian criminal law. It lets you search, understand, and compare the Bharatiya Nyaya Sanhita (BNS) 2023 and the Indian Penal Code (IPC) 1860 in plain language — without needing a law degree.',
   },
   {
-    q: 'Which laws does Vidhan.ai cover?',
-    a: 'Vidhan.ai focuses on India\'s two core criminal codes: the Bharatiya Nyaya Sanhita (BNS) 2023 — the current law — and the Indian Penal Code (IPC) 1860, which it replaced. You can browse every section of both codes (over 900 sections in all), compare them side by side, and learn them chapter by chapter.',
+    q: 'Which laws does VidhanAI cover?',
+    a: 'VidhanAI focuses on India\'s two core criminal codes: the Bharatiya Nyaya Sanhita (BNS) 2023 — the current law — and the Indian Penal Code (IPC) 1860, which it replaced. You can browse every section of both codes (over 900 sections in all), compare them side by side, and learn them chapter by chapter.',
   },
   {
-    q: 'Is the legal information on Vidhan.ai accurate?',
-    a: 'Every answer is grounded in the actual text of the BNS 2023 and IPC 1860 sections in our database, and the AI explains them in simple words. While we strive for accuracy, Vidhan.ai is an educational and research tool — it does not replace advice from a qualified advocate. Always consult a legal professional for your specific situation.',
+    q: 'Is the legal information on VidhanAI accurate?',
+    a: 'Every answer is grounded in the actual text of the BNS 2023 and IPC 1860 sections in our database, and the AI explains them in simple words. While we strive for accuracy, VidhanAI is an educational and research tool — it does not replace advice from a qualified advocate. Always consult a legal professional for your specific situation.',
   },
   {
     q: 'What is the difference between IPC and BNS?',
-    a: 'The Indian Penal Code (IPC) 1860 was India\'s primary criminal law, enacted during British rule. The Bharatiya Nyaya Sanhita (BNS) 2023 replaced it with updated provisions, renumbered sections, added community service as a punishment, and removed colonial-era language. Vidhan.ai\'s Compare tool shows you exactly what changed between the two.',
+    a: 'The Indian Penal Code (IPC) 1860 was India\'s primary criminal law, enacted during British rule. The Bharatiya Nyaya Sanhita (BNS) 2023 replaced it with updated provisions, renumbered sections, added community service as a punishment, and removed colonial-era language. VidhanAI\'s Compare tool shows you exactly what changed between the two.',
   },
   {
     q: 'Can I ask questions in Hindi or other regional languages?',
-    a: 'Yes. Vidhan.ai supports 7 Indian languages including Hindi, Tamil, Telugu, Kannada, Marathi, and Malayalam. You can ask in your language and receive answers — and even voice lessons from the AI Tutor — in the same language. Full multilingual access is included in the Pro plan.',
+    a: 'Yes. VidhanAI supports 7 Indian languages including Hindi, Tamil, Telugu, Kannada, Marathi, and Malayalam. You can ask in your language and receive answers — and even voice lessons from the AI Tutor — in the same language. Full multilingual access is included in the Pro plan.',
   },
   {
-    q: 'How can I learn the law on Vidhan.ai?',
-    a: 'Beyond searching sections, you can use the AI Law Tutor for voice-guided, chapter-by-chapter lessons, take quizzes to test yourself, read law comics that turn a section into a visual story, and compare IPC vs BNS side by side. Pick "Citizen" mode for plain everyday explanations or "Student" mode for legal terminology.',
+    q: 'How can I learn the law on VidhanAI?',
+    a: 'Beyond searching sections, you can use the AI Law Tutor for voice-guided, chapter-by-chapter lessons, take quizzes to test yourself, and compare IPC vs BNS side by side. Pick "Citizen" mode for plain everyday explanations or "Student" mode for legal terminology.',
   },
   {
     q: 'Is my data and conversation private?',
     a: 'Yes. Your questions and history are private to your account. We do not share or sell personal data to third parties, and all communications are encrypted in transit. You can delete your account and data at any time from your Profile page.',
   },
   {
-    q: 'How is Vidhan.ai different from a regular Google search?',
-    a: 'Google returns a list of links — Vidhan.ai gives you a direct answer grounded in the actual BNS/IPC section, explained in plain language. It compares old (IPC) versus new (BNS) law, cites the exact section, and can even teach you the topic by voice. It\'s a legal learning assistant, not a search engine.',
+    q: 'How is VidhanAI different from a regular Google search?',
+    a: 'Google returns a list of links — VidhanAI gives you a direct answer grounded in the actual BNS/IPC section, explained in plain language. It compares old (IPC) versus new (BNS) law, cites the exact section, and can even teach you the topic by voice. It\'s a legal learning assistant, not a search engine.',
   },
 ];
 
@@ -331,7 +318,7 @@ function HomeFAQ() {
               FAQ
             </div>
             <h2 className="section-title">
-              Questions about <span className="gradient-text">Vidhan.ai</span>
+              Questions about <span className="gradient-text">VidhanAI</span>
             </h2>
             <p className="section-subtitle">
               Everything you need to know about how it works, what it covers, and how to get started.
@@ -417,7 +404,7 @@ export default function VidhanHome() {
                 <div className="learn-cta-content">
                   <div>
                     <h3 className="learn-cta-title">Ready to understand your legal rights?</h3>
-                    <p className="learn-cta-sub">Ask Vidhan.ai anything. Get instant, accurate, and simplified legal guidance.</p>
+                    <p className="learn-cta-sub">Ask VidhanAI anything. Get instant, accurate, and simplified legal guidance.</p>
                   </div>
                   <div className="learn-cta-buttons">
                     <Link to="/ask-ai" className="btn btn-primary" id="final-cta-ai">

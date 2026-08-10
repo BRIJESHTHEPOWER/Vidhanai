@@ -74,10 +74,11 @@ export default function VerifyOtp() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Verification failed.');
+      if (!data.access_token) throw new Error('Verification did not return a session. Please try again.');
 
       localStorage.setItem('vidhan_token', data.access_token);
-      localStorage.setItem('vidhan_user', data.name);
-      localStorage.setItem('vidhan_email', data.email);
+      localStorage.setItem('vidhan_user', data.name || '');
+      localStorage.setItem('vidhan_email', data.email || '');
       navigate(redirectTo);
     } catch (err) {
       setError(err.message);
@@ -129,15 +130,15 @@ export default function VerifyOtp() {
           </div>
           <div className="auth-left-brand">
             <div className="auth-left-logo">
-              <img src="/vidhan-logo.png" alt="Vidhan.ai" />
+              <img src="/vidhan-logo.png" alt="VidhanAI" />
             </div>
-            <h2 className="auth-left-title">Vidhan.ai</h2>
+            <h2 className="auth-left-title">VidhanAI</h2>
             <p className="auth-left-sub">India's AI-Powered Legal Platform</p>
           </div>
           <ul className="auth-left-features">
             <li><span className="auth-feat-icon">⚖️</span> IPC 1860 &amp; BNS 2023 side-by-side</li>
             <li><span className="auth-feat-icon">🤖</span> AI legal assistant in your language</li>
-            <li><span className="auth-feat-icon">📚</span> Interactive quizzes &amp; law comics</li>
+            <li><span className="auth-feat-icon">📚</span> Interactive quizzes &amp; voice lessons</li>
           </ul>
         </div>
         <div className="auth-orb auth-orb--1" />
@@ -160,7 +161,7 @@ export default function VerifyOtp() {
         >
           <div className="auth-card-header">
             <div className="auth-card-logo">
-              <img src="/vidhan-logo.png" alt="Vidhan.ai" />
+              <img src="/vidhan-logo.png" alt="VidhanAI" />
             </div>
             <h1 className="auth-card-title">Verify your email</h1>
             <p className="auth-card-sub">

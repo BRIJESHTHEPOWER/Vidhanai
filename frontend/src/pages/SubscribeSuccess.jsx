@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { getToken } from '../utils/authHeaders';
 import './SubscribeSuccess.css';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
@@ -26,7 +27,7 @@ export default function SubscribeSuccess() {
   const timerRef = useRef(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('vidhan_token');
+    const token = getToken();   // also null for an expired/malformed token
     if (!token) {
       setPhase('error');
       return;

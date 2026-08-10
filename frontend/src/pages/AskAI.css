@@ -543,20 +543,6 @@
 }
 
 
-/* Comic button â€” pink/purple accent */
-.askai-action-btn--comic {
-  color: #ec4899;
-  background: rgba(236,72,153,0.08);
-  border-color: rgba(236,72,153,0.25);
-  font-weight: 600;
-}
-.askai-action-btn--comic:hover {
-  color: #f472b6;
-  background: rgba(236,72,153,0.15);
-  border-color: rgba(236,72,153,0.45);
-  box-shadow: 0 0 14px rgba(236,72,153,0.25);
-}
-
 /* Copy â€” icon only */
 .askai-action-btn--copy { padding: 5px 10px; }
 
@@ -1302,11 +1288,6 @@ button.askai-rs-query:hover { background: rgba(255, 255, 255, 0.05); }
   color: #b45309;
   border-color: rgba(245, 158, 11, 0.4);
 }
-.askai-root--light .askai-action-btn--comic:hover {
-  color: #be185d;
-  border-color: rgba(236, 72, 153, 0.4);
-}
-
 /* Meta / TTS */
 .askai-root--light .askai-msg-meta {
   color: rgba(15, 23, 42, 0.32);

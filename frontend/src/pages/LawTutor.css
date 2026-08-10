@@ -487,6 +487,20 @@
   50%    { opacity:0.6; }
 }
 
+/* Why JD went silent — a failed /tts/speak used to show nothing at all */
+.tutor-jd-voice-error {
+  color: #fbbf24;
+  line-height: 1.5;
+}
+.tutor-jd-voice-error a {
+  color: #818cf8;
+  font-weight: 600;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+[data-theme="light"] .tutor-jd-voice-error   { color: #b45309; }
+[data-theme="light"] .tutor-jd-voice-error a { color: #4f46e5; }
+
 .tutor-jd-avatar--speaking {
   border-color: rgba(99,102,241,0.7);
   box-shadow: 0 0 0 3px rgba(99,102,241,0.15), 0 0 20px rgba(99,102,241,0.35);

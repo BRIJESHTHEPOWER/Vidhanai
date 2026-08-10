@@ -85,7 +85,6 @@ queries_collection = db["queries"]
 users_collection   = db["users"]
 bns_collection     = db["bns_sections"]   # Raw BNS 2023 sections from bns.json
 ipc_collection     = db["ipc_sections"]   # Raw IPC 1860 sections from ipc.json
-comics_collection  = db["comics"]
 leaderboard_collection = db["leaderboard"]
 reviews_collection     = db["reviews"]
 admin_users_collection = db["admin_users"]

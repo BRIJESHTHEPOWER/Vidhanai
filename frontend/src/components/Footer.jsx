@@ -10,7 +10,6 @@ const COLS = [
     title: 'Product',
     links: [
       { label: 'Ask AI', to: '/ask-ai' },
-      { label: 'Comic Story', to: '/comic' },
       { label: 'AI Law Tutor', to: '/tutor' },
       { label: 'Law Comparison', to: '/compare' },
       { label: 'Quiz Hub', to: '/quiz' },
@@ -19,7 +18,7 @@ const COLS = [
   {
     title: 'Resources',
     links: [
-      { label: 'About Vidhan.ai', to: '/about' },
+      { label: 'About VidhanAI', to: '/about' },
       { label: 'IPC 1860 & BNS Guide', to: '/compare' },
       { label: 'User Reviews', to: '/reviews' },
       { label: 'Pricing & Pro', to: '/pricing' },
@@ -173,7 +172,7 @@ export default function Footer() {
         <div className="footer-bottom">
           <div className="footer-bottom-left">
             <p className="footer-copy">
-              © 2026 Vidhan.ai. Built with ❤ for legal awareness in India.
+              © 2026 VidhanAI. Built with ❤ for legal awareness in India.
             </p>
           </div>
           <div className="footer-socials">

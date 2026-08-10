@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import usePlanStatus from '../hooks/usePlanStatus';
+import { getToken } from '../utils/authHeaders';
 import './Profile.css';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
@@ -81,21 +82,25 @@ export default function Profile() {
         },
         body: JSON.stringify({ name: trimmed }),
       });
-      // Accept success even if endpoint doesn't exist yet
-      if (res.ok || res.status === 404 || res.status === 405) {
-        localStorage.setItem('vidhan_user', trimmed);
-        setUsername(trimmed);
-        setEditMode(false);
-        toast('success', 'Name updated successfully.');
-      } else {
-        throw new Error();
+      // A 404/405 used to be treated as success. The endpoint genuinely did not
+      // exist, so every rename only ever touched localStorage: the database kept
+      // the old name, reviews kept showing it, and the next login overwrote the
+      // change. Only a real 2xx counts now.
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || 'Could not update your name. Please try again.');
       }
-    } catch {
-      // Still update locally so UX doesn't break
-      localStorage.setItem('vidhan_user', trimmed);
-      setUsername(trimmed);
+      const saved = data.name || trimmed;
+      localStorage.setItem('vidhan_user', saved);
+      setUsername(saved);
       setEditMode(false);
-      toast('success', 'Name updated.');
+      toast('success', data.reviews_updated
+        ? `Name updated — also applied to ${data.reviews_updated} review${data.reviews_updated > 1 ? 's' : ''}.`
+        : 'Name updated successfully.');
+    } catch (err) {
+      // Do NOT fake success locally — that is what hid the missing endpoint.
+      setNameEdit(username);
+      toast('error', err.message || 'Could not update your name.');
     } finally {
       setSaving(false);
     }
@@ -104,7 +109,7 @@ export default function Profile() {
   /* Load the saved phone. It lives on the user record, not localStorage, so
      checkout prefills the same number on any device. */
   useEffect(() => {
-    const token = localStorage.getItem('vidhan_token');
+    const token = getToken();
     if (!token) return;
     let cancelled = false;
     (async () => {
@@ -125,7 +130,7 @@ export default function Profile() {
   const handleSavePhone = async () => {
     setSavingPhone(true);
     try {
-      const token = localStorage.getItem('vidhan_token');
+      const token = getToken();
       const res = await fetch(`${BASE_URL}/auth/me/phone`, {
         method: 'POST',
         headers: {
@@ -135,6 +140,7 @@ export default function Profile() {
         body: JSON.stringify({ phone: phoneVal.trim() }),
       });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 401) throw new Error('Your session has expired. Please log in again.');
       if (!res.ok) throw new Error(data.detail || 'Could not save phone.');
       // Show the server's normalised value (e.g. +91 prefixed), not the raw input.
       setPhone(data.phone || '');

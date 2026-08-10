@@ -92,16 +92,16 @@ export default function Signup() {
 
           <div className="auth-left-brand">
             <div className="auth-left-logo">
-              <img src="/vidhan-logo.png" alt="Vidhan.ai" />
+              <img src="/vidhan-logo.png" alt="VidhanAI" />
             </div>
-            <h2 className="auth-left-title">Vidhan.ai</h2>
+            <h2 className="auth-left-title">VidhanAI</h2>
             <p className="auth-left-sub">India's AI-Powered Legal Platform</p>
           </div>
 
           <ul className="auth-left-features">
             <li><span className="auth-feat-icon">⚖️</span> IPC 1860 &amp; BNS 2023 side-by-side</li>
             <li><span className="auth-feat-icon">🤖</span> AI legal assistant in your language</li>
-            <li><span className="auth-feat-icon">📚</span> Interactive quizzes &amp; law comics</li>
+            <li><span className="auth-feat-icon">📚</span> Interactive quizzes &amp; voice lessons</li>
           </ul>
         </div>
         <div className="auth-orb auth-orb--1" />
@@ -125,7 +125,7 @@ export default function Signup() {
         >
           <div className="auth-card-header">
             <div className="auth-card-logo">
-              <img src="/vidhan-logo.png" alt="Vidhan.ai" />
+              <img src="/vidhan-logo.png" alt="VidhanAI" />
             </div>
             <h1 className="auth-card-title">Create account</h1>
             <p className="auth-card-sub">Join thousands of legal learners</p>

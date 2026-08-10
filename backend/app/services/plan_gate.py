@@ -8,7 +8,7 @@ Free plan:
 
 Pro plan (users.plan_status == "pro", granted ONLY by the Razorpay webhook):
   • Unlimited questions, all 7 languages, voice input, Quiz & Learning Hub,
-    AI Law Tutor (incl. JD voice lessons + TTS), Comic Story mode.
+    AI Law Tutor (incl. JD voice lessons + TTS).
 
 Anonymous visitors (home-page demo chat) get a small per-IP daily allowance.
 """
@@ -51,7 +51,7 @@ def _upgrade_403(message: str, feature: str) -> HTTPException:
 
 
 def require_pro(user_email: str = Depends(get_current_user_email)) -> str:
-    """Dependency for Pro-only endpoints/routers (quiz, tutor, comic, voice, TTS…)."""
+    """Dependency for Pro-only endpoints/routers (quiz, tutor, voice, TTS…)."""
     if get_plan_status(user_email) != "pro":
         raise _upgrade_403(
             "This feature is part of the Pro plan. Upgrade to unlock it.",

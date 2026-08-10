@@ -86,7 +86,7 @@ export default function ImmersiveIntro({ onComplete }) {
                 <Sparkles size={50} color="#00c853" />
               </motion.div>
               <motion.div className="text-wrapper mt-4">
-                <h2 className="scene-heading text-primary glow-text">Hi, I am Vidhan.ai.</h2>
+                <h2 className="scene-heading text-primary glow-text">Hi, I am VidhanAI.</h2>
                 <p className="scene-sub">Your personal, friendly legal guide. No complex words.</p>
               </motion.div>
             </motion.div>

@@ -75,11 +75,11 @@ export default function SectionDetail() {
       .then(data => {
         setLaw(data);
         // Update page title for SEO
-        document.title = `IPC ${data.ipc_section} — ${data.title} | Vidhan.ai`;
+        document.title = `IPC ${data.ipc_section} — ${data.title} | VidhanAI`;
       })
       .catch(() => {
         setError(true);
-        document.title = 'Section Not Found | Vidhan.ai';
+        document.title = 'Section Not Found | VidhanAI';
       });
   }, [id]);
 

@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleLogin } from "@react-oauth/google";
 import { validateName, validateEmail, validatePassword, getPasswordStrength } from '../utils/authValidation';
+import { clearSession } from '../utils/authHeaders';
 import './Login.css';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
@@ -47,14 +48,22 @@ export default function Login() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: credentialResponse.credential }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      // A rejected Google token still parses as JSON, so without these checks
+      // the failure body was stored as the session: localStorage held the
+      // STRING "undefined", which is truthy — the app looked logged in and
+      // every request 401'd, including /api/subscribe.
+      if (!res.ok || !data.access_token) {
+        throw new Error(data.detail || 'Google sign-in failed. Please try again.');
+      }
       localStorage.setItem('vidhan_token', data.access_token);
-      localStorage.setItem('vidhan_user', data.name);
-      localStorage.setItem('vidhan_email', data.email);
+      localStorage.setItem('vidhan_user', data.name || '');
+      localStorage.setItem('vidhan_email', data.email || '');
       localStorage.setItem('vidhan_avatar', data.picture || '');
       navigate(redirectTo);
-    } catch {
-      setError('Google sign-in failed. Please try again.');
+    } catch (err) {
+      clearSession();   // never leave a partial session behind
+      setError(err.message || 'Google sign-in failed. Please try again.');
     }
   };
 
@@ -77,8 +86,9 @@ export default function Login() {
         }
         throw new Error(data.detail || 'Authentication failed');
       }
+      if (!data.access_token) throw new Error('Login did not return a session. Please try again.');
       localStorage.setItem('vidhan_token', data.access_token);
-      localStorage.setItem('vidhan_user', data.name);
+      localStorage.setItem('vidhan_user', data.name || '');
       localStorage.setItem('vidhan_email', email);
       navigate(redirectTo);
     } catch (err) {
@@ -144,16 +154,16 @@ export default function Login() {
 
           <div className="auth-left-brand">
             <div className="auth-left-logo">
-              <img src="/vidhan-logo.png" alt="Vidhan.ai" />
+              <img src="/vidhan-logo.png" alt="VidhanAI" />
             </div>
-            <h2 className="auth-left-title">Vidhan.ai</h2>
+            <h2 className="auth-left-title">VidhanAI</h2>
             <p className="auth-left-sub">India's AI-Powered Legal Platform</p>
           </div>
 
           <ul className="auth-left-features">
             <li><span className="auth-feat-icon">⚖️</span> IPC 1860 &amp; BNS 2023 side-by-side</li>
             <li><span className="auth-feat-icon">🤖</span> AI legal assistant in your language</li>
-            <li><span className="auth-feat-icon">📚</span> Interactive quizzes &amp; law comics</li>
+            <li><span className="auth-feat-icon">📚</span> Interactive quizzes &amp; voice lessons</li>
           </ul>
         </div>
         {/* decorative orbs */}
@@ -179,11 +189,11 @@ export default function Login() {
         >
           <div className="auth-card-header">
             <div className="auth-card-logo">
-              <img src="/vidhan-logo.png" alt="Vidhan.ai" />
+              <img src="/vidhan-logo.png" alt="VidhanAI" />
             </div>
             <h1 className="auth-card-title">{isLogin ? 'Welcome back' : 'Create account'}</h1>
             <p className="auth-card-sub">
-              {isLogin ? 'Sign in to your Vidhan.ai account' : 'Join thousands of legal learners'}
+              {isLogin ? 'Sign in to your VidhanAI account' : 'Join thousands of legal learners'}
             </p>
           </div>
 

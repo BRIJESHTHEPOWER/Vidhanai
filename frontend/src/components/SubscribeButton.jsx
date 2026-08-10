@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getToken, clearSession } from '../utils/authHeaders';
 import './SubscribeButton.css';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
@@ -44,9 +45,13 @@ export default function SubscribeButton({ className = '', children, plan = 'mont
   const handleClick = useCallback(async () => {
     setError('');
     setNeedsPhone(false);
-    const token = localStorage.getItem('vidhan_token');
+    // getToken() rejects an expired/malformed token too. Without that, a dead
+    // session sailed past this check and POST /api/subscribe just 401'd — the
+    // upgrade was impossible with no way to tell why.
+    const token = getToken();
     if (!token) {
-      navigate('/login');
+      clearSession();
+      navigate('/login?redirect=/pricing');
       return;
     }
 
@@ -63,6 +68,13 @@ export default function SubscribeButton({ className = '', children, plan = 'mont
         },
         body: JSON.stringify({ plan }),
       });
+      if (createRes.status === 401) {
+        // Server rejected the token (expired mid-session, or the signing secret
+        // changed). Clear it so the login page isn't bounced straight back.
+        clearSession();
+        navigate('/login?redirect=/pricing');
+        return;
+      }
       if (!createRes.ok) {
         const data = await createRes.json().catch(() => ({}));
         // `detail` is a plain string for simple errors, or {error, message} for
@@ -87,8 +99,8 @@ export default function SubscribeButton({ className = '', children, plan = 'mont
       const rzp = new window.Razorpay({
         key: key_id,
         subscription_id,
-        name: 'Vidhan.ai',
-        description: `Vidhan.ai Pro — ${plan === 'annual' ? 'Annual' : 'Monthly'} plan`,
+        name: 'VidhanAI',
+        description: `VidhanAI Pro — ${plan === 'annual' ? 'Annual' : 'Monthly'} plan`,
         prefill: {
           name: prefill?.name || '',
           email: prefill?.email || localStorage.getItem('vidhan_email') || '',
@@ -112,7 +124,15 @@ export default function SubscribeButton({ className = '', children, plan = 'mont
               }),
             });
             const data = await verifyRes.json().catch(() => ({}));
-            if (!verifyRes.ok) throw new Error(data.detail || 'Verification failed.');
+            if (!verifyRes.ok) {
+              // Payment went through — never strand it on a client-side error.
+              // The webhook still grants Pro; /subscribe/success polls for it.
+              throw new Error(
+                verifyRes.status === 401
+                  ? 'Your payment went through, but your session expired before we could confirm it. Log in again — Pro activates automatically.'
+                  : (data.detail || 'Verification failed.'),
+              );
+            }
             // 4. Go to the confirmation screen; it waits for the webhook.
             navigate(`/subscribe/success?subscription_id=${response.razorpay_subscription_id}`);
           } catch (err) {

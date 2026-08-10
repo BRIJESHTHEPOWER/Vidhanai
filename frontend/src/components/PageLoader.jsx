@@ -59,9 +59,9 @@ if (typeof document !== 'undefined' && !document.getElementById('vidhan-loader-s
 
 export default function PageLoader() {
   return (
-    <div style={style.root} aria-label="Loading Vidhan.ai" role="status">
+    <div style={style.root} aria-label="Loading VidhanAI" role="status">
       <div style={style.logo}>
-        <img src="/vidhan-logo.png" alt="Vidhan.ai Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', marginRight: '10px', verticalAlign: 'middle', objectFit: 'cover' }} />
+        <img src="/vidhan-logo.png" alt="VidhanAI Logo" style={{ width: '48px', height: '48px', borderRadius: '12px', marginRight: '10px', verticalAlign: 'middle', objectFit: 'cover' }} />
         Vidhan<span style={style.logoAI}>AI</span>
       </div>
       <div style={style.bar}>

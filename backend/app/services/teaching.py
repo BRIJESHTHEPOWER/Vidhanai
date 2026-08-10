@@ -140,9 +140,17 @@ def _is_indian(language: str) -> bool:
     return bool(language) and (language or "").strip().lower() != "english"
 
 
+def _token_budget(max_tokens: int, language: str) -> int:
+    """Indian scripts cost roughly 2.5-3x more tokens per word than Latin, so a
+    budget sized for English cuts a Kannada or Malayalam answer off mid-word.
+    Scale it up for both providers — this is a ceiling, not a target, and the
+    prompts still ask for the same number of sentences."""
+    return round(max_tokens * 2.5) if _is_indian(language) else max_tokens
+
+
 def _generate(system: str, user: str, temperature: float, max_tokens: int, language: str) -> str:
     """Language-routed text generation:
-      • Indian languages → Sarvam AI (Sarvam-105b) — native-script quality
+      • Indian languages → Sarvam AI (sarvam-105b-conversations) — native-script quality
       • English          → Groq (Llama) — fast
     Sarvam failures fall back to Groq so the lesson never breaks."""
     return _generate_chat(
@@ -154,19 +162,24 @@ def _generate(system: str, user: str, temperature: float, max_tokens: int, langu
 def _generate_chat(msgs: list, temperature: float, max_tokens: int, language: str) -> str:
     """Same routing as _generate but takes a full messages list (for doubts
     that carry conversation history)."""
+    budget = _token_budget(max_tokens, language)
     if _is_indian(language) and sarvam_llm.is_available():
         try:
-            out = sarvam_llm.chat(msgs, temperature=temperature, max_tokens=max_tokens).strip()
-            if out:
-                return out
-            # Sarvam sometimes returns an empty 200 — treat as failure, not content.
-            logger.warning("[Teaching] Sarvam returned empty — falling back to Groq")
+            # MODEL_CHAT, never the reasoning model: everything routed here is a
+            # short spoken reply, and sarvam-105b would spend the entire budget
+            # thinking and hand back nothing at all.
+            return sarvam_llm.chat(
+                msgs,
+                temperature=temperature,
+                max_tokens=budget,
+                model=sarvam_llm.MODEL_CHAT,
+            )
         except Exception as exc:
             logger.warning("[Teaching] Sarvam failed (%s) — falling back to Groq", exc)
     # English, or Sarvam unavailable/empty → Groq (fast; its plain-text mode
     # still handles native Indian scripts — only its JSON mode reverts to English).
     resp = _client().chat.completions.create(
-        model=GROQ_MODEL, messages=msgs, temperature=temperature, max_tokens=max_tokens,
+        model=GROQ_MODEL, messages=msgs, temperature=temperature, max_tokens=budget,
     )
     return (resp.choices[0].message.content or "").strip()
 

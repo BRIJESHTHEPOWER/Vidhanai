@@ -7,6 +7,9 @@
 # falls back to the MongoDB keyword search.
 fastapi==0.104.1
 uvicorn==0.24.0
+# uvicorn --reload silently does nothing without this, so a dev server keeps
+# serving the code it started with.
+watchfiles
 # 4.16.x is the version verified against the MongoDB Atlas cluster; the old
 # 4.6.0 pin was never tested here and is prone to TLS handshake issues with
 # Atlas on newer OpenSSL. certifi pins the CA bundle used for the Atlas TLS
@@ -31,3 +34,7 @@ bcrypt
 
 resend
 razorpay
+# Comic panel art. HF's own hf-inference provider dropped every image model
+# (410 "deprecated"), so images now go through Inference Providers, which the
+# hub client routes to whichever partner is live.
+huggingface_hub>=0.34

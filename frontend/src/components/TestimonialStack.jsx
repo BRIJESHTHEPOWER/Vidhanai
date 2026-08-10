@@ -148,7 +148,7 @@ export default function TestimonialStack() {
         </div>
         <h2 className="ts-title">Real People,&nbsp;Real Justice</h2>
         <p className="ts-subtitle">
-          From tenants to founders, students to activists — see how Vidhan.ai is making India's legal system accessible to everyone.
+          From tenants to founders, students to activists — see how VidhanAI is making India's legal system accessible to everyone.
         </p>
 
         <button className="write-review-btn" onClick={() => navigate('/reviews')} style={{ marginTop: '20px' }}>

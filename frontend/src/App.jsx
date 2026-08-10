@@ -26,7 +26,6 @@ const Compare      = lazy(() => import('./pages/Compare'));
 const ComparisonView = lazy(() => import('./pages/ComparisonView'));
 const Awareness    = lazy(() => import('./pages/Awareness'));
 const SectionDetail = lazy(() => import('./pages/SectionDetail'));
-const ComicStory    = lazy(() => import('./pages/ComicStory'));
 const NotFound     = lazy(() => import('./pages/NotFound'));
 const Reviews      = lazy(() => import('./pages/Reviews'));
 const Profile       = lazy(() => import('./pages/Profile'));
@@ -100,8 +99,9 @@ function App() {
             <Route path="/compare-detail/:bns" element={<ProtectedRoute><ComparisonView /></ProtectedRoute>} />
             <Route path="/awareness"   element={<ProtectedRoute><Awareness /></ProtectedRoute>} />
             <Route path="/section/:id" element={<ProtectedRoute><SectionDetail /></ProtectedRoute>} />
-            <Route path="/comic"       element={<ProtectedRoute><ComicStory /></ProtectedRoute>} />
-            <Route path="/tutor"       element={<ProtectedRoute><LawTutor /></ProtectedRoute>} />
+            {/* Pro: the tutor's lessons AND JD's voice are both Pro-gated server-side,
+                so a free account would otherwise land on a page whose voice 403s. */}
+            <Route path="/tutor"       element={<ProRoute><LawTutor /></ProRoute>} />
 
             {/* Admin Panel — self-contained auth, no nav */}
             <Route path="/admin"       element={<AdminPanel />} />

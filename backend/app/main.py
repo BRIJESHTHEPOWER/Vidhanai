@@ -25,7 +25,6 @@ from app.routers.awareness import router as awareness_router
 from app.routers.voice     import router as voice_router
 from app.routers.reviews   import router as reviews_router
 from app.routers.admin     import router as admin_router
-from app.routers.comic     import router as comic_router
 from app.routers.tutor     import router as tutor_router
 from app.routers.jd_teach  import router as jd_teach_router
 from app.routers.tts       import router as tts_router
@@ -190,7 +189,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # ── Routers ───────────────────────────────────────────────────────────────────
-# `static/` holds runtime-generated files (e.g. comic images), so it can be empty
+# `static/` holds runtime-generated files, so it can be empty
 # or absent on a fresh clone/deploy. Resolve it relative to backend/ (not the
 # CWD) and create it if missing, so startup never fails on a missing directory.
 _STATIC_DIR = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "static")
@@ -205,7 +204,6 @@ app.include_router(awareness_router)
 app.include_router(voice_router)
 app.include_router(reviews_router)
 app.include_router(admin_router)
-app.include_router(comic_router)   # handles POST /comic-story
 app.include_router(tutor_router)   # handles /tutor/*
 app.include_router(jd_teach_router)  # handles /jd/teach/* (Sarvam voice lessons)
 app.include_router(tts_router)       # handles /tts/* (Sarvam TTS)
@@ -430,7 +428,6 @@ Rewrite the provided legal answer in the SIMPLEST possible way.
     return {"simplified": simplified}
 
 
-# NOTE: POST /comic-story is handled exclusively by app.routers.comic (registered above)
 
 
 # ── /visualize — Topic graph data endpoint ─────────────────────────────────────

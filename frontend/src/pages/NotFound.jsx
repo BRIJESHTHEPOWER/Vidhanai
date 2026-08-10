@@ -15,7 +15,7 @@ const SUGGESTIONS = [
 
 export default function NotFound() {
   useEffect(() => {
-    document.title = '404 — Page Not Found | Vidhan.ai';
+    document.title = '404 — Page Not Found | VidhanAI';
   }, []);
 
   return (

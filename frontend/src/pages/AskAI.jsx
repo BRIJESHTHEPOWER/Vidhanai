@@ -562,7 +562,7 @@ export default function AskAI() {
       <aside className="askai-sidebar">
         <Link to="/" className="askai-logo">
           <VidhanLogo size={28} />
-          <span>Vidhan.ai</span>
+          <span>VidhanAI</span>
         </Link>
         <nav className="askai-sidenav">
           <Link to="/quiz"      className="askai-sidenav-link">📝 Quiz Hub</Link>
@@ -585,7 +585,7 @@ export default function AskAI() {
         <div className="askai-topbar">
           <div className="askai-topbar-title">
             <div className="askai-ai-dot" />
-            <span>Powered by Vidhan.ai ✨</span>
+            <span>Powered by VidhanAI ✨</span>
           </div>
 
           <div className="askai-topbar-actions">
