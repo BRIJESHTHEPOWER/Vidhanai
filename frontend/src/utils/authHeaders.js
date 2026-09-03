@@ -61,9 +61,10 @@ export async function readPlanError(res) {
     const body = await res.json();
     const d = body?.detail;
     if (d && typeof d === 'object' && d.error) {
-      return { error: d.error, message: d.message || '' };
+      return { error: d.error, message: d.message || '', remaining: d.remaining ?? 0 };
     }
-    if (typeof d === 'string') return { error: null, message: d };
+    if (typeof d === 'string') return { error: null, message: d, remaining: 0 };
   } catch { /* non-JSON body */ }
-  return { error: null, message: '' };
+  return { error: null, message: '', remaining: 0 };
 }
+

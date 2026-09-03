@@ -302,7 +302,6 @@ function ComparisonResult({ result, navigate }) {
         {[
           { icon: '📚', num: '511', label: 'Sections in IPC 1860', color: '#ef4444' },
           { icon: '📗', num: '358', label: 'Sections in BNS 2023', color: '#22c55e' },
-          { icon: '⚖️', num: '25+', label: 'Major Structural Changes', color: '#8b5cf6' },
           { icon: '🛡️', num: '100%', label: 'Future Ready Law',     color: '#6366f1' },
         ].map((s) => (
           <div key={s.label} className="vcmp-stat">

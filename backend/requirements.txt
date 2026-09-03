@@ -38,3 +38,5 @@ razorpay
 # (410 "deprecated"), so images now go through Inference Providers, which the
 # hub client routes to whichever partner is live.
 huggingface_hub>=0.34
+redis>=5.0.0
+

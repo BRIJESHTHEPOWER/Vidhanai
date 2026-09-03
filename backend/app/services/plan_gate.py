@@ -111,21 +111,24 @@ def enforce_question_quota(
             )
         return {"plan": "free", "remaining": max(0, FREE_DAILY_QUESTIONS - count - 1)}
 
-    # Anonymous (home-page demo chat): small per-IP daily allowance.
-    key = {"kind": "anon_ask", "ip": client_ip or "unknown", "date": today}
-    doc = usage_collection.find_one(key) or {}
-    count = doc.get("count", 0)
-    if count >= ANON_DAILY_QUESTIONS:
+    # Anonymous (home-page demo chat):
+    from app.services.redis_limiter import check_and_increment_demo_limit, is_dev_mode
+    if is_dev_mode():
+        # In local development mode, do not apply demo restriction
+        return {"plan": "anonymous", "remaining": 5}
+
+    # Production mode: limit visitor to 5 requests / 24 hrs via Redis
+    ip = client_ip or "unknown"
+    allowed, remaining, msg = check_and_increment_demo_limit(ip, is_pro=False)
+    if not allowed:
         raise HTTPException(status_code=429, detail={
             "error": "demo_limit_reached",
-            "limit": ANON_DAILY_QUESTIONS,
-            "message": (
-                "Demo limit reached. Create a free account for "
-                f"{FREE_DAILY_QUESTIONS} AI legal questions every day."
-            ),
+            "limit": 5,
+            "message": msg or "Demo limit reached. Please try again later.",
+            "remaining": 0,
         })
-    usage_collection.update_one(key, {"$inc": {"count": 1}}, upsert=True)
-    return {"plan": "anonymous", "remaining": max(0, ANON_DAILY_QUESTIONS - count - 1)}
+    return {"plan": "anonymous", "remaining": remaining}
+
 
 
 def question_usage(user_email: str) -> dict:

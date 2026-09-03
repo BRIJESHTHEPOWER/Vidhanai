@@ -388,12 +388,16 @@ class SimplifyRequest(BaseModel):
     language: Optional[str] = "English"
 
 
+from app.services.redis_limiter import check_redis_demo_limit
+
+
 @app.post("/simplify")
 @limiter.limit("30/minute")
-def simplify_answer(
+async def simplify_answer(
     request: Request,
     body: SimplifyRequest,
     user_email: Optional[str] = Depends(get_current_user_email_optional),
+    demo_remaining: int = Depends(check_redis_demo_limit),
 ):
     """
     Takes a legal AI answer and rewrites it in super-simple,
@@ -425,7 +429,8 @@ Rewrite the provided legal answer in the SIMPLEST possible way.
     simplified = generate_groq_text(system_instruction, user_text, temperature=0.35, max_tokens=900)
     if not simplified:
         raise HTTPException(status_code=500, detail="Could not simplify the answer right now. Please try again.")
-    return {"simplified": simplified}
+    return {"simplified": simplified, "demo_remaining": demo_remaining}
+
 
 
 
@@ -581,7 +586,12 @@ class UnfoldRequest(BaseModel):
 
 @app.post("/unfold-case")
 @limiter.limit("20/minute")
-def unfold_case(request: Request, body: UnfoldRequest):
+async def unfold_case(
+    request: Request,
+    body: UnfoldRequest,
+    demo_remaining: int = Depends(check_redis_demo_limit),
+):
+
     """
     Given a chat question (and optional AI answer), find the most relevant
     law from the database and generate a 4-step procedural walkthrough:
@@ -719,7 +729,9 @@ def unfold_case(request: Request, body: UnfoldRequest):
             "bailable":     best_law.get("bailable"),
         },
         "steps": steps,
+        "demo_remaining": demo_remaining,
     }
+
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

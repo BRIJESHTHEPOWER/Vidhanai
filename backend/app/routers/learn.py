@@ -106,9 +106,17 @@ class AskSectionModel(BaseModel):
     language:    Optional[str] = "English"
 
 
+from app.services.redis_limiter import check_redis_demo_limit
+
+
 @router.post("/learn/ask-ai")
 @limiter.limit("15/minute")  # Rate limit Gemini API usage
-def learn_ask_ai(request: Request, body: AskSectionModel):
+async def learn_ask_ai(
+    request: Request,
+    body: AskSectionModel,
+    demo_remaining: int = Depends(check_redis_demo_limit),
+):
+
     """AI follow-up question for a specific IPC section."""
     # H6: sanitize question input
     question = sanitize_input(body.question, max_len=1000)
@@ -139,4 +147,5 @@ def learn_ask_ai(request: Request, body: AskSectionModel):
         return {"answer": "I couldn't find relevant legal information for this question."}
 
     answer = generate_ai_response(question, context, body.language)
-    return {"answer": answer, "ipc_section": body.ipc_section}
+    return {"answer": answer, "ipc_section": body.ipc_section, "demo_remaining": demo_remaining}
+
